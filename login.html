@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - TATIP AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h2 style="font-size: 1.2rem; font-weight: 700; color: #0F172A;">TATIP AI Support</h2>
+                <p style="font-size: 0.8rem; color: #64748B;">เข้าสู่ระบบเพื่อใช้งาน</p>
+            </div>
+            
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>LINE USER ID <span class="req">*</span></label>
+                    <input type="text" id="lineUserId" required placeholder="U4af4980629b307...">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label>TENANT ID (รหัสองค์กร) <span class="req">*</span></label>
+                    <input type="text" id="tenantId" required placeholder="tatip_corp_01">
+                </div>
+                
+                <button type="submit" class="btn-send-contact-form">เข้าสู่ระบบ</button>
+                
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="index.html" style="font-size: 0.75rem; color: #64748B; text-decoration: none;">เข้าใช้งานแบบทั่วไป</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="./script.js"></script>
+</body>
+</html>

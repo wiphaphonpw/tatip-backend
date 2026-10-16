@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำถามที่พบบ่อย - TATIP AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <header class="top-navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <div class="logo-box"><i class="fa-solid fa-robot"></i> <span class="logo-text">TATIP AI</span></div>
+            </a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-title-box">
+            <h2><i class="fa-solid fa-circle-question text-red"></i> คำถามที่พบบ่อย</h2>
+        </div>
+
+        <div class="faq-controls-bar">
+            <div class="chip-group">
+                <button class="chip active" onclick="filterFaqCategory('all', this)">ทั้งหมด</button>
+                <button class="chip" onclick="filterFaqCategory('camera', this)"><i class="fa-solid fa-video"></i> กล้อง</button>
+                <button class="chip" onclick="filterFaqCategory('account', this)"><i class="fa-solid fa-user"></i> บัญชี</button>
+            </div>
+        </div>
+
+        <div class="faq-accordion-container">
+            <div class="faq-accordion-item active" data-category="camera">
+                <div class="faq-accordion-header" onclick="toggleFaq(this)">
+                    <div class="faq-title-group"><i class="fa-solid fa-circle-question faq-q-icon"></i><h4>กล้องขึ้นออนไลน์แต่ไม่มีภาพ ต้องแก้ไขอย่างไร?</h4></div>
+                </div>
+                <div class="faq-accordion-body">
+                    <p>ตรวจสอบ Bandwidth เครือข่าย และตรวจสอบว่าพอร์ต 554 ไม่ถูก Firewall บล็อก</p>
+                </div>
+            </div>
+
+            <div class="faq-accordion-item" data-category="camera">
+                <div class="faq-accordion-header" onclick="toggleFaq(this)">
+                    <div class="faq-title-group"><i class="fa-solid fa-circle-question faq-q-icon"></i><h4>ดู IP Address ของกล้องได้จากเมนูไหน?</h4></div>
+                </div>
+                <div class="faq-accordion-body">
+                    <p>ไปที่เมนู <strong>กล้อง / CCTV &gt; รายชื่ออุปกรณ์</strong> เพื่อดู IP Address</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="bottom-nav-item">
+            <i class="fa-solid fa-house"></i>
+            <span>หน้าหลัก</span>
+        </a>
+        <a href="chat.html" class="bottom-nav-item">
+            <i class="fa-solid fa-comments"></i>
+            <span>แชท AI</span>
+        </a>
+        <a href="history.html" class="bottom-nav-item">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>ประวัติ</span>
+        </a>
+        <a href="faq.html" class="bottom-nav-item active">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>คำถาม</span>
+        </a>
+        <a href="contact.html" class="bottom-nav-item">
+            <i class="fa-solid fa-headset"></i>
+            <span>ติดต่อ</span>
+        </a>
+    </nav>
+
+    <script src="./script.js"></script>
+</body>
+</html>

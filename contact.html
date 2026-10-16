@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ติดต่อเจ้าหน้าที่ - TATIP AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <header class="top-navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <div class="logo-box"><i class="fa-solid fa-robot"></i> <span class="logo-text">TATIP AI</span></div>
+            </a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-title-box">
+            <h2><i class="fa-solid fa-headset text-red"></i> ติดต่อเจ้าหน้าที่</h2>
+        </div>
+
+        <div class="contact-grid-layout">
+            <div class="contact-channels">
+                <div class="channel-card">
+                    <div class="channel-icon red"><i class="fa-solid fa-ticket"></i></div>
+                    <div class="channel-info">
+                        <h4>Ticket ซัพพอร์ต 24 ชม.</h4>
+                        <button onclick="openSupportModal()" style="background:var(--primary-red); color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.75rem; margin-top:0.3rem;">เปิด Ticket</button>
+                    </div>
+                </div>
+                <div class="channel-card">
+                    <div class="channel-icon blue"><i class="fa-solid fa-phone"></i></div>
+                    <div class="channel-info">
+                        <h4>Call Center</h4>
+                        <div class="phone-num">02-123-4567</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-form-card">
+                <h3><i class="fa-solid fa-paper-plane text-red"></i> ฝากข้อความ</h3>
+                <form onsubmit="handleDirectContactSubmit(event)">
+                    <div class="form-group"><label>ชื่อ-นามสกุล <span class="req">*</span></label><input type="text" required></div>
+                    <div class="form-group"><label>เบอร์โทรศัพท์ <span class="req">*</span></label><input type="tel" required></div>
+                    <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="3" required></textarea></div>
+                    <button type="submit" class="btn-send-contact-form">ส่งข้อความ</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="bottom-nav-item">
+            <i class="fa-solid fa-house"></i>
+            <span>หน้าหลัก</span>
+        </a>
+        <a href="chat.html" class="bottom-nav-item">
+            <i class="fa-solid fa-comments"></i>
+            <span>แชท AI</span>
+        </a>
+        <a href="history.html" class="bottom-nav-item">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>ประวัติ</span>
+        </a>
+        <a href="faq.html" class="bottom-nav-item">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>คำถาม</span>
+        </a>
+        <a href="contact.html" class="bottom-nav-item active">
+            <i class="fa-solid fa-headset"></i>
+            <span>ติดต่อ</span>
+        </a>
+    </nav>
+
+    <div id="ticketModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-ticket text-red"></i> เปิด Ticket</h3>
+                <button class="btn-close-modal" onclick="closeSupportModal()">&times;</button>
+            </div>
+            <form onsubmit="submitSupportTicket(event)">
+                <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="3" required></textarea></div>
+                <div style="display:flex; justify-content:flex-end; gap:0.4rem;">
+                    <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ยกเลิก</button>
+                    <button type="submit" style="background:#C81E1E; color:white; border:none; padding:0.4rem 0.8rem; border-radius:4px;">ส่งเรื่อง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>

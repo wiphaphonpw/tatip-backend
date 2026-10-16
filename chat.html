@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แชท AI ช่วยเหลือ - TATIP AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <header class="top-navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <div class="logo-box"><i class="fa-solid fa-robot"></i> <span class="logo-text">TATIP AI</span></div>
+            </a>
+            <button onclick="openSupportModal()" style="background:var(--primary-red); color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.75rem;"><i class="fa-solid fa-plus-circle"></i> Ticket</button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="chat-container-layout">
+            <div class="chat-header">
+                <div class="ai-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div>
+                    <h3 style="font-size:0.85rem;">TATIP Assistant Bot</h3>
+                    <span class="sub-status"><i class="fa-solid fa-circle" style="font-size:0.5rem;"></i> RAG Online</span>
+                </div>
+                <button class="btn-reset-chat" onclick="resetChat()"><i class="fa-solid fa-rotate-right"></i> รีเซ็ต</button>
+            </div>
+
+            <div id="chatMessages" class="chat-messages-box">
+                <div class="message-group ai">
+                    <div class="message-avatar"><i class="fa-solid fa-robot"></i></div>
+                    <div class="message-body">
+                        <div class="message-bubble">สวัสดีค่ะ TATIP AI ยินดีให้บริการค่ะ คุณสามารถพิมพ์สอบถามปัญหากล้อง วงจรปิด หรือการใช้งานได้เลยค่ะ</div>
+                        <div class="message-time">เมื่อครู่นี้</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-replies-wrapper">
+                <button class="qr-btn" onclick="sendChatMessage('กล้องขึ้นออนไลน์แต่ไม่มีภาพ')"><i class="fa-solid fa-video"></i> กล้องไม่มีภาพ</button>
+                <button class="qr-btn" onclick="sendChatMessage('ดู IP Address ของกล้องได้ที่ไหน')"><i class="fa-solid fa-network-wired"></i> ดู IP กล้อง</button>
+            </div>
+
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="พิมพ์คำถามของคุณ..." onkeypress="handleChatKeyPress(event)">
+                <button class="btn-send-chat" onclick="submitChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="bottom-nav-item">
+            <i class="fa-solid fa-house"></i>
+            <span>หน้าหลัก</span>
+        </a>
+        <a href="chat.html" class="bottom-nav-item active">
+            <i class="fa-solid fa-comments"></i>
+            <span>แชท AI</span>
+        </a>
+        <a href="history.html" class="bottom-nav-item">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>ประวัติ</span>
+        </a>
+        <a href="faq.html" class="bottom-nav-item">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>คำถาม</span>
+        </a>
+        <a href="contact.html" class="bottom-nav-item">
+            <i class="fa-solid fa-headset"></i>
+            <span>ติดต่อ</span>
+        </a>
+    </nav>
+
+    <div id="ticketModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-ticket text-red"></i> เปิด Ticket</h3>
+                <button class="btn-close-modal" onclick="closeSupportModal()">&times;</button>
+            </div>
+            <form onsubmit="submitSupportTicket(event)">
+                <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="3" required></textarea></div>
+                <div style="display:flex; justify-content:flex-end; gap:0.4rem;">
+                    <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ยกเลิก</button>
+                    <button type="submit" style="background:#C81E1E; color:white; border:none; padding:0.4rem 0.8rem; border-radius:4px;">ส่งเรื่อง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>

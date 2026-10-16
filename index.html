@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หน้าหลัก - TATIP AI Support System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <header class="top-navbar">
+        <div class="nav-container">
+            <a href="index.html" class="brand-logo">
+                <div class="logo-box">
+                    <i class="fa-solid fa-robot"></i>
+                    <span class="logo-text">TATIP AI</span>
+                    <span class="version-badge">v10.0 RAG</span>
+                </div>
+                <div class="brand-subtitle">ระบบสนับสนุนบริการลูกค้าอัจฉริยะ</div>
+            </a>
+            <div class="status-online-pill">
+                <span class="dot"></span>
+                <span>RAG: <strong>Online</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section class="hero-banner">
+            <div class="hero-content">
+                <div class="ai-tag"><i class="fa-solid fa-wand-magic-sparkles"></i> AI วิเคราะห์ปัญหากล้อง TATIP AI</div>
+                <h1 class="hero-title">สวัสดีค่ะ มีอะไรให้ TATIP AI ช่วยเหลือไหมคะ?</h1>
+                <p class="hero-subtitle">ค้นหาคู่มือการใช้งาน วิธีแก้ปัญหากล้อง CCTV Dashboard ได้ทันที</p>
+                
+                <div class="hero-search-bar">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="homeSearchInput" placeholder="ถามเกี่ยวกับ TATIP AI..." onkeypress="handleHomeSearch(event)">
+                    <button class="btn-hero-search" onclick="executeHomeSearch()">ค้นหา</button>
+                </div>
+
+                <div class="popular-tags">
+                    <button class="tag-btn" onclick="askQuickQuestion('กล้องขึ้นออนไลน์แต่ไม่มีภาพ')">กล้องไม่มีภาพ</button>
+                    <button class="tag-btn" onclick="askQuickQuestion('ดู IP Address กล้อง')">ดู IP กล้อง</button>
+                    <button class="tag-btn" onclick="askQuickQuestion('ตั้งค่าการแจ้งเตือน')">การแจ้งเตือน</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="categories-section">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-border-all text-red"></i> หมวดหมู่หลัก</h2>
+            </div>
+            <div class="category-grid">
+                <div class="category-card" onclick="startChatCategory('กล้อง / CCTV')">
+                    <div class="cat-icon-box camera"><i class="fa-solid fa-camera-retro"></i></div>
+                    <h3>1. กล้อง / CCTV</h3>
+                    <p>การเชื่อมต่อสัญญาณภาพ และเปลี่ยน IP Address</p>
+                    <div class="cat-footer">12 บทความ <i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+                <div class="category-card" onclick="startChatCategory('บัญชีผู้ใช้')">
+                    <div class="cat-icon-box user"><i class="fa-solid fa-user-gear"></i></div>
+                    <h3>2. บัญชีผู้ใช้</h3>
+                    <p>ลืมรหัสผ่าน และขอสิทธิ์การเข้าถึงสาขา</p>
+                    <div class="cat-footer">8 บทความ <i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+                <div class="category-card" onclick="startChatCategory('Dashboard')">
+                    <div class="cat-icon-box dashboard"><i class="fa-solid fa-chart-simple"></i></div>
+                    <h3>3. Dashboard</h3>
+                    <p>การดูรายงานวิเคราะห์ภาพรวม และ Heatmap</p>
+                    <div class="cat-footer">10 บทความ <i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+                <div class="category-card" onclick="startChatCategory('การแจ้งเตือน')">
+                    <div class="cat-icon-box bell"><i class="fa-solid fa-bell"></i></div>
+                    <h3>4. การแจ้งเตือน</h3>
+                    <p>ตั้งค่าแจ้งเตือนผ่าน LINE Notify/Email</p>
+                    <div class="cat-footer">6 บทความ <i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="home-bottom-layout">
+            <div class="top-faqs-container">
+                <div class="faqs-header">
+                    <h3><i class="fa-solid fa-fire text-red"></i> คำถามพบบ่อย</h3>
+                    <a href="faq.html" style="font-size:0.75rem; color:var(--primary-red); text-decoration:none;">ดูทั้งหมด &gt;</a>
+                </div>
+                <div class="faq-item-card" onclick="askQuickQuestion('กล้องขึ้นออนไลน์แต่ไม่มีภาพ ต้องแก้ไขอย่างไร?')">
+                    <div class="faq-meta"><span class="badge-cat red">หมวดกล้อง</span></div>
+                    <h4>กล้องขึ้นออนไลน์แต่ไม่มีภาพ (Black Screen)</h4>
+                    <p>ขั้นตอนการตรวจสอบ RTSP Stream เบื้องต้น</p>
+                </div>
+            </div>
+            
+            <div class="rag-status-card">
+                <div class="rag-card-header">
+                    <span class="rag-pill-active"><span class="dot-green"></span> RAG ACTIVE</span>
+                    <span class="vdb-badge">Vector DB</span>
+                </div>
+                <h3>TATIP Knowledge RAG</h3>
+                <p class="rag-desc">ระบบค้นหาคู่มืออัตโนมัติ TATIP Manual v10.0</p>
+                <div class="rag-stats-grid">
+                    <div class="stat-box"><div class="stat-num text-red">100%</div><div class="stat-label">Accuracy</div></div>
+                    <div class="stat-box"><div class="stat-num text-white">&lt; 1.2s</div><div class="stat-label">Retrieval</div></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR (แถบเมนูด้านล่างสำหรับมือถือ) -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="bottom-nav-item active">
+            <i class="fa-solid fa-house"></i>
+            <span>หน้าหลัก</span>
+        </a>
+        <a href="chat.html" class="bottom-nav-item">
+            <i class="fa-solid fa-comments"></i>
+            <span>แชท AI</span>
+        </a>
+        <a href="history.html" class="bottom-nav-item">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>ประวัติ</span>
+        </a>
+        <a href="faq.html" class="bottom-nav-item">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>คำถาม</span>
+        </a>
+        <a href="contact.html" class="bottom-nav-item">
+            <i class="fa-solid fa-headset"></i>
+            <span>ติดต่อ</span>
+        </a>
+    </nav>
+
+    <!-- TICKET MODAL -->
+    <div id="ticketModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-ticket text-red"></i> เปิด Ticket แจ้งเรื่อง</h3>
+                <button class="btn-close-modal" onclick="closeSupportModal()">&times;</button>
+            </div>
+            <form onsubmit="submitSupportTicket(event)">
+                <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="3" required></textarea></div>
+                <div style="display:flex; justify-content:flex-end; gap:0.4rem;">
+                    <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ยกเลิก</button>
+                    <button type="submit" style="background:#C81E1E; color:white; border:none; padding:0.4rem 0.8rem; border-radius:4px;">ส่งเรื่อง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'asia-southeast1-docker.pkg.dev/tatip-ai-rag/cloud-run-source-deploy/tatip-ai-service:latest', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-southeast1-docker.pkg.dev/tatip-ai-rag/cloud-run-source-deploy/tatip-ai-service:latest']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'tatip-ai-service'
+      - '--image=asia-southeast1-docker.pkg.dev/tatip-ai-rag/cloud-run-source-deploy/tatip-ai-service:latest'
+      - '--region=asia-southeast1'
+      - '--allow-unauthenticated'
+images:
+  - 'asia-southeast1-docker.pkg.dev/tatip-ai-rag/cloud-run-source-deploy/tatip-ai-service:latest'
