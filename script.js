@@ -1,16 +1,51 @@
 // ==========================================
 // 1. ระบบ Auth (Login)
 // ==========================================
-function handleLogin(event) {
-    event.preventDefault();
-    const lineId = document.getElementById("lineUserId").value;
-    const tenantId = document.getElementById("tenantId").value;
-    
-    if (!lineId || !tenantId) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+async function handleLogin(event) {
+    event.preventDefault(); // ป้องกันไม่ให้ฟอร์มรีเฟรชหน้าเว็บ
 
-    localStorage.setItem("tatip_logged_in", "true");
-    localStorage.setItem("tatip_tenant", tenantId);
-    window.location.href = "index.html";
+    const usernameInput = document.getElementById('username').value.trim();
+    const passwordInput = document.getElementById('password').value.trim();
+
+    try {
+        // ส่ง username และ password ไปเช็กที่ FastAPI (/api/login)
+        const response = await fetch('http://127.0.0.1:8000/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                username: usernameInput, 
+                password: passwordInput 
+            })
+        });
+        
+        const result = await response.json();
+
+        if (response.ok && result.status === 'success') {
+            alert('เข้าสู่ระบบสำเร็จ ยินดีต้อนรับคุณ ' + usernameInput);
+            
+            // เก็บข้อมูลผู้ใช้ไว้ใน localStorage
+            const userData = {
+                username: usernameInput,
+                role: result.role,
+                tenant_id: result.tenant_id
+            };
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+
+            // ตรวจสอบสิทธิ์ (Role) เพื่อแยกหน้าเว็บ
+            if (result.role === 'admin' || result.role === 'branch_manager') {
+                // ถ้าเป็น Admin ไปหน้าจัดการระบบ
+                window.location.href = 'admin_users.html'; 
+            } else {
+                // ถ้าเป็น Customer ไปหน้าแชทหลัก
+                window.location.href = 'index.html'; 
+            }
+        } else {
+            alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + (result.detail || 'Username หรือ Password ไม่ถูกต้อง'));
+        }
+    } catch (error) {
+        console.error('Login Error:', error);
+        alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ Backend');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -146,13 +181,22 @@ async function submitChatMessage() {
 // ==========================================
 function saveToHistory(question, answer) {
     let history = JSON.parse(localStorage.getItem('tatip_chat_history')) || [];
+    
+    // ทำความสะอาดข้อความ ลบสัญลักษณ์ Markdown (** หรือ *) และจัดระเบียบเว้นวรรค
+    const cleanAnswer = answer
+        .replace(/\*\*/g, '')  
+        .replace(/\*/g, '')    
+        .replace(/<br>/g, ' ') 
+        .trim();
+
     history.unshift({
         id: 'CASE-' + Date.now().toString().slice(-8),
         question: question,
-        answer: answer,
-        date: new Date().toLocaleDateString('th-TH'),
+        answer: cleanAnswer,
+        date: new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }),
         time: new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})
     });
+    
     if (history.length > 50) history.pop();
     localStorage.setItem('tatip_chat_history', JSON.stringify(history));
 }
@@ -160,52 +204,90 @@ function saveToHistory(question, answer) {
 function loadHistory() {
     const historyList = document.getElementById('historyList');
     if (!historyList) return;
+    
     let history = JSON.parse(localStorage.getItem('tatip_chat_history')) || [];
     historyList.innerHTML = '';
+    
     if (history.length === 0) {
-        historyList.innerHTML = '<p style="color: #64748B; text-align: center; grid-column: 1/-1; padding: 2rem;">ยังไม่มีประวัติการสนทนา</p>';
+        historyList.innerHTML = '<p style="color: #64748B; text-align: center; grid-column: 1/-1; padding: 3rem; font-size: 0.95rem;">ยังไม่มีประวัติการสนทนาในระบบ</p>';
         return;
     }
-    history.forEach(item => {
+    
+    history.forEach((item, index) => {
+        // ใช้ JSON.stringify เพื่อแปลงค่าข้อความให้อย่างปลอดภัย ป้องกันปัญหากรณีมีเครื่องหมายคำพูดหรืออักขระพิเศษ
+        const safeQuestion = JSON.stringify(item.question);
+        const safeAnswer = JSON.stringify(item.answer);
+
         historyList.innerHTML += `
-            <div class="history-card">
+            <div class="history-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
                 <div>
-                    <div class="history-header">
-                        <div class="history-icon-type"><i class="fa-solid fa-message"></i></div>
-                        <span class="status-badge resolved">AI Resolved</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-size: 0.75rem; background: #fef2f2; color: #dc2626; padding: 4px 10px; border-radius: 6px; font-weight: 600;">${item.id}</span>
+                        <span style="font-size: 0.75rem; color: #94a3b8;"><i class="fa-regular fa-clock"></i> ${item.date} • ${item.time} น.</span>
                     </div>
-                    <h4>${item.question}</h4>
-                    <p>${item.answer.substring(0, 80)}...</p>
+                    <h4 style="font-size: 0.95rem; color: #1e293b; margin: 0 0 8px 0; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">📌 ${item.question}</h4>
+                    <p style="font-size: 0.85rem; color: #64748B; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5;">${item.answer}</p>
                 </div>
-                <div class="history-footer">
-                    <span>${item.id} • ${item.date}</span>
-                    <button class="btn-view-transcript" onclick="openTranscript('${item.question}', '${item.answer.replace(/\n/g, '<br>').replace(/'/g, "\\'")}')">ดูแชท <i class="fa-solid fa-arrow-right"></i></button>
+                <div style="margin-top: 18px; border-top: 1px solid #f1f5f9; padding-top: 12px; display: flex; justify-content: flex-end;">
+                    <button onclick='openTranscript(${safeQuestion}, ${safeAnswer})' style="background: #f8fafc; border: 1px solid #e2e8f0; color: #d32f2f; padding: 6px 14px; border-radius: 6px; font-family: 'Prompt', sans-serif; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        ดูรายละเอียดเต็ม <i class="fa-solid fa-arrow-right" style="font-size: 0.7rem;"></i>
+                    </button>
                 </div>
             </div>`;
     });
 }
 
-function filterHistory() {
-    const searchText = document.getElementById('historySearch').value.toLowerCase();
-    document.querySelectorAll('.history-card').forEach(card => {
-        card.style.display = card.querySelector('h4').innerText.toLowerCase().includes(searchText) ? 'block' : 'none';
-    });
+function openTranscript(question, answer) {
+    const modal = document.getElementById('transcriptModal');
+    const body = document.getElementById('transcriptBody');
+    
+    if (modal && body) {
+        body.innerHTML = `
+            <div style="background: #F8FAFC; padding: 14px; border-radius: 8px; margin-bottom: 14px; border-left: 4px solid #0284c7;">
+                <strong style="color: #0f172a; display: block; margin-bottom: 6px; font-size: 0.9rem;"><i class="fa-solid fa-user"></i> คำถามของคุณ:</strong>
+                <span style="color: #334155; font-size: 0.85rem; line-height: 1.5;">${question}</span>
+            </div>
+            <div style="background: #FEE2E2; padding: 14px; border-radius: 8px; border-left: 4px solid #d32f2f;">
+                <strong style="color: #991b1b; display: block; margin-bottom: 6px; font-size: 0.9rem;"><i class="fa-solid fa-robot"></i> คำตอบจาก TATIP AI:</strong>
+                <span style="color: #7f1d1d; font-size: 0.85rem; line-height: 1.6; white-space: pre-line;">${answer}</span>
+            </div>`;
+        
+        modal.classList.add('active');
+    }
 }
 
-function clearAllHistory() {
-    if(confirm('ลบประวัติการสนทนาทั้งหมด?')) { localStorage.removeItem('tatip_chat_history'); loadHistory(); }
+function closeTranscriptModal() {
+    const modal = document.getElementById('transcriptModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }
 
 function openTranscript(question, answer) {
     const modal = document.getElementById('transcriptModal');
-    if (modal) {
-        document.getElementById('transcriptBody').innerHTML = `
-            <div style="background: #F8FAFC; padding: 0.85rem; border-radius: 6px; margin-bottom: 0.75rem; font-size: 0.85rem;"><strong>คุณ:</strong><br>${question}</div>
-            <div style="background: #FEE2E2; padding: 0.85rem; border-radius: 6px; font-size: 0.85rem;"><strong>TATIP AI:</strong><br>${answer}</div>`;
-        modal.classList.add('active');
+    const body = document.getElementById('transcriptBody');
+    
+    if (modal && body) {
+        body.innerHTML = `
+            <div style="background: #F8FAFC; padding: 14px; border-radius: 8px; margin-bottom: 14px; border-left: 4px solid #0284c7;">
+                <strong style="color: #0f172a; display: block; margin-bottom: 6px; font-size: 0.9rem;"><i class="fa-solid fa-user"></i> คำถามของคุณ:</strong>
+                <span style="color: #334155; font-size: 0.85rem; line-height: 1.5;">${question}</span>
+            </div>
+            <div style="background: #FEE2E2; padding: 14px; border-radius: 8px; border-left: 4px solid #d32f2f;">
+                <strong style="color: #991b1b; display: block; margin-bottom: 6px; font-size: 0.9rem;"><i class="fa-solid fa-robot"></i> คำตอบจาก TATIP AI:</strong>
+                <span style="color: #7f1d1d; font-size: 0.85rem; line-height: 1.6; white-space: pre-line;">${answer}</span>
+            </div>`;
+        
+        modal.classList.add('active'); // เปิดใช้งาน Modal ตามโครงสร้าง CSS เดิม
     }
 }
-function closeTranscriptModal() { document.getElementById('transcriptModal')?.classList.remove('active'); }
+
+function closeTranscriptModal() {
+    const modal = document.getElementById('transcriptModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
 
 // ==========================================
 // 6. ระบบ FAQ
@@ -218,3 +300,124 @@ function filterFaqCategory(category, btnElement) {
         item.style.display = (category === 'all' || item.getAttribute('data-category') === category) ? 'block' : 'none';
     });
 }
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault(); // ป้องกันไม่ให้หน้าเว็บรีเฟรชเอง
+    
+    const usernameInput = document.getElementById('username').value;
+    const passwordInput = document.getElementById('password').value;
+
+    try {
+        // ส่ง username และ password ไปเช็กที่ FastAPI
+        const response = await fetch('http://127.0.0.1:8000/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                username: usernameInput, 
+                password: passwordInput 
+            })
+        });
+        
+        const result = await response.json();
+
+        if (response.ok && result.status === 'success') {
+            alert('เข้าสู่ระบบสำเร็จ!');
+            // บันทึกสถานะหรือพาไปหน้าจัดการระบบ
+            window.location.href = 'admin_users.html'; 
+        } else {
+            // ถ้ารหัสผิดหรือหาไม่เจอ จะแจ้งเตือนและไม่ยอมให้เข้า
+            alert('เข้าสู่ระบบไม่สำเร็จ: ' + (result.detail || 'รหัสผ่านไม่ถูกต้อง'));
+        }
+    } catch (error) {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+        console.error(error);
+    }
+});
+
+// ฟังก์ชันเปิด Modal เพิ่มข้อมูล
+function openAddModal() {
+    const colName = document.getElementById('collectionSelect').value;
+    const modalTitle = document.getElementById('modalTitle');
+    const addModal = document.getElementById('addDocModal');
+    
+    if (modalTitle && addModal) {
+        modalTitle.innerHTML = `<i class="fa-solid fa-circle-plus"></i> เพิ่มข้อมูลในตาราง: ${colName}`;
+        addModal.style.display = 'flex';
+    } else {
+        console.error("ไม่พบโครงสร้าง Modal ในหน้าเว็บนี้");
+    }
+}
+
+// ฟังก์ชันปิด Modal เพิ่มข้อมูล
+function closeAddModal() {
+    const addModal = document.getElementById('addDocModal');
+    const form = document.getElementById('addDocForm');
+    if (addModal) addModal.style.display = 'none';
+    if (form) form.reset();
+}
+
+// 2. ฟังก์ชันสลับดูข้อมูลทุกตารางและแปลง JSON ให้เป็นตารางคอลัมน์อัตโนมัติ
+    async function fetchCollectionData() {
+        const colName = document.getElementById('collectionSelect').value;
+        const tbody = document.getElementById('dynamicTableBody');
+        const thead = document.getElementById('dynamicTableHeader');
+        
+        tbody.innerHTML = `<tr><td colspan="10" class="loading">กำลังดึงข้อมูลจากตาราง ${colName}...</td></tr>`;
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/collection/${colName}`);
+            const result = await response.json();
+
+            tbody.innerHTML = '';
+            if (result.status === 'success' && result.data.length > 0) {
+                // 1. รวบรวมชื่อฟิลด์ทั้งหมดจากข้อมูลทุก Document เพื่อมาทำเป็นหัวตาราง (Columns)
+                const allKeysSet = new Set();
+                result.data.forEach(item => {
+                    Object.keys(item).forEach(key => allKeysSet.add(key));
+                });
+                
+                // จัดลำดับให้ Document ID อยู่หน้าสุดเสมอ
+                const keys = Array.from(allKeysSet);
+                const docIdIndex = keys.indexOf('_document_id');
+                if (docIdIndex > -1) {
+                    keys.splice(docIdIndex, 1);
+                    keys.unshift('_document_id');
+                }
+
+                // 2. สร้างหัวตาราง (TableHeader) แบบไดนามิก
+                let headerHtml = `<th>#</th>`;
+                keys.forEach(key => {
+                    const cleanKey = key === '_document_id' ? 'Document ID' : key.toUpperCase();
+                    headerHtml += `<th>${cleanKey}</th>`;
+                });
+                thead.innerHTML = headerHtml;
+
+                // 3. สร้างแถวข้อมูล (Table Rows)
+                result.data.forEach((item, index) => {
+                    let rowHtml = `<td>${index + 1}</td>`; // เลขลำดับ
+                    keys.forEach(key => {
+                        let val = item[key];
+                        // ถ้าข้อมูลเป็น Object หรือ Array ให้แปลงเป็นข้อความ JSON สั้นๆ
+                        if (typeof val === 'object' && val !== null) {
+                            val = JSON.stringify(val);
+                        } else if (val === undefined || val === null) {
+                            val = '-';
+                        }
+                        
+                        if (key === '_document_id') {
+                            rowHtml += `<td><code>${val}</code></td>`;
+                        } else {
+                            rowHtml += `<td>${val}</td>`;
+                        }
+                    });
+                    tbody.innerHTML += `<tr>${rowHtml}</tr>`;
+                });
+
+            } else {
+                thead.innerHTML = `<th>สถานะ</th>`;
+                tbody.innerHTML = `<tr><td class="loading">ตารางนี้ยังไม่มีข้อมูล (Document ว่างเปล่า)</td></tr>`;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
+        }
+    }

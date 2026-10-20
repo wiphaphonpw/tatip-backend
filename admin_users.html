@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TATIP AI - Admin Dashboard & Database Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #d32f2f;
+            --primary-hover: #b71c1c;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-main);
+        }
+
+        .dashboard-container {
+            max-width: 1350px;
+            margin: auto;
+        }
+
+        .admin-header {
+            background: var(--card-bg);
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .admin-header h1 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
+        .btn-logout {
+            background-color: #e2e8f0; color: #333; border: none; padding: 8px 15px;
+            border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 500;
+        }
+        .btn-logout:hover { background-color: #cbd5e1; }
+
+        .grid-section {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        @media (max-width: 900px) { .grid-section { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        .card h3 {
+            margin-top: 0; font-size: 1.1rem; color: var(--primary-color);
+            border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem; }
+        input, select {
+            width: 100%; padding: 10px; box-sizing: border-box;
+            border: 1px solid var(--border-color); border-radius: 6px;
+            font-family: 'Prompt', sans-serif; font-size: 0.9rem;
+        }
+        .btn-primary {
+            background-color: var(--primary-color); color: white; border: none;
+            padding: 12px; width: 100%; border-radius: 6px; cursor: pointer;
+            font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 1rem;
+        }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .message { margin-top: 10px; font-weight: 500; font-size: 0.85rem; text-align: center; }
+
+        /* Table & Controls */
+        .table-controls {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+            flex-wrap: wrap; gap: 15px;
+        }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        th { background-color: #f8fafc; color: #475569; font-weight: 600; }
+        tr:hover { background-color: #f8fafc; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .badge-admin { background-color: #fee2e2; color: #991b1b; }
+        .badge-customer { background-color: #e0f2fe; color: #0369a1; }
+        .loading { text-align: center; color: var(--text-muted); padding: 20px; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="admin-header">
+        <div>
+            <h1><i class="fa-solid fa-user-shield"></i> TATIP AI - Admin Master Dashboard</h1>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">ระบบจัดการบัญชีผู้ใช้งานและฐานข้อมูลโปรเจกต์แบบเรียลไทม์</div>
+        </div>
+        <button class="btn-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</button>
+    </div>
+
+    <!-- ส่วนที่ 1: ฟอร์มสร้าง User / Admin และตารางรายชื่อผู้ใช้ -->
+    <div class="grid-section">
+        <!-- ฟอร์มสร้างบัญชี -->
+        <div class="card" style="margin-bottom: 0;">
+            <h3><i class="fa-solid fa-user-plus"></i> สร้างบัญชี (Admin / Customer)</h3>
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label>User ID (รหัสไอดี เช่น admin_01):</label>
+                    <input type="text" id="userId" required placeholder="เช่น admin_01 หรือ user_001">
+                </div>
+                <div class="form-group">
+                    <label>Username (ชื่อเข้าสู่ระบบ):</label>
+                    <input type="text" id="username" required placeholder="เช่น super_admin หรือ customer_a">
+                </div>
+                <div class="form-group">
+                    <label>Password (รหัสผ่าน):</label>
+                    <input type="text" id="password" required placeholder="รหัสผ่าน">
+                </div>
+                <div class="form-group">
+                    <label>Tenant ID (รหัสองค์กร/สาขา):</label>
+                    <input type="text" id="tenantId" required placeholder="เช่น Panna001 หรือ SYSTEM">
+                </div>
+                <div class="form-group">
+                    <label>Role (กำหนดสิทธิ์):</label>
+                    <select id="role">
+                        <option value="admin">Admin (ผู้ดูแลระบบสูงสุด - เห็นทุกอย่าง)</option>
+                        <option value="customer">Customer (ลูกค้า - เข้าหน้าแชท)</option>
+                        <option value="branch_manager">Branch Manager (ผู้จัดการสาขา)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">บันทึกและสร้างบัญชี</button>
+                <div id="formMessage" class="message"></div>
+            </form>
+        </div>
+
+        <!-- ตารางจัดการเฉพาะผู้ใช้งาน (Users Table) -->
+        <div class="card" style="margin-bottom: 0;">
+            <h3><i class="fa-solid fa-users"></i> ตารางบัญชีผู้ใช้งาน (Users Management)</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>Tenant ID</th>
+                            <th>Role</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <tr><td colspan="5" class="loading">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 2: ดึงข้อมูลและแสดงผลทุกตารางในฐานข้อมูล (Database Collections Explorer) -->
+    <div class="card">
+        <div class="table-controls">
+            <div>
+                <h3><i class="fa-solid fa-database"></i> สำรวจข้อมูลทุกตารางในฐานข้อมูล Firestore</h3>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div>
+                    <label style="display: inline-block; margin-right: 8px; font-weight: 600;">เลือกตาราง:</label>
+                    <select id="collectionSelect" onchange="fetchCollectionData()" style="width: 200px; display: inline-block;">
+                        <option value="users">users (ผู้ใช้งาน)</option>
+                        <option value="conversations">conversations (บทสนทนา)</option>
+                        <option value="knowledge_articles">knowledge_articles (คลังความรู้/คู่มือ)</option>
+                        <option value="messages">messages (ข้อความแชท)</option>
+                        <option value="support_cases">support_cases (เคสแจ้งซ่อม/ปัญหา)</option>
+                        <option value="tenants" selected>tenants (ข้อมูลองค์กรลูกค้า)</option>
+                        <option value="troubleshooting_state">troubleshooting_state (สถานะแก้ไขปัญหา)</option>
+                    </select>
+                </div>
+                <!-- ปุ่มกดเพิ่มข้อมูล -->
+                <button type="button" onclick="openAddModal()" style="background-color: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">
+                    <i class="fa-solid fa-plus"></i> เพิ่มข้อมูลในตารางนี้
+                </button>
+            </div>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">ระบบจะทำการแยกฟิลด์ข้อมูลออกมาเป็นคอลัมน์ในตารางให้อัตโนมัติ</p>
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr id="dynamicTableHeader">
+                        <!-- หัวตารางจะถูกสร้างอัตโนมัติ -->
+                    </tr>
+                </thead>
+                <tbody id="dynamicTableBody">
+                    <tr><td class="loading">กรุณาเลือกตารางเพื่อแสดงข้อมูล...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal สำหรับเพิ่มข้อมูลใหม่ -->
+<div id="addDocModal" class="modal-overlay">
+    <div style="background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+            <h3 id="modalTitle" style="margin: 0; color: #16a34a; font-size: 1.1rem;"><i class="fa-solid fa-circle-plus"></i> เพิ่มข้อมูลใหม่</h3>
+            <button type="button" onclick="closeAddModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748B;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <form id="addDocForm">
+            <div class="form-group">
+                <label>Document ID (รหัสเอกสาร เช่น tenant_corp_02 หรือ CASE-01):</label>
+                <input type="text" id="newDocId" required placeholder="ระบุรหัส Document ID">
+            </div>
+            <div class="form-group">
+                <label>ข้อมูลในรูปแบบ JSON (Fields & Values):</label>
+                <textarea id="newDocJson" rows="6" required style="width: 100%; padding: 10px; font-family: monospace; font-size: 0.85rem; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box;" placeholder='{
+  "TENANT_ID": "tenant_corp_02",
+  "TENANT_NAME": "ABC Retail",
+  "STATUS": "active"
+}'></textarea>
+            </div>
+            <div style="text-align: right; display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button type="button" onclick="closeAddModal()" style="background: #e2e8f0; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif;">ยกเลิก</button>
+                <button type="submit" style="background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600;">บันทึกข้อมูล</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://127.0.0.1:8000';
+
+    // 1. โหลดข้อมูลตาราง Users เสมอเมื่อเปิดหน้าเว็บ
+    async function fetchUsers() {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/collection/users`);
+            const result = await response.json();
+            
+            const tableBody = document.getElementById('userTableBody');
+            tableBody.innerHTML = '';
+
+            if (result.status === 'success' && result.data.length > 0) {
+                result.data.forEach(user => {
+                    const roleBadge = user.ROLE === 'admin' ? 'badge-admin' : 'badge-customer';
+                    const row = `<tr>
+                        <td>${user.USER_ID || user._document_id}</td>
+                        <td><strong>${user.USERNAME || '-'}</strong></td>
+                        <td><code>${user.PASSWORD || '-'}</code></td>
+                        <td>${user.TENANT_ID || '-'}</td>
+                        <td><span class="badge ${roleBadge}">${user.ROLE || 'customer'}</span></td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="5" class="loading">ยังไม่มีข้อมูลผู้ใช้งานในระบบ</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('userTableBody').innerHTML = '<tr><td colspan="5" class="loading" style="color: red;">ไม่สามารถเชื่อมต่อ Backend ได้</td></tr>';
+        }
+    }
+
+    // 2. ฟังก์ชันสลับดูข้อมูลทุกตารางและแปลง JSON ให้เป็นตารางคอลัมน์อัตโนมัติ
+    async function fetchCollectionData() {
+        const colName = document.getElementById('collectionSelect').value;
+        const tbody = document.getElementById('dynamicTableBody');
+        const thead = document.getElementById('dynamicTableHeader');
+        
+        tbody.innerHTML = `<tr><td colspan="10" class="loading">กำลังดึงข้อมูลจากตาราง ${colName}...</td></tr>`;
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/collection/${colName}`);
+            const result = await response.json();
+
+            tbody.innerHTML = '';
+            if (result.status === 'success' && result.data.length > 0) {
+                // รวบรวมชื่อฟิลด์ทั้งหมดเพื่อทำเป็นหัวตาราง
+                const allKeysSet = new Set();
+                result.data.forEach(item => {
+                    Object.keys(item).forEach(key => allKeysSet.add(key));
+                });
+                
+                const keys = Array.from(allKeysSet);
+                const docIdIndex = keys.indexOf('_document_id');
+                if (docIdIndex > -1) {
+                    keys.splice(docIdIndex, 1);
+                    keys.unshift('_document_id');
+                }
+
+                // สร้างหัวตาราง
+                let headerHtml = `<th>#</th>`;
+                keys.forEach(key => {
+                    const cleanKey = key === '_document_id' ? 'Document ID' : key.toUpperCase();
+                    headerHtml += `<th>${cleanKey}</th>`;
+                });
+                thead.innerHTML = headerHtml;
+
+                // สร้างแถวข้อมูล
+                result.data.forEach((item, index) => {
+                    let rowHtml = `<td>${index + 1}</td>`;
+                    keys.forEach(key => {
+                        let val = item[key];
+                        if (typeof val === 'object' && val !== null) {
+                            val = JSON.stringify(val);
+                        } else if (val === undefined || val === null) {
+                            val = '-';
+                        }
+                        
+                        if (key === '_document_id') {
+                            rowHtml += `<td><code>${val}</code></td>`;
+                        } else {
+                            rowHtml += `<td>${val}</td>`;
+                        }
+                    });
+                    tbody.innerHTML += `<tr>${rowHtml}</tr>`;
+                });
+
+            } else {
+                thead.innerHTML = `<th>สถานะ</th>`;
+                tbody.innerHTML = `<tr><td class="loading">ตารางนี้ยังไม่มีข้อมูล (Document ว่างเปล่า)</td></tr>`;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
+        }
+    }
+
+    // 3. ฟังก์ชันควบคุม Modal เพิ่มข้อมูล
+    function openAddModal() {
+        const colName = document.getElementById('collectionSelect').value;
+        document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-circle-plus"></i> เพิ่มข้อมูลในตาราง: ${colName}`;
+        document.getElementById('addDocModal').style.display = 'flex';
+    }
+
+    function closeAddModal() {
+        document.getElementById('addDocModal').style.display = 'none';
+        document.getElementById('addDocForm').reset();
+    }
+
+    // 4. ฟังก์ชันส่งข้อมูลบันทึกลงตาราง
+    document.getElementById('addDocForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const colName = document.getElementById('collectionSelect').value;
+        const docId = document.getElementById('newDocId').value.trim();
+        const jsonText = document.getElementById('newDocJson').value.trim();
+
+        let parsedData;
+        try {
+            parsedData = JSON.parse(jsonText);
+        } catch (err) {
+            alert('❌ รูปแบบ JSON ไม่ถูกต้อง กรุณาตรวจสอบเครื่องหมายปีกกาหรือเครื่องหมายคำพูดอีกครั้ง');
+            return;
+        }
+
+        const payload = {
+            collection_name: colName,
+            document_id: docId,
+            data: parsedData
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/collection/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                alert('✅ ' + result.message);
+                closeAddModal();
+                fetchCollectionData(); // รีเฟรชตารางให้แสดงข้อมูลใหม่ทันที
+            } else {
+                alert('❌ เกิดข้อผิดพลาด: ' + (result.detail || 'ไม่สามารถบันทึกได้'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Backend ได้');
+        }
+    });
+
+    // 5. ฟังก์ชันกดสร้าง User / Admin ใหม่
+    document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const payload = {
+            user_id: document.getElementById('userId').value.trim(),
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value.trim(),
+            tenant_id: document.getElementById('tenantId').value.trim(),
+            role: document.getElementById('role').value
+        };
+
+        const msgDiv = document.getElementById('formMessage');
+        msgDiv.style.color = '#0284c7';
+        msgDiv.innerText = 'กำลังบันทึกข้อมูลลง Firestore...';
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/create-user`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                msgDiv.style.color = '#16a34a';
+                msgDiv.innerText = result.message;
+                document.getElementById('createUserForm').reset();
+                fetchUsers(); 
+                fetchCollectionData(); 
+            } else {
+                msgDiv.style.color = '#dc2626';
+                msgDiv.innerText = 'เกิดข้อผิดพลาด: ' + (result.detail || 'ไม่สามารถสร้างบัญชีได้');
+            }
+        } catch (error) {
+            msgDiv.style.color = '#dc2626';
+            msgDiv.innerText = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Backend ได้';
+        }
+    });
+
+    // 6. ฟังก์ชัน Logout
+    function logoutAdmin() {
+        localStorage.removeItem('currentUser');
+        window.location.href = 'login.html';
+    }
+
+    // โหลดข้อมูลเริ่มต้นเมื่อเปิดหน้าเว็บ
+    fetchUsers();
+    fetchCollectionData(); 
+</script>
+
+</body>
+</html>

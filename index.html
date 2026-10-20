@@ -1,3 +1,11 @@
+<script>
+    // ตรวจสอบว่ามีข้อมูลการเข้าสู่ระบบในเครื่องหรือยัง
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+        // ถ้ายังไม่ได้ล็อกอิน ให้บังคับเด้งกลับไปหน้า login.html ทันที
+        window.location.href = 'login.html';
+    }
+</script>
 <!DOCTYPE html>
 <html lang="th">
 <head>
