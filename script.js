@@ -1,3 +1,5 @@
+const API_URL = "https://tatip-backend-417035159214.us-central1.run.app";
+
 // ==========================================
 // 1. ระบบ Auth (Login)
 // ==========================================
@@ -8,8 +10,8 @@ async function handleLogin(event) {
     const passwordInput = document.getElementById('password').value.trim();
 
     try {
-        // ส่ง username และ password ไปเช็กที่ FastAPI (/api/login)
-        const response = await fetch('http://127.0.0.1:8000/api/login', {
+        // ส่ง username และ password ไปเช็กที่ FastAPI บน Cloud Run
+        const response = await fetch(`${API_URL}/api/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -44,7 +46,7 @@ async function handleLogin(event) {
         }
     } catch (error) {
         console.error('Login Error:', error);
-        alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ Backend');
+        alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ Backend บน Cloud Run');
     }
 }
 
@@ -74,7 +76,7 @@ function submitSupportTicket(event) {
 }
 function handleDirectContactSubmit(event) {
     event.preventDefault();
-    alert('ส่งข้อความถึงทีมวิศวกรสำเร็จ!');
+    alert('ส่งข้อความถึงทีมสำเร็จ!');
     event.target.reset();
 }
 
@@ -139,7 +141,7 @@ async function submitChatMessage() {
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        const response = await fetch("http://127.0.0.1:8000/api/chat", {
+        const response = await fetch(`${API_URL}/api/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: message })
@@ -168,7 +170,7 @@ async function submitChatMessage() {
                 <div class="message-avatar"><i class="fa-solid fa-triangle-exclamation" style="color: #DC2626;"></i></div>
                 <div class="message-body">
                     <div class="message-bubble" style="border-color: #DC2626; color: #DC2626; background: #FEE2E2;">
-                        ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Backend ได้ กรุณาเปิดระบบ API (uvicorn) ก่อน
+                        ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Backend บน Cloud Run ได้
                     </div>
                 </div>
             </div>`;
@@ -182,7 +184,6 @@ async function submitChatMessage() {
 function saveToHistory(question, answer) {
     let history = JSON.parse(localStorage.getItem('tatip_chat_history')) || [];
     
-    // ทำความสะอาดข้อความ ลบสัญลักษณ์ Markdown (** หรือ *) และจัดระเบียบเว้นวรรค
     const cleanAnswer = answer
         .replace(/\*\*/g, '')  
         .replace(/\*/g, '')    
@@ -214,7 +215,6 @@ function loadHistory() {
     }
     
     history.forEach((item, index) => {
-        // ใช้ JSON.stringify เพื่อแปลงค่าข้อความให้อย่างปลอดภัย ป้องกันปัญหากรณีมีเครื่องหมายคำพูดหรืออักขระพิเศษ
         const safeQuestion = JSON.stringify(item.question);
         const safeAnswer = JSON.stringify(item.answer);
 
@@ -263,34 +263,8 @@ function closeTranscriptModal() {
     }
 }
 
-function openTranscript(question, answer) {
-    const modal = document.getElementById('transcriptModal');
-    const body = document.getElementById('transcriptBody');
-    
-    if (modal && body) {
-        body.innerHTML = `
-            <div style="background: #F8FAFC; padding: 14px; border-radius: 8px; margin-bottom: 14px; border-left: 4px solid #0284c7;">
-                <strong style="color: #0f172a; display: block; margin-bottom: 6px; font-size: 0.9rem;"><i class="fa-solid fa-user"></i> คำถามของคุณ:</strong>
-                <span style="color: #334155; font-size: 0.85rem; line-height: 1.5;">${question}</span>
-            </div>
-            <div style="background: #FEE2E2; padding: 14px; border-radius: 8px; border-left: 4px solid #d32f2f;">
-                <strong style="color: #991b1b; display: block; margin-bottom: 6px; font-size: 0.9rem;"><i class="fa-solid fa-robot"></i> คำตอบจาก TATIP AI:</strong>
-                <span style="color: #7f1d1d; font-size: 0.85rem; line-height: 1.6; white-space: pre-line;">${answer}</span>
-            </div>`;
-        
-        modal.classList.add('active'); // เปิดใช้งาน Modal ตามโครงสร้าง CSS เดิม
-    }
-}
-
-function closeTranscriptModal() {
-    const modal = document.getElementById('transcriptModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
 // ==========================================
-// 6. ระบบ FAQ
+// 6. ระบบ FAQ & Admin Table Fetch
 // ==========================================
 function toggleFaq(element) { element.parentElement.classList.toggle('active'); }
 function filterFaqCategory(category, btnElement) {
@@ -300,38 +274,6 @@ function filterFaqCategory(category, btnElement) {
         item.style.display = (category === 'all' || item.getAttribute('data-category') === category) ? 'block' : 'none';
     });
 }
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
-    e.preventDefault(); // ป้องกันไม่ให้หน้าเว็บรีเฟรชเอง
-    
-    const usernameInput = document.getElementById('username').value;
-    const passwordInput = document.getElementById('password').value;
-
-    try {
-        // ส่ง username และ password ไปเช็กที่ FastAPI
-        const response = await fetch('http://127.0.0.1:8000/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                username: usernameInput, 
-                password: passwordInput 
-            })
-        });
-        
-        const result = await response.json();
-
-        if (response.ok && result.status === 'success') {
-            alert('เข้าสู่ระบบสำเร็จ!');
-            // บันทึกสถานะหรือพาไปหน้าจัดการระบบ
-            window.location.href = 'admin_users.html'; 
-        } else {
-            // ถ้ารหัสผิดหรือหาไม่เจอ จะแจ้งเตือนและไม่ยอมให้เข้า
-            alert('เข้าสู่ระบบไม่สำเร็จ: ' + (result.detail || 'รหัสผ่านไม่ถูกต้อง'));
-        }
-    } catch (error) {
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
-        console.error(error);
-    }
-});
 
 // ฟังก์ชันเปิด Modal เพิ่มข้อมูล
 function openAddModal() {
@@ -355,69 +297,66 @@ function closeAddModal() {
     if (form) form.reset();
 }
 
-// 2. ฟังก์ชันสลับดูข้อมูลทุกตารางและแปลง JSON ให้เป็นตารางคอลัมน์อัตโนมัติ
-    async function fetchCollectionData() {
-        const colName = document.getElementById('collectionSelect').value;
-        const tbody = document.getElementById('dynamicTableBody');
-        const thead = document.getElementById('dynamicTableHeader');
-        
-        tbody.innerHTML = `<tr><td colspan="10" class="loading">กำลังดึงข้อมูลจากตาราง ${colName}...</td></tr>`;
+// ฟังก์ชันสลับดูข้อมูลทุกตารางและแปลง JSON ให้เป็นตารางคอลัมน์อัตโนมัติ
+async function fetchCollectionData() {
+    const colName = document.getElementById('collectionSelect').value;
+    const tbody = document.getElementById('dynamicTableBody');
+    const thead = document.getElementById('dynamicTableHeader');
+    
+    if (!tbody || !thead) return;
 
-        try {
-            const response = await fetch(`${API_URL}/api/admin/collection/${colName}`);
-            const result = await response.json();
+    tbody.innerHTML = `<tr><td colspan="10" class="loading">กำลังดึงข้อมูลจากตาราง ${colName}...</td></tr>`;
 
-            tbody.innerHTML = '';
-            if (result.status === 'success' && result.data.length > 0) {
-                // 1. รวบรวมชื่อฟิลด์ทั้งหมดจากข้อมูลทุก Document เพื่อมาทำเป็นหัวตาราง (Columns)
-                const allKeysSet = new Set();
-                result.data.forEach(item => {
-                    Object.keys(item).forEach(key => allKeysSet.add(key));
-                });
-                
-                // จัดลำดับให้ Document ID อยู่หน้าสุดเสมอ
-                const keys = Array.from(allKeysSet);
-                const docIdIndex = keys.indexOf('_document_id');
-                if (docIdIndex > -1) {
-                    keys.splice(docIdIndex, 1);
-                    keys.unshift('_document_id');
-                }
+    try {
+        const response = await fetch(`${API_URL}/api/admin/collection/${colName}`);
+        const result = await response.json();
 
-                // 2. สร้างหัวตาราง (TableHeader) แบบไดนามิก
-                let headerHtml = `<th>#</th>`;
-                keys.forEach(key => {
-                    const cleanKey = key === '_document_id' ? 'Document ID' : key.toUpperCase();
-                    headerHtml += `<th>${cleanKey}</th>`;
-                });
-                thead.innerHTML = headerHtml;
-
-                // 3. สร้างแถวข้อมูล (Table Rows)
-                result.data.forEach((item, index) => {
-                    let rowHtml = `<td>${index + 1}</td>`; // เลขลำดับ
-                    keys.forEach(key => {
-                        let val = item[key];
-                        // ถ้าข้อมูลเป็น Object หรือ Array ให้แปลงเป็นข้อความ JSON สั้นๆ
-                        if (typeof val === 'object' && val !== null) {
-                            val = JSON.stringify(val);
-                        } else if (val === undefined || val === null) {
-                            val = '-';
-                        }
-                        
-                        if (key === '_document_id') {
-                            rowHtml += `<td><code>${val}</code></td>`;
-                        } else {
-                            rowHtml += `<td>${val}</td>`;
-                        }
-                    });
-                    tbody.innerHTML += `<tr>${rowHtml}</tr>`;
-                });
-
-            } else {
-                thead.innerHTML = `<th>สถานะ</th>`;
-                tbody.innerHTML = `<tr><td class="loading">ตารางนี้ยังไม่มีข้อมูล (Document ว่างเปล่า)</td></tr>`;
+        tbody.innerHTML = '';
+        if (result.status === 'success' && result.data.length > 0) {
+            const allKeysSet = new Set();
+            result.data.forEach(item => {
+                Object.keys(item).forEach(key => allKeysSet.add(key));
+            });
+            
+            const keys = Array.from(allKeysSet);
+            const docIdIndex = keys.indexOf('_document_id');
+            if (docIdIndex > -1) {
+                keys.splice(docIdIndex, 1);
+                keys.unshift('_document_id');
             }
-        } catch (error) {
-            console.error('Error:', error);
-            tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
+
+            let headerHtml = `<th>#</th>`;
+            keys.forEach(key => {
+                const cleanKey = key === '_document_id' ? 'Document ID' : key.toUpperCase();
+                headerHtml += `<th>${cleanKey}</th>`;
+            });
+            thead.innerHTML = headerHtml;
+
+            result.data.forEach((item, index) => {
+                let rowHtml = `<td>${index + 1}</td>`;
+                keys.forEach(key => {
+                    let val = item[key];
+                    if (typeof val === 'object' && val !== null) {
+                        val = JSON.stringify(val);
+                    } else if (val === undefined || val === null) {
+                        val = '-';
+                    }
+                    
+                    if (key === '_document_id') {
+                        rowHtml += `<td><code>${val}</code></td>`;
+                    } else {
+                        rowHtml += `<td>${val}</td>`;
+                    }
+                });
+                tbody.innerHTML += `<tr>${rowHtml}</tr>`;
+            });
+
+        } else {
+            thead.innerHTML = `<th>สถานะ</th>`;
+            tbody.innerHTML = `<tr><td class="loading">ตารางนี้ยังไม่มีข้อมูล (Document ว่างเปล่า)</td></tr>`;
         }
+    } catch (error) {
+        console.error('Error:', error);
+        tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
     }
+}
