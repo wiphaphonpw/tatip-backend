@@ -11,6 +11,23 @@ import vertexai
 from vertexai.preview import rag
 from vertexai.generative_models import GenerativeModel, Tool
 from google.cloud import firestore
+import vertexai
+from vertexai.generative_models import GenerativeModel
+
+# กำหนด System Instruction ตรงนี้
+system_instruction = (
+    "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับสนับสนุนการให้บริการลูกค้าของระบบ TATIP "
+    "หน้าที่ของคุณคือตอบคำถามโดยอ้างอิงจากเนื้อหาในเอกสารคู่มือที่ระบบดึงมาให้เท่านั้น "
+    "ห้ามใช้ความรู้ทั่วไปภายนอก ห้ามแต่งคำตอบขึ้นมาเองเด็ดขาด "
+    "หากคำถามหรือเรื่องดังกล่าวไม่อยู่ในเอกสารคู่มือ ให้ตอบตามรูปแบบนี้เท่านั้น: "
+    "'เรื่องนี้ยังไม่มีข้อมูลในคู่มือการใช้งาน รบกวนติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ'"
+)
+
+# ตอนเรียกใช้งานโมเดล ให้ใส่ system_instruction เข้าไปด้วย (ขึ้นอยู่กับ SDK ที่ใช้)
+model = GenerativeModel(
+    "gemini-2.5-flash-lite",
+    system_instruction=[system_instruction]
+)
 
 # 1. กำหนดค่าโปรเจกต์และคลังข้อมูล
 PROJECT_ID = "tatip-ai-rag"
@@ -327,11 +344,4 @@ async def line_webhook(request: Request):
             # (เรียกใช้งานฟังก์ชันประมวลผลต่อตาม Architecture ในรายงาน)
             
     return {"status": "success"}
-
-    system_instruction = (
-    "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับสนับสนุนการให้บริการลูกค้าของระบบ TATIP "
-    "หน้าที่ของคุณคือตอบคำถามโดยอ้างอิงจากเนื้อหาในเอกสารคู่มือที่ระบบดึงมาให้เท่านั้น "
-    "ห้ามใช้ความรู้ทั่วไปภายนอก ห้ามแต่งคำตอบขึ้นมาเองเด็ดขาด "
-    "หากคำถามหรือเรื่องดังกล่าวไม่อยู่ในเอกสารคู่มือ ให้ตอบตามรูปแบบนี้เท่านั้น: "
-    "'เรื่องนี้ยังไม่มีข้อมูลในคู่มือการใช้งาน รบกวนติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ'"
-)
+    
