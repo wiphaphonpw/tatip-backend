@@ -94,18 +94,27 @@ def read_root():
 @app.post("/api/chat")
 async def chat_with_tatip(request: ChatRequest):
     try:
-        system_instruction = (
-            "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับซัพพอร์ตระบบกล้องวงจรปิด CCTV และ Dashboard "
-            "หน้าที่ของคุณคือตอบคำถามลูกค้าโดยอ้างอิงจากข้อมูลใน RAG Corpus "
-            "ข้อกำหนดสำคัญ: "
-            "1. ห้ามตอบสั้นห้วนจนเกินไป "
-            "2. ให้เขียนอธิบายขั้นตอน วิธีการตรวจสอบ หรือวิธีแก้ไขปัญหาเป็นข้อๆ (Step-by-step) ให้ละเอียดชัดเจน "
-            "3. หากมีคำแนะนำเพิ่มเติมที่เป็นประโยชน์ ให้ระบุเพิ่มเข้ามาด้วยเสมอเพื่อช่วยให้ลูกค้าแก้ปัญหาได้จริง"
+        # ใช้ System Instruction ที่เข้มงวด เพื่อบังคับให้ตอบเฉพาะในคู่มือเท่านั้น ห้ามออกนอกเรื่องเด็ดขาด
+        strict_system_instruction = (
+            "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับสนับสนุนการให้บริการลูกค้าของระบบ TATIP "
+            "หน้าที่ของคุณคือตอบคำถามโดยอ้างอิงจากเนื้อหาในเอกสารคู่มือที่ระบบดึงมา (RAG Corpus) ให้เท่านั้น "
+            "ข้อกำหนดเด็ดขาด: "
+            "1. ห้ามใช้ความรู้ทั่วไปภายนอก ห้ามแต่งคำตอบขึ้นมาเองเด็ดขาด "
+            "2. หากคำถามหรือเรื่องดังกล่าวไม่อยู่ในเอกสารคู่มือ หรือเป็นการถามนอกเหนือจากระบบ TATIP ให้ตอบตามรูปแบบนี้คำต่อคำเท่านั้น: "
+            "'เรื่องนี้ยังไม่มีข้อมูลในคู่มือการใช้งาน รบกวนติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ' "
+            "3. หากมีข้อมูลในคู่มือ ให้เขียนอธิบายขั้นตอน วิธีการตรวจสอบ หรือวิธีแก้ไขปัญหาเป็นข้อๆ (Step-by-step) ให้ละเอียดชัดเจน"
+        )
+
+        # กำหนด generation_config ให้ temperature เป็น 0 เพื่อลดการคิดเองและยึดตามเอกสาร
+        from vertexai.generative_models import GenerationConfig
+        generation_config = GenerationConfig(
+            temperature=0.0
         )
 
         model = GenerativeModel(
             "gemini-2.5-flash-lite",
-            system_instruction=system_instruction
+            system_instruction=strict_system_instruction,
+            generation_config=generation_config
         )
         
         rag_retrieval_tool = Tool.from_retrieval(
