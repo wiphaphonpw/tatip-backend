@@ -93,5 +93,98 @@
     </div>
 
     <script src="./script.js"></script>
+    <script src="./script.js"></script>
+<script>
+    // ตั้งค่า API_URL ให้ตรงกับ Cloud Run ของคุณ
+    const BACKEND_URL = typeof API_URL !== 'undefined' ? API_URL : 'https://tatip-backend-417035159214.us-central1.run.app';
+
+    // ฟังก์ชันจัดการเมื่อส่งฟอร์ม "ฝากข้อความ"
+    async function handleDirectContactSubmit(event) {
+        event.preventDefault();
+        const inputs = event.target.querySelectorAll('input, textarea');
+        const name = inputs[0].value.trim();
+        const phone = inputs[1].value.trim();
+        const issue = inputs[2].value.trim();
+
+        const caseId = "CASE-" + Date.now().toString().slice(-6);
+
+        const payload = {
+            case_id: caseId,
+            user_id: name,
+            tenant_id: "tenant_general",
+            branch: phone, // เก็บเบอร์โทรศัพท์ไว้ในฟิลด์ branch
+            camera_name: "N/A",
+            issue: issue,
+            priority: "P2"
+        };
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/admin/create-case`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                alert('✅ ส่งข้อความเรียบร้อยแล้ว! รหัสแจ้งเรื่องของคุณคือ: ' + caseId);
+                event.target.reset();
+            } else {
+                alert('❌ เกิดข้อผิดพลาด: ' + (result.detail || 'ไม่สามารถส่งข้อความได้'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+        }
+    }
+
+    // ฟังก์ชันเปิด/ปิด Modal และส่ง Ticket
+    function openSupportModal() {
+        document.getElementById('ticketModal').classList.add('active');
+    }
+
+    function closeSupportModal() {
+        document.getElementById('ticketModal').classList.remove('active');
+    }
+
+    async function submitSupportTicket(event) {
+        event.preventDefault();
+        const issue = event.target.querySelector('textarea').value.trim();
+        const caseId = "TICKET-" + Date.now().toString().slice(-6);
+
+        // ดึงข้อมูลผู้ใช้ที่ล็อกอินอยู่ (ถ้ามี)
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+        const payload = {
+            case_id: caseId,
+            user_id: currentUser.username || "Guest User",
+            tenant_id: currentUser.tenant_id || "DEFAULT",
+            branch: "Online Support",
+            camera_name: "CCTV-Support",
+            issue: issue,
+            priority: "P1"
+        };
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/admin/create-case`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                alert('✅ เปิด Ticket เรียบร้อยแล้ว! รหัส Ticket: ' + caseId);
+                closeSupportModal();
+                event.target.reset();
+            } else {
+                alert('❌ เกิดข้อผิดพลาดในการเปิด Ticket');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+        }
+    }
+</script>
 </body>
 </html>

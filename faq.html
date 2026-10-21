@@ -8,39 +8,44 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./styles.css">
     <style>
-        /* กำหนดสไตล์และการซ่อนการ์ดด้วย CSS Class อย่างเด็ดขาด */
-        .faq-card-item {
+        /* สไตล์ปุ่มแท็บ */
+        .chip-btn {
+            cursor: pointer;
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
             background: #fff;
+            color: #475569;
+            font-family: 'Prompt', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .chip-btn.active {
+            background: #0f172a !important;
+            color: #ffffff !important;
+            border-color: #0f172a !important;
+            font-weight: 600;
+        }
+        .chip-btn:hover {
+            background: #f1f5f9;
+        }
+
+        /* การ์ด FAQ */
+        .faq-card {
+            background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            padding: 1.2rem;
+            padding: 1.25rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            transition: all 0.3s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        
-        /* คลาสสำหรับซ่อนการ์ดเมื่อเลือกเปลี่ยนแท็บ */
-        .faq-card-item.hidden {
-            display: none !important;
-        }
-
-        /* แต่งปุ่มแท็บให้ดูเด่นชัดเวลาเลือก */
-        .chip {
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid #cbd5e1;
-            background: #f8fafc;
-            font-family: 'Prompt', sans-serif;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-        .chip.active {
-            background: #0f172a;
-            color: #fff;
-            border-color: #0f172a;
+        .faq-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.06);
         }
     </style>
 </head>
@@ -53,105 +58,105 @@
         </div>
     </header>
 
-    <main class="main-content" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
-        <div class="page-title-box" style="margin-bottom: 1.5rem;">
-            <h2><i class="fa-solid fa-circle-question" style="color: #ef4444;"></i> คำถามที่พบบ่อย (FAQ)</h2>
-            <p style="color: #64748b;">เลือกหมวดหมู่ด้านบนเพื่อดูคำถามและแนวทางแก้ไขปัญหาที่ต้องการได้อย่างรวดเร็ว</p>
+    <main class="main-content" style="padding: 1.5rem 1rem; max-width: 1120px; margin: 0 auto;">
+        <div class="page-title-box" style="margin-bottom: 1.25rem;">
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: #0e1626;"><i class="fa-solid fa-circle-question" style="color: #c81e1e;"></i> คำถามที่พบบ่อย (FAQ)</h2>
+            <p style="font-size: 0.85rem; color: #5b6779;">กดเลือกหมวดหมู่ที่ต้องการด้านล่าง เพื่อดูคำถามและวิธีแก้ไขปัญหา</p>
         </div>
 
-        <!-- แถบแท็บหมวดหมู่ -->
-        <div class="faq-controls-bar" style="margin-bottom: 1.5rem;">
-            <div class="chip-group" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <button class="chip active" onclick="filterFaqCategory('all', this)">ทั้งหมด</button>
-                <button class="chip" onclick="filterFaqCategory('camera', this)"><i class="fa-solid fa-video"></i> กล้อง / การเชื่อมต่อ</button>
-                <button class="chip" onclick="filterFaqCategory('system', this)"><i class="fa-solid fa-desktop"></i> ระบบและการวิเคราะห์</button>
-                <button class="chip" onclick="filterFaqCategory('account', this)"><i class="fa-solid fa-user-gear"></i> บัญชีและการตั้งค่า</button>
+        <!-- แท็บกดเปลี่ยนหมวดหมู่ -->
+        <div style="margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.3rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: nowrap;">
+                <button class="chip-btn active" data-tab="all" onclick="switchFaqTab('all', this)">ทั้งหมด</button>
+                <button class="chip-btn" data-tab="camera" onclick="switchFaqTab('camera', this)"><i class="fa-solid fa-video"></i> กล้อง / การเชื่อมต่อ</button>
+                <button class="chip-btn" data-tab="system" onclick="switchFaqTab('system', this)"><i class="fa-solid fa-desktop"></i> ระบบและการวิเคราะห์</button>
+                <button class="chip-btn" data-tab="account" onclick="switchFaqTab('account', this)"><i class="fa-solid fa-user-gear"></i> บัญชีและการตั้งค่า</button>
             </div>
         </div>
 
-        <!-- ส่วนแสดงผลแบบการ์ด FAQ -->
-        <div class="faq-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
+        <!-- รายการการ์ดคำถาม -->
+        <div id="faqGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
             
-            <!-- การ์ดที่ 1 (หมวดกล้อง) -->
-            <div class="faq-card-item" data-category="camera">
+            <!-- การ์ดที่ 1: กล้อง -->
+            <div class="faq-card" data-cat="camera">
                 <div>
-                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">กล้องขึ้นออนไลน์แต่ไม่มีภาพ (Black Screen) ต้องแก้ไขอย่างไร?</h4>
-                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">ตรวจสอบ Bandwidth เครือข่าย และตรวจสอบว่าพอร์ต 554 ไม่ถูก Firewall บล็อก รวมถึงเช็กสัญญาณอินเทอร์เน็ตระหว่างกล้องกับเครื่องต้นทาง</p>
+                    <span style="display: inline-block; margin-bottom: 0.6rem; background: #fdecec; color: #c81e1e; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;">กล้อง / การเชื่อมต่อ</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: #0e1626; line-height: 1.4;">ดู IP Address ของกล้องหรือตั้งค่าการเชื่อมต่อได้จากเมนูไหน?</h4>
+                    <p style="font-size: 0.82rem; color: #5b6779; line-height: 1.5;">สามารถตรวจสอบ IP Address และจัดการเพิ่ม/ลบกล้องได้ที่เมนู "จัดการกล้อง" ในระบบ โดยกรอกข้อมูลรายละเอียดกล้องให้ครบถ้วนตามขั้นตอนเบื้องต้น</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
-                    <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q6
-                </div>
-            </div>
-
-            <!-- การ์ดที่ 2 (หมวดกล้อง - เรื่อง IP กล้อง) -->
-            <div class="faq-card-item" data-category="camera">
-                <div>
-                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">ดู IP Address ของกล้องหรือตั้งค่าการเชื่อมต่อได้จากเมนูไหน?</h4>
-                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">สามารถตรวจสอบ IP Address และจัดการเพิ่ม/ลบกล้องได้ที่เมนู "จัดการกล้อง" ในระบบ โดยกรอกข้อมูลรายละเอียดกล้องให้ครบถ้วนตามขั้นตอนเบื้องต้น</p>
-                </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #e3e8ef; font-size: 0.72rem; color: #c81e1e; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ B1-B2
                 </div>
             </div>
 
-            <!-- การ์ดที่ 3 (หมวดกล้อง) -->
-            <div class="faq-card-item" data-category="camera">
+            <!-- การ์ดที่ 2: กล้อง -->
+            <div class="faq-card" data-cat="camera">
                 <div>
-                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">กล้อง PTZ หรือกล้องหมุนได้ กดควบคุมแล้วไม่ยอมหมุน</h4>
-                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">กล้องที่ต่อผ่าน NVR หรือกล้องฟิกซ์จะปรับมุมไม่ได้ หากเป็นกล้องหมุนได้แต่ขึ้นส่งคำสั่งไม่สำเร็จ ให้รอแล้วลองใหม่ หรือรีสตาร์ตกล้อง หากยังไม่หายให้แจ้ง Admin พร้อมยี่ห้อและรุ่น</p>
+                    <span style="display: inline-block; margin-bottom: 0.6rem; background: #fdecec; color: #c81e1e; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;">กล้อง / การเชื่อมต่อ</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: #0e1626; line-height: 1.4;">กล้องขึ้นออนไลน์แต่ไม่มีภาพ (Black Screen) ต้องแก้ไขอย่างไร?</h4>
+                    <p style="font-size: 0.82rem; color: #5b6779; line-height: 1.5;">ตรวจสอบ Bandwidth เครือข่าย และตรวจสอบว่าพอร์ต 554 ไม่ถูก Firewall บล็อก รวมถึงเช็กสัญญาณอินเทอร์เน็ตระหว่างกล้องกับเครื่องต้นทาง</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #e3e8ef; font-size: 0.72rem; color: #c81e1e; font-weight: 600;">
+                    <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q6
+                </div>
+            </div>
+
+            <!-- การ์ดที่ 3: กล้อง -->
+            <div class="faq-card" data-cat="camera">
+                <div>
+                    <span style="display: inline-block; margin-bottom: 0.6rem; background: #fdecec; color: #c81e1e; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;">กล้อง / การเชื่อมต่อ</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: #0e1626; line-height: 1.4;">กล้อง PTZ หรือกล้องหมุนได้ กดควบคุมแล้วไม่ยอมหมุน</h4>
+                    <p style="font-size: 0.82rem; color: #5b6779; line-height: 1.5;">กล้องที่ต่อผ่าน NVR หรือกล้องฟิกซ์จะปรับมุมไม่ได้ หากเป็นกล้องหมุนได้แต่ขึ้นส่งคำสั่งไม่สำเร็จ ให้รอแล้วลองใหม่ หรือรีสตาร์ตกล้อง หากยังไม่หายให้แจ้ง Admin พร้อมยี่ห้อและรุ่น</p>
+                </div>
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #e3e8ef; font-size: 0.72rem; color: #c81e1e; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q7
                 </div>
             </div>
 
-            <!-- การ์ดที่ 4 (หมวดระบบ) -->
-            <div class="faq-card-item" data-category="system">
+            <!-- การ์ดที่ 4: ระบบ -->
+            <div class="faq-card" data-cat="system">
                 <div>
-                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดระบบ</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">หากอินเทอร์เน็ตขัดข้อง สามารถดึงข้อมูลย้อนหลังได้ไหม?</h4>
-                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">ปัจจุบันระบบยังไม่รองรับการประมวลผลย้อนหลัง เหตุการณ์ในช่วงที่เน็ตหลุดจะไม่ถูกบันทึกย้อนหลัง แต่ระบบจะวิเคราะห์ต่อทันทีเมื่อเน็ตกลับมาปกติ</p>
+                    <span style="display: inline-block; margin-bottom: 0.6rem; background: #e3eeff; color: #1d5fd0; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;">ระบบและการวิเคราะห์</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: #0e1626; line-height: 1.4;">หากอินเทอร์เน็ตขัดข้อง สามารถดึงข้อมูลย้อนหลังได้ไหม?</h4>
+                    <p style="font-size: 0.82rem; color: #5b6779; line-height: 1.5;">ปัจจุบันระบบยังไม่รองรับการประมวลผลย้อนหลัง เหตุการณ์ในช่วงที่เน็ตหลุดจะไม่ถูกบันทึกย้อนหลัง แต่ระบบจะวิเคราะห์ต่อทันทีเมื่อเน็ตกลับมาปกติ</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #e3e8ef; font-size: 0.72rem; color: #c81e1e; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q5
                 </div>
             </div>
 
-            <!-- การ์ดที่ 5 (หมวดระบบ) -->
-            <div class="faq-card-item" data-category="system">
+            <!-- การ์ดที่ 5: ระบบ -->
+            <div class="faq-card" data-cat="system">
                 <div>
-                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดระบบ</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">ทำไมส่วนวิเคราะห์บทสนทนาการบริการไม่แสดงข้อมูล?</h4>
-                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">เกิดได้จาก 2 สาขา คือยังไม่ได้ตั้งค่าเชื่อมต่อไมโครโฟน/กำหนดพื้นที่ ROI ให้ตรงจุดบริการ หรืออุปกรณ์ไมโครโฟนขัดข้องไม่มีสัญญาณเสียงเข้า</p>
+                    <span style="display: inline-block; margin-bottom: 0.6rem; background: #e3eeff; color: #1d5fd0; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;">ระบบและการวิเคราะห์</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: #0e1626; line-height: 1.4;">ทำไมส่วนวิเคราะห์บทสนทนาการบริการไม่แสดงข้อมูล?</h4>
+                    <p style="font-size: 0.82rem; color: #5b6779; line-height: 1.5;">เกิดได้จาก 2 สาขา คือยังไม่ได้ตั้งค่าเชื่อมต่อไมโครโฟน/กำหนดพื้นที่ ROI ให้ตรงจุดบริการ หรืออุปกรณ์ไมโครโฟนขัดข้องไม่มีสัญญาณเสียงเข้า</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #e3e8ef; font-size: 0.72rem; color: #c81e1e; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q3
                 </div>
             </div>
 
-            <!-- การ์ดที่ 6 (หมวดการตั้งค่า) -->
-            <div class="faq-card-item" data-category="account">
+            <!-- การ์ดที่ 6: บัญชี -->
+            <div class="faq-card" data-cat="account">
                 <div>
-                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดการตั้งค่า</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">จะเปลี่ยนวันที่หรือสลับสาขาการใช้งานได้อย่างไร?</h4>
-                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">สามารถเปลี่ยนได้ที่มุมขวาบนของหน้าจอ ซึ่งจะแสดงชื่อสาขาและวันที่ปัจจุบัน กดที่ส่วนนั้นเพื่อเลือกเปลี่ยนสาขาหรือวันที่ต้องการดูข้อมูลได้ทันที</p>
+                    <span style="display: inline-block; margin-bottom: 0.6rem; background: #fef3d7; color: #b45309; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;">บัญชีและการตั้งค่า</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: #0e1626; line-height: 1.4;">จะเปลี่ยนวันที่หรือสลับสาขาการใช้งานได้อย่างไร?</h4>
+                    <p style="font-size: 0.82rem; color: #5b6779; line-height: 1.5;">สามารถเปลี่ยนได้ที่มุมขวาบนของหน้าจอ ซึ่งจะแสดงชื่อสาขาและวันที่ปัจจุบัน กดที่ส่วนนั้นเพื่อเลือกเปลี่ยนสาขาหรือวันที่ต้องการดูข้อมูลได้ทันที</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #e3e8ef; font-size: 0.72rem; color: #c81e1e; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q1
                 </div>
             </div>
 
-            <!-- การ์ดที่ 7 (หมวดการตั้งค่า) -->
-            <div class="faq-card-item" data-category="account">
+            <!-- การ์ดที่ 7: บัญชี -->
+            <div class="faq-card" data-cat="account">
                 <div>
-                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดการตั้งค่า</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">สามารถตั้งเวลาเปิด-ปิดร้านแบบแบ่งกะได้หรือไม่?</h4>
-                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">ทำได้ โดยเข้าไปที่การตั้งเวลาทำการ เลือก "กำหนดเอง" เพื่อเปิดหน้าจัดการกะ โดยสามารถเพิ่มได้สูงสุดถึง 3 กะต่อวัน</p>
+                    <span style="display: inline-block; margin-bottom: 0.6rem; background: #fef3d7; color: #b45309; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;">บัญชีและการตั้งค่า</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: #0e1626; line-height: 1.4;">สามารถตั้งเวลาเปิด-ปิดร้านแบบแบ่งกะได้หรือไม่?</h4>
+                    <p style="font-size: 0.82rem; color: #5b6779; line-height: 1.5;">ทำได้ โดยเข้าไปที่การตั้งเวลาทำการ เลือก "กำหนดเอง" เพื่อเปิดหน้าจัดการกะ โดยสามารถเพิ่มได้สูงสุดถึง 3 กะต่อวัน</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #e3e8ef; font-size: 0.72rem; color: #c81e1e; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q10
                 </div>
             </div>
@@ -183,22 +188,26 @@
         </a>
     </nav>
 
+    <!-- สคริปต์สลับแท็บแบบอิสระ ไม่ดึงจากภายนอก -->
     <script>
-        // ฟังก์ชันสลับแท็บแบบใช้คลาส .hidden ควบคุมโดยตรง (แก้ปัญหาการแสดงผลติดขัด)
-        function filterFaqCategory(category, btnElement) {
-            // สลับสถานะปุ่ม active
-            document.querySelectorAll('.chip').forEach(btn => btn.classList.remove('active'));
-            btnElement.classList.add('active');
-            
-            // วนลูปการ์ดทุกใบเพื่อซ่อนหรือแสดงผล
-            document.querySelectorAll('.faq-card-item').forEach(item => {
-                const itemCategory = item.getAttribute('data-category');
-                if (category === 'all' || itemCategory === category) {
-                    item.classList.remove('hidden'); // แสดงการ์ด
+        function switchFaqTab(targetCategory, element) {
+            // 1. เปลี่ยนไฮไลท์สีปุ่ม
+            var allButtons = document.querySelectorAll('.chip-btn');
+            for (var i = 0; i < allButtons.length; i++) {
+                allButtons[i].classList.remove('active');
+            }
+            element.classList.add('active');
+
+            // 2. ซ่อน/แสดง การ์ดด้วย style.setProperty โดยตรง
+            var allCards = document.querySelectorAll('.faq-card');
+            for (var j = 0; j < allCards.length; j++) {
+                var cardCat = allCards[j].getAttribute('data-cat');
+                if (targetCategory === 'all' || cardCat === targetCategory) {
+                    allCards[j].style.setProperty('display', 'flex', 'important');
                 } else {
-                    item.classList.add('hidden');    // ซ่อนการ์ด
+                    allCards[j].style.setProperty('display', 'none', 'important');
                 }
-            });
+            }
         }
     </script>
 </body>
