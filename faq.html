@@ -8,9 +8,39 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./styles.css">
     <style>
-        /* เพิ่มอนิเมชันให้การ์ดเด้งแสดงผลอย่างนุ่มนวลเมื่อกดสลับแท็บ */
+        /* กำหนดสไตล์และการซ่อนการ์ดด้วย CSS Class อย่างเด็ดขาด */
         .faq-card-item {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             transition: all 0.3s ease-in-out;
+        }
+        
+        /* คลาสสำหรับซ่อนการ์ดเมื่อเลือกเปลี่ยนแท็บ */
+        .faq-card-item.hidden {
+            display: none !important;
+        }
+
+        /* แต่งปุ่มแท็บให้ดูเด่นชัดเวลาเลือก */
+        .chip {
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            font-family: 'Prompt', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .chip.active {
+            background: #0f172a;
+            color: #fff;
+            border-color: #0f172a;
         }
     </style>
 </head>
@@ -23,15 +53,15 @@
         </div>
     </header>
 
-    <main class="main-content">
-        <div class="page-title-box">
-            <h2><i class="fa-solid fa-circle-question text-red"></i> คำถามที่พบบ่อย (FAQ)</h2>
-            <p>เลือกหมวดหมู่ด้านบนเพื่อดูคำถามและแนวทางแก้ไขปัญหาที่ต้องการได้อย่างรวดเร็ว</p>
+    <main class="main-content" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+        <div class="page-title-box" style="margin-bottom: 1.5rem;">
+            <h2><i class="fa-solid fa-circle-question" style="color: #ef4444;"></i> คำถามที่พบบ่อย (FAQ)</h2>
+            <p style="color: #64748b;">เลือกหมวดหมู่ด้านบนเพื่อดูคำถามและแนวทางแก้ไขปัญหาที่ต้องการได้อย่างรวดเร็ว</p>
         </div>
 
-        <!-- แถบแท็บหมวดหมู่ (คลิกแล้วการ์ดจะกรองเด้งออกมาตามหมวด) -->
-        <div class="faq-controls-bar">
-            <div class="chip-group">
+        <!-- แถบแท็บหมวดหมู่ -->
+        <div class="faq-controls-bar" style="margin-bottom: 1.5rem;">
+            <div class="chip-group" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                 <button class="chip active" onclick="filterFaqCategory('all', this)">ทั้งหมด</button>
                 <button class="chip" onclick="filterFaqCategory('camera', this)"><i class="fa-solid fa-video"></i> กล้อง / การเชื่อมต่อ</button>
                 <button class="chip" onclick="filterFaqCategory('system', this)"><i class="fa-solid fa-desktop"></i> ระบบและการวิเคราะห์</button>
@@ -43,85 +73,85 @@
         <div class="faq-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
             
             <!-- การ์ดที่ 1 (หมวดกล้อง) -->
-            <div class="faq-card-item" data-category="camera" style="background: #fff; border: 1px solid var(--border-color); border-radius: 16px; padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+            <div class="faq-card-item" data-category="camera">
                 <div>
-                    <span class="badge-cat red" style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);">กล้องขึ้นออนไลน์แต่ไม่มีภาพ (Black Screen) ต้องแก้ไขอย่างไร?</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">ตรวจสอบ Bandwidth เครือข่าย และตรวจสอบว่าพอร์ต 554 ไม่ถูก Firewall บล็อก รวมถึงเช็กสัญญาณอินเทอร์เน็ตระหว่างกล้องกับเครื่องต้นทาง</p>
+                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">กล้องขึ้นออนไลน์แต่ไม่มีภาพ (Black Screen) ต้องแก้ไขอย่างไร?</h4>
+                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">ตรวจสอบ Bandwidth เครือข่าย และตรวจสอบว่าพอร์ต 554 ไม่ถูก Firewall บล็อก รวมถึงเช็กสัญญาณอินเทอร์เน็ตระหว่างกล้องกับเครื่องต้นทาง</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q6
                 </div>
             </div>
 
-            <!-- การ์ดที่ 2 (หมวดกล้อง - เพิ่มเรื่อง IP กล้องตามที่ต้องการ) -->
-            <div class="faq-card-item" data-category="camera" style="background: #fff; border: 1px solid var(--border-color); border-radius: 16px; padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+            <!-- การ์ดที่ 2 (หมวดกล้อง - เรื่อง IP กล้อง) -->
+            <div class="faq-card-item" data-category="camera">
                 <div>
-                    <span class="badge-cat red" style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);">ดู IP Address ของกล้องหรือตั้งค่าการเชื่อมต่อได้จากเมนูไหน?</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">สามารถตรวจสอบ IP Address และจัดการเพิ่ม/ลบกล้องได้ที่เมนู "จัดการกล้อง" ในระบบ โดยกรอกข้อมูลรายละเอียดกล้องให้ครบถ้วนตามขั้นตอนเบื้องต้น</p>
+                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">ดู IP Address ของกล้องหรือตั้งค่าการเชื่อมต่อได้จากเมนูไหน?</h4>
+                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">สามารถตรวจสอบ IP Address และจัดการเพิ่ม/ลบกล้องได้ที่เมนู "จัดการกล้อง" ในระบบ โดยกรอกข้อมูลรายละเอียดกล้องให้ครบถ้วนตามขั้นตอนเบื้องต้น</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ B1-B2
                 </div>
             </div>
 
             <!-- การ์ดที่ 3 (หมวดกล้อง) -->
-            <div class="faq-card-item" data-category="camera" style="background: #fff; border: 1px solid var(--border-color); border-radius: 16px; padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+            <div class="faq-card-item" data-category="camera">
                 <div>
-                    <span class="badge-cat red" style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);">กล้อง PTZ หรือกล้องหมุนได้ กดควบคุมแล้วไม่ยอมหมุน</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">กล้องที่ต่อผ่าน NVR หรือกล้องฟิกซ์จะปรับมุมไม่ได้ หากเป็นกล้องหมุนได้แต่ขึ้นส่งคำสั่งไม่สำเร็จ ให้รอแล้วลองใหม่ หรือรีสตาร์ตกล้อง หากยังไม่หายให้แจ้ง Admin พร้อมยี่ห้อและรุ่น</p>
+                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดกล้อง</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">กล้อง PTZ หรือกล้องหมุนได้ กดควบคุมแล้วไม่ยอมหมุน</h4>
+                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">กล้องที่ต่อผ่าน NVR หรือกล้องฟิกซ์จะปรับมุมไม่ได้ หากเป็นกล้องหมุนได้แต่ขึ้นส่งคำสั่งไม่สำเร็จ ให้รอแล้วลองใหม่ หรือรีสตาร์ตกล้อง หากยังไม่หายให้แจ้ง Admin พร้อมยี่ห้อและรุ่น</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q7
                 </div>
             </div>
 
             <!-- การ์ดที่ 4 (หมวดระบบ) -->
-            <div class="faq-card-item" data-category="system" style="background: #fff; border: 1px solid var(--border-color); border-radius: 16px; padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+            <div class="faq-card-item" data-category="system">
                 <div>
-                    <span class="badge-cat blue" style="display: inline-block; margin-bottom: 0.5rem; background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดระบบ</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);">หากอินเทอร์เน็ตขัดข้อง สามารถดึงข้อมูลย้อนหลังได้ไหม?</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">ปัจจุบันระบบยังไม่รองรับการประมวลผลย้อนหลัง เหตุการณ์ในช่วงที่เน็ตหลุดจะไม่ถูกบันทึกย้อนหลัง แต่ระบบจะวิเคราะห์ต่อทันทีเมื่อเน็ตกลับมาปกติ</p>
+                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดระบบ</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">หากอินเทอร์เน็ตขัดข้อง สามารถดึงข้อมูลย้อนหลังได้ไหม?</h4>
+                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">ปัจจุบันระบบยังไม่รองรับการประมวลผลย้อนหลัง เหตุการณ์ในช่วงที่เน็ตหลุดจะไม่ถูกบันทึกย้อนหลัง แต่ระบบจะวิเคราะห์ต่อทันทีเมื่อเน็ตกลับมาปกติ</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q5
                 </div>
             </div>
 
             <!-- การ์ดที่ 5 (หมวดระบบ) -->
-            <div class="faq-card-item" data-category="system" style="background: #fff; border: 1px solid var(--border-color); border-radius: 16px; padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+            <div class="faq-card-item" data-category="system">
                 <div>
-                    <span class="badge-cat blue" style="display: inline-block; margin-bottom: 0.5rem; background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดระบบ</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);">ทำไมส่วนวิเคราะห์บทสนทนาการบริการไม่แสดงข้อมูล?</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">เกิดได้จาก 2 สาขา คือยังไม่ได้ตั้งค่าเชื่อมต่อไมโครโฟน/กำหนดพื้นที่ ROI ให้ตรงจุดบริการ หรืออุปกรณ์ไมโครโฟนขัดข้องไม่มีสัญญาณเสียงเข้า</p>
+                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดระบบ</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">ทำไมส่วนวิเคราะห์บทสนทนาการบริการไม่แสดงข้อมูล?</h4>
+                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">เกิดได้จาก 2 สาขา คือยังไม่ได้ตั้งค่าเชื่อมต่อไมโครโฟน/กำหนดพื้นที่ ROI ให้ตรงจุดบริการ หรืออุปกรณ์ไมโครโฟนขัดข้องไม่มีสัญญาณเสียงเข้า</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q3
                 </div>
             </div>
 
             <!-- การ์ดที่ 6 (หมวดการตั้งค่า) -->
-            <div class="faq-card-item" data-category="account" style="background: #fff; border: 1px solid var(--border-color); border-radius: 16px; padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+            <div class="faq-card-item" data-category="account">
                 <div>
-                    <span class="badge-cat orange" style="display: inline-block; margin-bottom: 0.5rem; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดการตั้งค่า</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);">จะเปลี่ยนวันที่หรือสลับสาขาการใช้งานได้อย่างไร?</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">สามารถเปลี่ยนได้ที่มุมขวาบนของหน้าจอ ซึ่งจะแสดงชื่อสาขาและวันที่ปัจจุบัน กดที่ส่วนนั้นเพื่อเลือกเปลี่ยนสาขาหรือวันที่ต้องการดูข้อมูลได้ทันที</p>
+                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดการตั้งค่า</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">จะเปลี่ยนวันที่หรือสลับสาขาการใช้งานได้อย่างไร?</h4>
+                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">สามารถเปลี่ยนได้ที่มุมขวาบนของหน้าจอ ซึ่งจะแสดงชื่อสาขาและวันที่ปัจจุบัน กดที่ส่วนนั้นเพื่อเลือกเปลี่ยนสาขาหรือวันที่ต้องการดูข้อมูลได้ทันที</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q1
                 </div>
             </div>
 
             <!-- การ์ดที่ 7 (หมวดการตั้งค่า) -->
-            <div class="faq-card-item" data-category="account" style="background: #fff; border: 1px solid var(--border-color); border-radius: 16px; padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+            <div class="faq-card-item" data-category="account">
                 <div>
-                    <span class="badge-cat orange" style="display: inline-block; margin-bottom: 0.5rem; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดการตั้งค่า</span>
-                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);">สามารถตั้งเวลาเปิด-ปิดร้านแบบแบ่งกะได้หรือไม่?</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">ทำได้ โดยเข้าไปที่การตั้งเวลาทำการ เลือก "กำหนดเอง" เพื่อเปิดหน้าจัดการกะ โดยสามารถเพิ่มได้สูงสุดถึง 3 กะต่อวัน</p>
+                    <span style="display: inline-block; margin-bottom: 0.5rem; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">หมวดการตั้งค่า</span>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; color: #1e293b;">สามารถตั้งเวลาเปิด-ปิดร้านแบบแบ่งกะได้หรือไม่?</h4>
+                    <p style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">ทำได้ โดยเข้าไปที่การตั้งเวลาทำการ เลือก "กำหนดเอง" เพื่อเปิดหน้าจัดการกะ โดยสามารถเพิ่มได้สูงสุดถึง 3 กะต่อวัน</p>
                 </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--primary-red); font-weight: 600;">
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; font-size: 0.75rem; color: #ef4444; font-weight: 600;">
                     <i class="fa-solid fa-circle-info"></i> อ้างอิงจากคู่มือ Q10
                 </div>
             </div>
@@ -154,22 +184,22 @@
     </nav>
 
     <script>
-        // ฟังก์ชันกดแท็บหมวดหมู่แล้วการ์ดคำถามหมวดนั้นจะเด้งแสดงขึ้นมาทันที
+        // ฟังก์ชันสลับแท็บแบบใช้คลาส .hidden ควบคุมโดยตรง (แก้ปัญหาการแสดงผลติดขัด)
         function filterFaqCategory(category, btnElement) {
             // สลับสถานะปุ่ม active
             document.querySelectorAll('.chip').forEach(btn => btn.classList.remove('active'));
             btnElement.classList.add('active');
             
-            // กรองแสดงเฉพาะการ์ดที่ตรงกับหมวดหมู่
+            // วนลูปการ์ดทุกใบเพื่อซ่อนหรือแสดงผล
             document.querySelectorAll('.faq-card-item').forEach(item => {
-                if (category === 'all' || item.getAttribute('data-category') === category) {
-                    item.style.display = 'flex';
+                const itemCategory = item.getAttribute('data-category');
+                if (category === 'all' || itemCategory === category) {
+                    item.classList.remove('hidden'); // แสดงการ์ด
                 } else {
-                    item.style.display = 'none';
+                    item.classList.add('hidden');    // ซ่อนการ์ด
                 }
             });
         }
     </script>
-    <script src="./script.js"></script>
 </body>
 </html>
