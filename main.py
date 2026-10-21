@@ -13,6 +13,7 @@ from vertexai.generative_models import GenerativeModel, Tool
 from google.cloud import firestore
 import vertexai
 from vertexai.generative_models import GenerativeModel
+from vertexai.preview import rag
 
 # กำหนด System Instruction ตรงนี้
 system_instruction = (
@@ -94,43 +95,59 @@ def read_root():
 @app.post("/api/chat")
 async def chat_with_tatip(request: ChatRequest):
     try:
-        # ใช้ System Instruction ที่เข้มงวด เพื่อบังคับให้ตอบเฉพาะในคู่มือเท่านั้น ห้ามออกนอกเรื่องเด็ดขาด
-        strict_system_instruction = (
-            "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับสนับสนุนการให้บริการลูกค้าของระบบ TATIP "
-            "หน้าที่ของคุณคือตอบคำถามโดยอ้างอิงจากเนื้อหาในเอกสารคู่มือที่ระบบดึงมา (RAG Corpus) ให้เท่านั้น "
-            "ข้อกำหนดเด็ดขาด: "
-            "1. ห้ามใช้ความรู้ทั่วไปภายนอก ห้ามแต่งคำตอบขึ้นมาเองเด็ดขาด "
-            "2. หากคำถามหรือเรื่องดังกล่าวไม่อยู่ในเอกสารคู่มือ หรือเป็นการถามนอกเหนือจากระบบ TATIP ให้ตอบตามรูปแบบนี้คำต่อคำเท่านั้น: "
-            "'เรื่องนี้ยังไม่มีข้อมูลในคู่มือการใช้งาน รบกวนติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ' "
-            "3. หากมีข้อมูลในคู่มือ ให้เขียนอธิบายขั้นตอน วิธีการตรวจสอบ หรือวิธีแก้ไขปัญหาเป็นข้อๆ (Step-by-step) ให้ละเอียดชัดเจน"
-        )
-
-        # กำหนด generation_config ให้ temperature เป็น 0 เพื่อลดการคิดเองและยึดตามเอกสาร
-        from vertexai.generative_models import GenerationConfig
-        generation_config = GenerationConfig(
-            temperature=0.0
-        )
-
-        model = GenerativeModel(
-            "gemini-2.5-flash-lite",
-            system_instruction=strict_system_instruction,
-            generation_config=generation_config
-        )
-        
-        rag_retrieval_tool = Tool.from_retrieval(
-            retrieval=rag.Retrieval(
-                source=rag.VertexRagStore(
+        # 1. ทำการค้นหาข้อมูลจาก RAG Corpus ก่อน (Retrieval)
+        results = rag.retrieval(
+            retrieval_config=rag.RetrievalConfig(
+                vertex_rag_store=rag.VertexRagStore(
                     rag_resources=[rag.RagResource(rag_corpus=CORPUS_NAME)],
                     similarity_top_k=3,
                 ),
-            )
+            ),
+            query=request.message,
         )
         
-        response = model.generate_content(
-            request.message,
-            tools=[rag_retrieval_tool],
+        # 2. ตรวจสอบว่าพบข้อมูลที่เกี่ยวข้องในเอกสารหรือไม่ (ถ้าผลลัพธ์ว่าง หรือคะแนนความเกี่ยวข้องต่ำเกินไป)
+        # ตรวจสอบว่ามี Context ถูกดึงขึ้นมาไหม
+        has_context = False
+        context_text = ""
+        if results and hasattr(results, 'contexts') and results.contexts:
+            for context in results.contexts.contexts:
+                if context.text:
+                    context_text += context.text + "\n"
+                    has_context = True
+
+        # ถ้าไม่มีข้อมูลในเอกสารคู่มือเลย ให้ตอบปฏิเสธทันทีโดยไม่ต้องเรียก AI มาแต่งเรื่องเพิ่ม!
+        if not has_context or len(context_text.strip()) == 0:
+            return {
+                "status": "success", 
+                "reply": "เรื่องนี้ยังไม่มีข้อมูลในคู่มือการใช้งาน รบกวนติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ"
+            }
+
+        # 3. ถ้ามีข้อมูลในเอกสาร ให้ส่งข้อมูลนั้นไปให้ Gemini ตอบโดยอ้างอิงจาก Context ที่หามาได้เท่านั้น
+        strict_system_instruction = (
+            "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับสนับสนุนการให้บริการลูกค้าของระบบ TATIP "
+            "หน้าที่ของคุณคือตอบคำถามโดยอ้างอิงจาก [ข้อมูลอ้างอิงจากคู่มือ] ที่แนบมาให้เท่านั้น "
+            "ห้ามใช้ความรู้ทั่วไปภายนอก ห้ามแต่งคำตอบขึ้นมาเองเด็ดขาด"
+        )
+
+        from vertexai.generative_models import GenerationConfig, GenerativeModel
+        model = GenerativeModel(
+            "gemini-2.5-flash-lite",
+            system_instruction=strict_system_instruction,
+            generation_config=GenerationConfig(temperature=0.0)
         )
         
+        prompt = f"""
+[ข้อมูลอ้างอิงจากคู่มือ]
+{context_text}
+
+[คำถามของลูกค้า]
+{request.message}
+
+โปรดตอบคำถามโดยใช้ข้อมูลจาก [ข้อมูลอ้างอิงจากคู่มือ] ด้านบนเท่านั้น
+"""
+        
+        response = model.generate_content(prompt)
         return {"status": "success", "reply": response.text}
         
     except Exception as e:
