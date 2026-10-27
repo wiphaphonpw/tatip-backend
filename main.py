@@ -370,4 +370,93 @@ async def line_webhook(request: Request):
             # (เรียกใช้งานฟังก์ชันประมวลผลต่อตาม Architecture ในรายงาน)
             
     return {"status": "success"}
+
+# ==========================================
+# Helper Function สำหรับประมวลผล RAG Chat
+# ==========================================
+async def get_rag_reply(user_message: str) -> str:
+    try:
+        # 1. ค้นหาข้อมูลที่เกี่ยวข้องจาก RAG Corpus
+        results = rag.retrieval(
+            retrieval_config=rag.RetrievalConfig(
+                vertex_rag_store=rag.VertexRagStore(
+                    rag_resources=[rag.RagResource(rag_corpus=CORPUS_NAME)],
+                    similarity_top_k=3,
+                ),
+            ),
+            query=user_message,
+        )
+
+        # 2. ดึงข้อความ Context ที่ค้นพบ
+        context_text = ""
+        if results and hasattr(results, 'contexts') and results.contexts:
+            for context in results.contexts.contexts:
+                if context.text:
+                    context_text += context.text + "\n"
+
+        # 3. ถ้าไม่มีข้อมูลในคู่มือ ให้ปฏิเสธทันที
+        if not context_text.strip():
+            return "เรื่องนี้ยังไม่มีข้อมูลในคู่มือการใช้งาน รบกวนติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ"
+
+        # 4. ส่งข้อมูล Context ให้ Gemini ประมวลผลคำตอบแบบควบคุมเข้มงวด
+        strict_system_instruction = (
+            "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับสนับสนุนการให้บริการลูกค้าของระบบ TATIP "
+            "หน้าที่ของคุณคือตอบคำถามโดยอ้างอิงจาก [ข้อมูลอ้างอิงจากคู่มือ] ที่แนบมาให้เท่านั้น "
+            "ห้ามใช้ความรู้ทั่วไปภายนอก ห้ามแต่งคำตอบขึ้นมาเองเด็ดขาด"
+        )
+
+        from vertexai.generative_models import GenerationConfig
+        model = GenerativeModel(
+            "gemini-2.5-flash-lite",
+            system_instruction=strict_system_instruction,
+            generation_config=GenerationConfig(temperature=0.0)
+        )
+
+        prompt = f"[ข้อมูลอ้างอิงจากคู่มือ]\n{context_text}\n\n[คำถามของลูกค้า]\n{user_message}"
+        response = model.generate_content(prompt)
+        return response.text
+
+    except Exception as e:
+        print(f"RAG Processing Error: {str(e)}")
+        return "เกิดข้อผิดพลาดในการดึงข้อมูลคู่มือ กรุณาลองใหม่อีกครั้งค่ะ"
+
+
+# ==========================================
+# LINE Webhook Endpoint
+# ==========================================
+@app.post("/api/line/webhook")
+async def line_webhook(request: Request):
+    try:
+        data = await request.json()
+        events = data.get("events", [])
+
+        for event in events:
+            if event.get("type") == "message" and event.get("message", {}).get("type") == "text":
+                line_user_id = event["source"]["userId"]
+                user_message = event["message"]["text"]
+
+                # ค้นหาผู้ใช้จากตาราง users
+                users_ref = db.collection("users")
+                query = users_ref.where("LINE_USER_ID", "==", line_user_id).stream()
+
+                tenant_id = "default_tenant"
+                for doc in query:
+                    user_data = doc.to_dict()
+                    tenant_id = user_data.get("TENANT_ID", "default_tenant")
+
+                # เรียกใช้งานฟังก์ชัน get_rag_reply ที่เราสร้างขึ้น
+                ai_reply = await get_rag_reply(user_message)
+
+                # บันทึกลง Firestore ตาราง messages
+                db.collection("messages").add({
+                    "LINE_USER_ID": line_user_id,
+                    "TENANT_ID": tenant_id,
+                    "MESSAGE": user_message,
+                    "REPLY": ai_reply,
+                    "CREATE_DATE": datetime.now()
+                })
+
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
