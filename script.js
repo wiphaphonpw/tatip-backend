@@ -359,3 +359,14 @@ async function fetchCollectionData() {
         tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
     }
 }
+// ==========================================
+// ฟังก์ชันออกจากระบบ (Logout)
+// ==========================================
+function logoutUser() {
+    if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+        // ลบข้อมูลผู้ใช้ปัจจุบันที่ล็อกอินอยู่ออก
+        localStorage.removeItem('currentUser');
+        // เด้งกลับไปหน้าเข้าสู่ระบบ
+        window.location.href = 'login.html';
+    }
+}
