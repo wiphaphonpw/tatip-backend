@@ -329,3 +329,31 @@ async def line_webhook(request: Request):
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+        # 1. ปรับ Pydantic Model
+class CreateUserRequest(BaseModel):
+    user_id: str
+    username: str
+    password: str
+    tenant_id: str
+    tenant_name: str = ""
+    branch_name: str = ""
+    role: str = "customer"
+
+# 2. ปรับฟังก์ชันบันทึกลง Firestore
+@app.post("/api/admin/create-user")
+def create_customer_user(request: CreateUserRequest):
+    try:
+        user_ref = db.collection("users").document(request.user_id)
+        user_ref.set({
+            "USER_ID": request.user_id,
+            "USERNAME": request.username,
+            "PASSWORD": request.password,
+            "TENANT_ID": request.tenant_id,
+            "TENANT_NAME": request.tenant_name,
+            "BRANCH_NAME": request.branch_name,
+            "ROLE": request.role
+        }, merge=True)
+        return {"status": "success", "message": f"สร้างบัญชีให้กับ {request.username} สำเร็จเรียบร้อยแล้ว!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
