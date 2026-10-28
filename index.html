@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-    <header class="top-navbar">
+<header class="top-navbar">
         <div class="nav-container">
             <a href="index.html" class="brand-logo">
                 <div class="logo-box">
@@ -27,9 +27,17 @@
                 </div>
                 <div class="brand-subtitle">ระบบสนับสนุนบริการลูกค้าอัจฉริยะ</div>
             </a>
-            <div class="status-online-pill">
-                <span class="dot"></span>
-                <span>RAG: <strong>Online</strong></span>
+            
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="status-online-pill">
+                    <span class="dot"></span>
+                    <span>RAG: <strong>Online</strong></span>
+                </div>
+                
+                <!-- ปุ่ม Logout ที่เพิ่มใหม่ -->
+                <button onclick="logoutUser()" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 0.35rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
+                    <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+                </button>
             </div>
         </div>
     </header>
