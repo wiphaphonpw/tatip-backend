@@ -72,18 +72,19 @@ async function handleLogin(event) {
 }
 
 // ==========================================
-// ฟังก์ชันออกจากระบบ (Logout)
+// ฟังก์ชันออกจากระบบ (ผูกกับ window โดยตรงเพื่อป้องกัน Scope Error)
 // ==========================================
-function logoutUser() {
+window.logoutUser = function() {
     if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
-        // 1. ลบข้อมูลผู้ใช้ปัจจุบันที่ล็อกอินอยู่ออก
+        // 1. เคลียร์ข้อมูลล็อกอินทั้งหมด
         localStorage.removeItem('currentUser');
-        localStorage.clear(); // ล้าง Session ค้างทั้งหมด
-
-        // 2. ส่งกลับไปยังหน้าเข้าสู่ระบบทันที
-        window.location.replace('login.html');
+        localStorage.clear();
+        
+        // 2. ใช้ location.href ส่งไปยังหน้า login.html
+        window.location.href = 'login.html';
     }
-}
+};
+
 // ==========================================
 // 2. ระบบ Modal
 // ==========================================
