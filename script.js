@@ -1,31 +1,45 @@
 const API_URL = "https://tatip-backend-417035159214.us-central1.run.app";
 
 // ==========================================
-// 1. ระบบ Auth (Login)
+// 1. ระบบ Auth (Login แบบรวดเร็ว + มี Timeout)
 // ==========================================
 async function handleLogin(event) {
-    event.preventDefault(); // ป้องกันไม่ให้ฟอร์มรีเฟรชหน้าเว็บ
+    event.preventDefault();
 
     const usernameInput = document.getElementById('username').value.trim();
     const passwordInput = document.getElementById('password').value.trim();
+    const btnSubmit = event.target.querySelector('button[type="submit"]');
+
+    if (!usernameInput || !passwordInput) {
+        alert('กรุณากรอก Username และ Password');
+        return;
+    }
+
+    // แสดงสถานะกำลังเข้าสู่ระบบ
+    if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังเข้าสู่ระบบ...';
+    }
 
     try {
-        // ส่ง username และ password ไปเช็กที่ FastAPI บน Cloud Run
+        // กำหนด Timeout 8 วินาที เพื่อไม่ให้ระบบค้างหมุนนานเกินไป
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         const response = await fetch(`${API_URL}/api/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 username: usernameInput, 
                 password: passwordInput 
-            })
+            }),
+            signal: controller.signal
         });
-        
+
+        clearTimeout(timeoutId);
         const result = await response.json();
 
         if (response.ok && result.status === 'success') {
-            alert('เข้าสู่ระบบสำเร็จ ยินดีต้อนรับคุณ ' + usernameInput);
-            
-            // เก็บข้อมูลผู้ใช้ไว้ใน localStorage
             const userData = {
                 username: usernameInput,
                 role: result.role,
@@ -33,35 +47,43 @@ async function handleLogin(event) {
             };
             localStorage.setItem('currentUser', JSON.stringify(userData));
 
-            // ตรวจสอบสิทธิ์ (Role) เพื่อแยกหน้าเว็บ
+            // เคลียร์ประวัติค้างเก่า (ถ้ามี) แล้วย้ายหน้าทันที
             if (result.role === 'admin' || result.role === 'branch_manager') {
-                // ถ้าเป็น Admin ไปหน้าจัดการระบบ
-                window.location.href = 'admin_users.html'; 
+                window.location.replace('admin_users.html');
             } else {
-                // ถ้าเป็น Customer ไปหน้าแชทหลัก
-                window.location.href = 'index.html'; 
+                window.location.replace('index.html');
             }
         } else {
             alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + (result.detail || 'Username หรือ Password ไม่ถูกต้อง'));
         }
     } catch (error) {
-        console.error('Login Error:', error);
-        alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ Backend บน Cloud Run');
+        if (error.name === 'AbortError') {
+            alert('❌ การเชื่อมต่อใช้เวลานานเกินไป กรุณาตรวจสอบอินเทอร์เน็ตหรือลองใหม่อีกครั้ง');
+        } else {
+            console.error('Login Error:', error);
+            alert('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Backend บน Cloud Run ได้');
+        }
+    } finally {
+        if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = 'เข้าสู่ระบบ';
+        }
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.location.pathname.includes('chat.html')) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const query = urlParams.get('q');
-        if (query) {
-            document.getElementById('chatInput').value = query;
-            submitChatMessage();
-            window.history.replaceState({}, document.title, "chat.html");
-        }
+// ==========================================
+// ฟังก์ชันออกจากระบบ (Logout ชัวร์ 100%)
+// ==========================================
+function logoutUser() {
+    if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+        // ล้างข้อมูล User ออกจากเครื่องทั้งหมด
+        localStorage.removeItem('currentUser');
+        localStorage.clear(); // เคลียร์เซสชันค้าง
+        
+        // บังคับเปลี่ยนหน้าไปยัง login.html ทันที
+        window.location.replace('login.html');
     }
-    if (window.location.pathname.includes('history.html')) loadHistory();
-});
+}
 
 // ==========================================
 // 2. ระบบ Modal
@@ -357,16 +379,5 @@ async function fetchCollectionData() {
     } catch (error) {
         console.error('Error:', error);
         tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
-    }
-}
-// ==========================================
-// ฟังก์ชันออกจากระบบ (Logout)
-// ==========================================
-function logoutUser() {
-    if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
-        // ลบข้อมูลผู้ใช้ปัจจุบันที่ล็อกอินอยู่ออก
-        localStorage.removeItem('currentUser');
-        // เด้งกลับไปหน้าเข้าสู่ระบบ
-        window.location.href = 'login.html';
     }
 }
