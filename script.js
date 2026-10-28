@@ -179,10 +179,29 @@ async function submitChatMessage() {
 }
 
 // ==========================================
-// 5. ระบบประวัติการสนทนา (History)
+// 5. ระบบประวัติการสนทนา (แยกตาม Account ผู้ใช้)
 // ==========================================
+
+// ฟังก์ชันดึงชื่อ User ที่ล็อกอินปัจจุบัน
+function getCurrentUsername() {
+    const currentUserStr = localStorage.getItem('currentUser');
+    if (currentUserStr) {
+        try {
+            const userObj = JSON.parse(currentUserStr);
+            return userObj.username || userObj.user_id || 'guest';
+        } catch (e) {
+            return 'guest';
+        }
+    }
+    return 'guest';
+}
+
 function saveToHistory(question, answer) {
-    let history = JSON.parse(localStorage.getItem('tatip_chat_history')) || [];
+    // 1. ระบุ Key โดยนำชื่อ Account ปัจจุบันมาต่อท้าย (เช่น tatip_chat_history_user01)
+    const username = getCurrentUsername();
+    const storageKey = `tatip_chat_history_${username}`;
+
+    let history = JSON.parse(localStorage.getItem(storageKey)) || [];
     
     const cleanAnswer = answer
         .replace(/\*\*/g, '')  
@@ -199,18 +218,24 @@ function saveToHistory(question, answer) {
     });
     
     if (history.length > 50) history.pop();
-    localStorage.setItem('tatip_chat_history', JSON.stringify(history));
+    localStorage.setItem(storageKey, JSON.stringify(history));
 }
 
 function loadHistory() {
     const historyList = document.getElementById('historyList');
     if (!historyList) return;
     
-    let history = JSON.parse(localStorage.getItem('tatip_chat_history')) || [];
+    // 2. ดึงประวัติเฉพาะของ Account ที่ล็อกอินอยู่
+    const username = getCurrentUsername();
+    const storageKey = `tatip_chat_history_${username}`;
+
+    let history = JSON.parse(localStorage.getItem(storageKey)) || [];
     historyList.innerHTML = '';
     
     if (history.length === 0) {
-        historyList.innerHTML = '<p style="color: #64748B; text-align: center; grid-column: 1/-1; padding: 3rem; font-size: 0.95rem;">ยังไม่มีประวัติการสนทนาในระบบ</p>';
+        historyList.innerHTML = `<p style="color: #64748B; text-align: center; grid-column: 1/-1; padding: 3rem; font-size: 0.95rem;">
+            ยังไม่มีประวัติการสนทนาสำหรับบัญชี <strong>${username}</strong>
+        </p>`;
         return;
     }
     
@@ -235,32 +260,6 @@ function loadHistory() {
                 </div>
             </div>`;
     });
-}
-
-function openTranscript(question, answer) {
-    const modal = document.getElementById('transcriptModal');
-    const body = document.getElementById('transcriptBody');
-    
-    if (modal && body) {
-        body.innerHTML = `
-            <div style="background: #F8FAFC; padding: 14px; border-radius: 8px; margin-bottom: 14px; border-left: 4px solid #0284c7;">
-                <strong style="color: #0f172a; display: block; margin-bottom: 6px; font-size: 0.9rem;"><i class="fa-solid fa-user"></i> คำถามของคุณ:</strong>
-                <span style="color: #334155; font-size: 0.85rem; line-height: 1.5;">${question}</span>
-            </div>
-            <div style="background: #FEE2E2; padding: 14px; border-radius: 8px; border-left: 4px solid #d32f2f;">
-                <strong style="color: #991b1b; display: block; margin-bottom: 6px; font-size: 0.9rem;"><i class="fa-solid fa-robot"></i> คำตอบจาก TATIP AI:</strong>
-                <span style="color: #7f1d1d; font-size: 0.85rem; line-height: 1.6; white-space: pre-line;">${answer}</span>
-            </div>`;
-        
-        modal.classList.add('active');
-    }
-}
-
-function closeTranscriptModal() {
-    const modal = document.getElementById('transcriptModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
 }
 
 // ==========================================

@@ -66,6 +66,22 @@
             <div id="transcriptBody"><p>กำลังโหลด...</p></div>
         </div>
     </div>
+    <script>
+    function clearAllHistory() {
+        // ดึงชื่อ User ปัจจุบัน
+        const currentUserStr = localStorage.getItem('currentUser');
+        let username = 'guest';
+        if (currentUserStr) {
+            try { username = JSON.parse(currentUserStr).username || 'guest'; } catch (e) {}
+        }
+        
+        if (confirm(`คุณต้องการล้างประวัติการสนทนาของบัญชี [ ${username} ] ใช่หรือไม่?`)) {
+            // ลบเฉพาะ Key ของบัญชีนี้
+            localStorage.removeItem(`tatip_chat_history_${username}`);
+            loadHistory(); // โหลดหน้าตารางใหม่
+        }
+    }
+</script>
 
     <script src="./script.js"></script>
 </body>
