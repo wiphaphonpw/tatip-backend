@@ -3,9 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import hashlib
 import hmac
 import base64
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import vertexai
 from vertexai.preview import rag
 from vertexai.generative_models import GenerativeModel, GenerationConfig
@@ -37,11 +37,23 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str
 
+class SaveChatHistoryRequest(BaseModel):
+    user_id: str = Field(alias="USER_ID")
+    tenant_id: str = Field(alias="TENANT_ID")
+    message: str = Field(alias="MESSAGE")
+    reply: str = Field(alias="REPLY")
+    conversation_id: str | None = Field(default=None, alias="CONVERSATION_ID")
+
+    class Config:
+        allow_population_by_field_name = True
+
 class CreateUserRequest(BaseModel):
     user_id: str
     username: str
     password: str
     tenant_id: str
+    tenant_name: str = ""
+    branch_name: str = ""
     role: str = "customer"
 
 class LoginRequest(BaseModel):
@@ -171,46 +183,96 @@ def get_collection_data(collection_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# API สร้าง User ใหม่
+# API สร้าง User และ Tenant ใน batch เดียวกัน
 @app.post("/api/admin/create-user")
 def create_customer_user(request: CreateUserRequest):
     try:
-        user_ref = db.collection("users").document(request.user_id)
-        user_ref.set({
+        if request.role not in {"admin", "branch_manager", "customer"}:
+            raise HTTPException(status_code=400, detail="บทบาทผู้ใช้ไม่ถูกต้อง")
+
+        tenant_name = request.tenant_name.strip() or request.tenant_id
+        batch = db.batch()
+        batch.set(db.collection("users").document(request.user_id), {
             "USER_ID": request.user_id,
             "USERNAME": request.username,
             "PASSWORD": request.password,
             "TENANT_ID": request.tenant_id,
+            "TENANT_NAME": tenant_name,
+            "BRANCH_NAME": request.branch_name.strip(),
             "ROLE": request.role
-        })
+        }, merge=True)
+        batch.set(db.collection("tenants").document(request.tenant_id), {
+            "TENANT_ID": request.tenant_id,
+            "TENANT_NAME": tenant_name,
+            "STATUS": "active"
+        }, merge=True)
+        batch.commit()
         return {"status": "success", "message": f"สร้างบัญชีให้กับ {request.username} สำเร็จเรียบร้อยแล้ว!"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# API บันทึกประวัติการแชท
+# API บันทึกข้อความผู้ใช้และ AI แยกเป็นคนละเอกสาร
 @app.post("/api/save-chat-history")
-async def save_chat_history(user_id: str, message: str, reply: str, tenant_id: str):
+async def save_chat_history(request: SaveChatHistoryRequest):
     try:
-        timestamp = datetime.now()
-        
-        message_ref = db.collection("messages").document()
-        message_ref.set({
-            "USER_ID": user_id,
-            "MESSAGE": message,
-            "REPLY": reply,
-            "TENANT_ID": tenant_id,
-            "CREATE_DATE": timestamp
-        })
+        user_id = request.user_id.strip()
+        tenant_id = request.tenant_id.strip()
+        conversation_id = (request.conversation_id or user_id).strip()
+        if not all((user_id, tenant_id, conversation_id, request.message.strip(), request.reply.strip())):
+            raise HTTPException(status_code=400, detail="ข้อมูลประวัติแชทต้องไม่เว้นว่าง")
 
-        conv_ref = db.collection("conversations").document(user_id)
-        conv_ref.set({
+        user_timestamp = datetime.now(timezone.utc)
+        ai_timestamp = user_timestamp + timedelta(microseconds=1)
+        batch = db.batch()
+        messages_ref = db.collection("messages")
+        for sender, text, created_at in (
+            ("user", request.message, user_timestamp),
+            ("ai", request.reply, ai_timestamp),
+        ):
+            batch.set(messages_ref.document(), {
+                "CONVERSATION_ID": conversation_id,
+                "USER_ID": user_id,
+                "TENANT_ID": tenant_id,
+                "SENDER": sender,
+                "MESSAGE": text,
+                "CREATE_DATE": created_at
+            })
+
+        batch.set(db.collection("conversations").document(conversation_id), {
+            "CONVERSATION_ID": conversation_id,
             "USER_ID": user_id,
             "TENANT_ID": tenant_id,
-            "LAST_MESSAGE": message,
-            "LAST_UPDATE": timestamp
+            "LAST_MESSAGE": request.reply,
+            "LAST_UPDATE": ai_timestamp
         }, merge=True)
+        batch.commit()
 
-        return {"status": "success", "message": "บันทึกข้อมูลลง Firestore สำเร็จ"}
+        return {"status": "success", "conversation_id": conversation_id, "message": "บันทึกประวัติแชทสำเร็จ"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# API อ่านประวัติแชทของผู้ใช้
+@app.get("/api/history/{user_id}")
+def get_chat_history(user_id: str, conversation_id: str | None = None):
+    try:
+        query = db.collection("messages").where("USER_ID", "==", user_id)
+        if conversation_id:
+            query = query.where("CONVERSATION_ID", "==", conversation_id)
+
+        history = []
+        for doc in query.stream():
+            item = doc.to_dict()
+            item["_document_id"] = doc.id
+            created_at = item.get("CREATE_DATE")
+            if hasattr(created_at, "isoformat"):
+                item["CREATE_DATE"] = created_at.isoformat()
+            history.append(item)
+        history.sort(key=lambda item: item.get("CREATE_DATE") or "")
+        return {"status": "success", "data": history}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -276,12 +338,14 @@ def login_user(request: LoginRequest):
             data = doc.to_dict()
             if data.get("PASSWORD") == request.password:
                 user_found = data
+                user_found.setdefault("USER_ID", doc.id)
                 break
         
         if user_found:
             return {
                 "status": "success", 
                 "message": "เข้าสู่ระบบสำเร็จ",
+                "user_id": user_found.get("USER_ID"),
                 "role": user_found.get("ROLE"),
                 "tenant_id": user_found.get("TENANT_ID")
             }
@@ -317,43 +381,35 @@ async def line_webhook(request: Request):
                 # ประมวลผล RAG
                 ai_reply = await get_rag_reply(user_message)
 
-                # บันทึกลง Firestore ตาราง messages
-                db.collection("messages").add({
-                    "LINE_USER_ID": line_user_id,
+                # บันทึกประวัติ LINE ตาม schema messages/conversations
+                user_id = line_user_id
+                conversation_id = f"line_{line_user_id}"
+                timestamp = datetime.now(timezone.utc)
+                ai_timestamp = timestamp + timedelta(microseconds=1)
+                batch = db.batch()
+                messages_ref = db.collection("messages")
+                for sender, text, created_at in (
+                    ("user", user_message, timestamp),
+                    ("ai", ai_reply, ai_timestamp),
+                ):
+                    batch.set(messages_ref.document(), {
+                        "CONVERSATION_ID": conversation_id,
+                        "USER_ID": user_id,
+                        "TENANT_ID": tenant_id,
+                        "SENDER": sender,
+                        "MESSAGE": text,
+                        "CREATE_DATE": created_at
+                    })
+                batch.set(db.collection("conversations").document(conversation_id), {
+                    "CONVERSATION_ID": conversation_id,
+                    "USER_ID": user_id,
                     "TENANT_ID": tenant_id,
-                    "MESSAGE": user_message,
-                    "REPLY": ai_reply,
-                    "CREATE_DATE": datetime.now()
-                })
+                    "LAST_MESSAGE": ai_reply,
+                    "LAST_UPDATE": ai_timestamp
+                }, merge=True)
+                batch.commit()
 
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-        # 1. ปรับ Pydantic Model
-class CreateUserRequest(BaseModel):
-    user_id: str
-    username: str
-    password: str
-    tenant_id: str
-    tenant_name: str = ""
-    branch_name: str = ""
-    role: str = "customer"
-
-# 2. ปรับฟังก์ชันบันทึกลง Firestore
-@app.post("/api/admin/create-user")
-def create_customer_user(request: CreateUserRequest):
-    try:
-        user_ref = db.collection("users").document(request.user_id)
-        user_ref.set({
-            "USER_ID": request.user_id,
-            "USERNAME": request.username,
-            "PASSWORD": request.password,
-            "TENANT_ID": request.tenant_id,
-            "TENANT_NAME": request.tenant_name,
-            "BRANCH_NAME": request.branch_name,
-            "ROLE": request.role
-        }, merge=True)
-        return {"status": "success", "message": f"สร้างบัญชีให้กับ {request.username} สำเร็จเรียบร้อยแล้ว!"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

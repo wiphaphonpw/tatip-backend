@@ -383,7 +383,7 @@
         }
     });
 
-    // 3. ฟังก์ชันสร้าง User และบันทึกข้อมูลองค์กรลง Firestore
+    // 3. Backend บันทึก users และ tenants ให้ตรง schema ใน batch เดียวกัน
     document.getElementById('createUserForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -406,28 +406,12 @@
         msgDiv.innerText = 'กำลังบันทึกข้อมูลลง Firestore...';
 
         try {
-            // 1. สร้างเอกสารในตาราง users
             const response = await fetch(`${API_URL}/api/admin/create-user`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             const result = await response.json();
-
-            // 2. สร้าง/อัปเดตข้อมูลองค์กรลงตาราง tenants อัตโนมัติ
-            await fetch(`${API_URL}/api/admin/collection/add`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    collection_name: 'tenants',
-                    document_id: tenantId,
-                    data: {
-                        TENANT_ID: tenantId,
-                        TENANT_NAME: tenantName,
-                        STATUS: 'active'
-                    }
-                })
-            });
 
             if (response.ok && result.status === 'success') {
                 msgDiv.style.color = '#16a34a';

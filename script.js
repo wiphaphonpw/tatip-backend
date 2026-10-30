@@ -42,6 +42,7 @@ async function handleLogin(event) {
         if (response.ok && result.status === 'success') {
             const userData = {
                 username: usernameInput,
+                user_id: result.user_id,
                 role: result.role,
                 tenant_id: result.tenant_id
             };
@@ -182,6 +183,7 @@ async function submitChatMessage() {
                     </div>
                 </div>`;
             saveToHistory(message, data.reply);
+            saveChatHistoryToServer(message, data.reply);
         } else {
             alert("API Error: " + data.reply);
         }
@@ -216,6 +218,34 @@ function getCurrentUsername() {
         }
     }
     return 'guest';
+}
+
+async function saveChatHistoryToServer(question, answer) {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.user_id || !currentUser.tenant_id) {
+            console.warn('ไม่สามารถบันทึกประวัติลง Firestore: ไม่พบ USER_ID หรือ TENANT_ID');
+            return;
+        }
+
+        const response = await fetch(`${API_URL}/api/save-chat-history`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                USER_ID: currentUser.user_id,
+                TENANT_ID: currentUser.tenant_id,
+                MESSAGE: question,
+                REPLY: answer,
+                CONVERSATION_ID: currentUser.user_id
+            })
+        });
+        if (!response.ok) {
+            const result = await response.json().catch(() => ({}));
+            console.error('บันทึกประวัติแชทไม่สำเร็จ:', result.detail || response.statusText);
+        }
+    } catch (error) {
+        console.error('ไม่สามารถบันทึกประวัติแชทลง Firestore ได้:', error);
+    }
 }
 
 function saveToHistory(question, answer) {
