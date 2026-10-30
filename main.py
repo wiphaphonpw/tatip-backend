@@ -111,6 +111,13 @@ def require_admin_user(
         raise HTTPException(status_code=403, detail="เฉพาะ Admin เท่านั้นที่จัดการเอกสารความรู้ได้")
     return current_user
 
+def require_admin_or_manager(
+    current_user: Dict[str, Any] = Depends(require_current_user),
+) -> Dict[str, Any]:
+    if current_user.get("ROLE") not in {"admin", "branch_manager"}:
+        raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ใช้งานส่วนผู้ดูแลระบบ")
+    return current_user
+
 # ==========================================
 # Pydantic Models
 # ==========================================
@@ -213,29 +220,32 @@ async def chat_with_tatip(request: ChatRequest):
 
 # API ดึงรายชื่อผู้ใช้จาก Collection "users"
 @app.get("/api/admin/users")
-def get_all_users():
+def get_all_users(current_user: Dict[str, Any] = Depends(require_admin_or_manager)):
     try:
         users_ref = db.collection("users")
-        docs = users_ref.stream()
-        
+        if current_user["ROLE"] == "branch_manager":
+            users_ref = users_ref.where("TENANT_ID", "==", current_user["TENANT_ID"])
         user_list = []
-        for doc in docs:
-            data = doc.to_dict()
+        for doc in users_ref.stream():
+            data = doc.to_dict() or {}
             user_list.append({
                 "id": doc.id,
                 "user_id": data.get("USER_ID", "-"),
                 "username": data.get("USERNAME", "-"),
-                "password": data.get("PASSWORD", "-"),
                 "tenant_id": data.get("TENANT_ID", "-"),
                 "role": data.get("ROLE", "-")
             })
         return {"status": "success", "data": user_list}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.exception("Failed to list users")
+        raise HTTPException(status_code=500, detail="ไม่สามารถโหลดรายชื่อผู้ใช้ได้") from e
 
 # API ดึงข้อมูลทุก Collection แบบไดนามิก
 @app.get("/api/admin/collection/{collection_name}")
-def get_collection_data(collection_name: str):
+def get_collection_data(
+    collection_name: str,
+    current_user: Dict[str, Any] = Depends(require_admin_or_manager),
+):
     try:
         allowed_collections = [
             "users", 
@@ -251,12 +261,13 @@ def get_collection_data(collection_name: str):
             raise HTTPException(status_code=400, detail="ไม่พบชื่อตารางนี้ในระบบ")
 
         ref = db.collection(collection_name)
-        docs = ref.stream()
-        
+        if current_user["ROLE"] == "branch_manager":
+            ref = ref.where("TENANT_ID", "==", current_user["TENANT_ID"])
         data_list = []
-        for doc in docs:
-            item = doc.to_dict()
-            item["_document_id"] = doc.id 
+        for doc in ref.stream():
+            item = doc.to_dict() or {}
+            item.pop("PASSWORD", None)
+            item["_document_id"] = doc.id
             data_list.append(item)
             
         return {"status": "success", "data": data_list}
@@ -265,12 +276,33 @@ def get_collection_data(collection_name: str):
 
 # API สร้าง User และ Tenant ใน batch เดียวกัน
 @app.post("/api/admin/create-user")
-def create_customer_user(request: CreateUserRequest):
+def create_customer_user(
+    request: CreateUserRequest,
+    current_user: Dict[str, Any] = Depends(require_admin_or_manager),
+):
     try:
         if request.role not in {"admin", "branch_manager", "customer"}:
             raise HTTPException(status_code=400, detail="บทบาทผู้ใช้ไม่ถูกต้อง")
+        if current_user["ROLE"] == "branch_manager":
+            if request.tenant_id != current_user["TENANT_ID"]:
+                raise HTTPException(status_code=403, detail="จัดการผู้ใช้ได้เฉพาะ Tenant ของตนเอง")
+            if request.role != "customer":
+                raise HTTPException(status_code=403, detail="Branch Manager สร้างได้เฉพาะบัญชี Customer")
+            existing_user = db.collection("users").document(request.user_id).get()
+            if existing_user.exists:
+                existing_data = existing_user.to_dict() or {}
+                if existing_data.get("TENANT_ID") != current_user["TENANT_ID"]:
+                    raise HTTPException(status_code=403, detail="ไม่สามารถแก้ไขบัญชีของ Tenant อื่นได้")
+                if existing_data.get("ROLE") != "customer":
+                    raise HTTPException(status_code=403, detail="ไม่สามารถแก้ไขบัญชีผู้ดูแลระบบได้")
+            tenant_snapshot = db.collection("tenants").document(request.tenant_id).get()
+            if not tenant_snapshot.exists:
+                raise HTTPException(status_code=404, detail="ไม่พบข้อมูลองค์กรของผู้ใช้")
+            tenant_data = tenant_snapshot.to_dict() or {}
+            tenant_name = tenant_data.get("TENANT_NAME") or request.tenant_id
+        else:
+            tenant_name = request.tenant_name.strip() or request.tenant_id
 
-        tenant_name = request.tenant_name.strip() or request.tenant_id
         batch = db.batch()
         batch.set(db.collection("users").document(request.user_id), {
             "USER_ID": request.user_id,
@@ -281,17 +313,19 @@ def create_customer_user(request: CreateUserRequest):
             "BRANCH_NAME": request.branch_name.strip(),
             "ROLE": request.role
         }, merge=True)
-        batch.set(db.collection("tenants").document(request.tenant_id), {
-            "TENANT_ID": request.tenant_id,
-            "TENANT_NAME": tenant_name,
-            "STATUS": "active"
-        }, merge=True)
+        if current_user["ROLE"] == "admin":
+            batch.set(db.collection("tenants").document(request.tenant_id), {
+                "TENANT_ID": request.tenant_id,
+                "TENANT_NAME": tenant_name,
+                "STATUS": "active"
+            }, merge=True)
         batch.commit()
         return {"status": "success", "message": f"สร้างบัญชีให้กับ {request.username} สำเร็จเรียบร้อยแล้ว!"}
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.exception("Failed to create user")
+        raise HTTPException(status_code=500, detail="ไม่สามารถสร้างบัญชีผู้ใช้ได้") from e
 
 # API บันทึกข้อความผู้ใช้และ AI แยกเป็นคนละเอกสาร
 @app.post("/api/save-chat-history")
@@ -469,7 +503,10 @@ async def upload_knowledge_file(
 
 # API บันทึกเคสแจ้งปัญหา (Support Cases)
 @app.post("/api/admin/create-case")
-async def create_support_case(request: SupportCaseRequest):
+async def create_support_case(
+    request: SupportCaseRequest,
+    current_user: Dict[str, Any] = Depends(require_admin_user),
+):
     try:
         case_data = {
             "CASE_id": request.case_id,
@@ -487,12 +524,18 @@ async def create_support_case(request: SupportCaseRequest):
         
         db.collection("support_cases").document(request.case_id).set(case_data)
         return {"status": "success", "message": f"สร้างเคส {request.case_id} สำเร็จเรียบร้อย"}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.exception("Failed to add collection document")
+        raise HTTPException(status_code=500, detail="ไม่สามารถเพิ่มข้อมูลได้") from e
 
 # API สำหรับเพิ่มข้อมูลลงตารางใดๆ
 @app.post("/api/admin/collection/add")
-def add_document_to_collection(request: GenericDocumentRequest):
+def add_document_to_collection(
+    request: GenericDocumentRequest,
+    current_user: Dict[str, Any] = Depends(require_admin_user),
+):
     try:
         allowed_collections = [
             "users", 

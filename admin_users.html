@@ -175,7 +175,7 @@
     </div>
 
     <!-- ส่วนจัดการเอกสารความรู้สำหรับ Vertex AI RAG -->
-    <section class="card" aria-labelledby="knowledgeHeading">
+    <section id="knowledgePanel" class="card" aria-labelledby="knowledgeHeading">
         <h3 id="knowledgeHeading"><i class="fa-solid fa-book-open"></i> จัดการเอกสารความรู้สำหรับ AI</h3>
         <p class="knowledge-intro">อัปโหลดคู่มือเพื่อเพิ่มเข้า RAG Corpus ที่ระบบแชทใช้ค้นหาคำตอบ ไฟล์จะเริ่มใช้ได้หลังประมวลผลสำเร็จ</p>
         <form id="knowledgeUploadForm">
@@ -228,7 +228,7 @@
                         <option value="troubleshooting_state">troubleshooting_state (สถานะการแก้ไข)</option>
                     </select>
                 </div>
-                <button type="button" onclick="openAddModal()" style="background-color: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">
+                <button id="addCollectionDocButton" type="button" onclick="openAddModal()" style="background-color: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">
                     <i class="fa-solid fa-plus"></i> เพิ่มข้อมูลในตารางนี้
                 </button>
             </div>
@@ -281,10 +281,48 @@
 <script>
     const API_URL = 'https://tatip-backend-417035159214.us-central1.run.app';
 
+    function getCurrentAdmin() {
+        try { return JSON.parse(localStorage.getItem('currentUser') || '{}'); }
+        catch (error) { return {}; }
+    }
+
+    function getAdminAuthHeaders(extraHeaders = {}) {
+        const currentUser = getCurrentAdmin();
+        if (!currentUser.access_token) throw new Error('กรุณาเข้าสู่ระบบใหม่');
+        return { ...extraHeaders, Authorization: 'Bearer ' + currentUser.access_token };
+    }
+
+    function escapeAdminHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[character]);
+    }
+
+    function setupAdminPermissions() {
+        const currentUser = getCurrentAdmin();
+        if (!currentUser.access_token || !['admin', 'branch_manager'].includes(currentUser.role)) {
+            window.location.replace('login.html');
+            return false;
+        }
+        if (currentUser.role === 'branch_manager') {
+            document.getElementById('addCollectionDocButton').hidden = true;
+            document.getElementById('knowledgePanel').hidden = true;
+            const tenantInput = document.getElementById('tenantId');
+            const tenantNameInput = document.getElementById('tenantName');
+            const roleSelect = document.getElementById('role');
+            tenantInput.value = currentUser.tenant_id || '';
+            tenantInput.readOnly = true;
+            tenantNameInput.value = '';
+            tenantNameInput.disabled = true;
+            roleSelect.innerHTML = '<option value="customer" selected>Customer (พนักงาน/ลูกค้าทั่วไป)</option>';
+        }
+        return true;
+    }
+
     // 1. ดึงรายชื่อผู้ใช้มาแสดงในตาราง Users Management
     async function fetchUsers() {
         try {
-            const response = await fetch(`${API_URL}/api/admin/collection/users`);
+            const response = await fetch(`${API_URL}/api/admin/collection/users`, { headers: getAdminAuthHeaders() });
             const result = await response.json();
             
             const tableBody = document.getElementById('userTableBody');
@@ -297,11 +335,11 @@
                     else if (user.ROLE === 'branch_manager') roleBadge = 'badge-manager';
 
                     const row = `<tr>
-                        <td><code>${user.USER_ID || user._document_id}</code></td>
-                        <td><strong>${user.USERNAME || '-'}</strong></td>
-                        <td>${user.TENANT_NAME || user.TENANT_ID || '-'}</td>
-                        <td>${user.BRANCH_NAME || '-'}</td>
-                        <td><span class="badge ${roleBadge}">${user.ROLE || 'customer'}</span></td>
+                        <td><code>${escapeAdminHtml(user.USER_ID || user._document_id)}</code></td>
+                        <td><strong>${escapeAdminHtml(user.USERNAME || '-')}</strong></td>
+                        <td>${escapeAdminHtml(user.TENANT_NAME || user.TENANT_ID || '-')}</td>
+                        <td>${escapeAdminHtml(user.BRANCH_NAME || '-')}</td>
+                        <td><span class="badge ${roleBadge}">${escapeAdminHtml(user.ROLE || 'customer')}</span></td>
                     </tr>`;
                     tableBody.innerHTML += row;
                 });
@@ -323,7 +361,7 @@
         tbody.innerHTML = `<tr><td colspan="10" class="loading">กำลังดึงข้อมูลจากตาราง ${colName}...</td></tr>`;
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/collection/${colName}`);
+            const response = await fetch(`${API_URL}/api/admin/collection/${colName}`, { headers: getAdminAuthHeaders() });
             const result = await response.json();
 
             tbody.innerHTML = '';
@@ -343,7 +381,7 @@
                 let headerHtml = `<th>#</th>`;
                 keys.forEach(key => {
                     const cleanKey = key === '_document_id' ? 'Document ID' : key.toUpperCase();
-                    headerHtml += `<th>${cleanKey}</th>`;
+                    headerHtml += `<th>${escapeAdminHtml(cleanKey)}</th>`;
                 });
                 thead.innerHTML = headerHtml;
 
@@ -358,9 +396,9 @@
                         }
                         
                         if (key === '_document_id') {
-                            rowHtml += `<td><code>${val}</code></td>`;
+                            rowHtml += `<td><code>${escapeAdminHtml(val)}</code></td>`;
                         } else {
-                            rowHtml += `<td>${val}</td>`;
+                            rowHtml += `<td>${escapeAdminHtml(val)}</td>`;
                         }
                     });
                     tbody.innerHTML += `<tr>${rowHtml}</tr>`;
@@ -405,7 +443,7 @@
         try {
             const response = await fetch(`${API_URL}/api/admin/collection/add`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAdminAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     collection_name: colName,
                     document_id: docId,
@@ -547,7 +585,7 @@
         try {
             const response = await fetch(`${API_URL}/api/admin/create-user`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAdminAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(payload)
             });
             const result = await response.json();
@@ -573,9 +611,11 @@
         window.location.href = 'login.html';
     }
 
-    fetchUsers();
-    fetchCollectionData();
-    loadKnowledgeFiles(); 
+    if (setupAdminPermissions()) {
+        fetchUsers();
+        fetchCollectionData();
+        if (getCurrentAdmin().role === 'admin') loadKnowledgeFiles();
+    } 
 </script>
 
 </body>
