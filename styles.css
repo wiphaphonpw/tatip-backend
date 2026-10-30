@@ -407,3 +407,22 @@ body {
     .hero-banner { border-radius: 20px; }
     .chat-container-layout { border-radius: 18px; }
 }
+
+
+/* TATIP emblem crop: show the circular mark only, omit the wordmark below it. */
+.logo-mark {
+    width: 32px;
+    height: 32px;
+    display: inline-block;
+    flex: none;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 5px 14px rgba(200, 30, 30, .18);
+}
+.logo-mark img {
+    display: block;
+    width: 32px;
+    height: auto;
+    max-width: none;
+}
