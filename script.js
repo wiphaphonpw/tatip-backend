@@ -308,12 +308,23 @@ async function loadHistory() {
 
     const seen = new Set();
     const history = [...serverHistory, ...localHistory].filter(item => {
-        const key = `${item.question || ''}\u0000${item.answer || ''}`;
+        const question = normalizeHistoryForComparison(item.question);
+        const answer = normalizeHistoryForComparison(item.answer);
+        const key = `${question}\u0000${answer}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
     });
     renderHistoryCards(history, loadMessage);
+}
+
+function normalizeHistoryForComparison(value) {
+    return String(value ?? '')
+        .replace(/<br\s*\/?\s*>/gi, ' ')
+        .replace(/[*_`~]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLocaleLowerCase();
 }
 
 function buildHistoryTurns(messages) {
