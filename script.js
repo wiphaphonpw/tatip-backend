@@ -44,7 +44,8 @@ async function handleLogin(event) {
                 username: usernameInput,
                 user_id: result.user_id,
                 role: result.role,
-                tenant_id: result.tenant_id
+                tenant_id: result.tenant_id,
+                access_token: result.access_token
             };
             localStorage.setItem('currentUser', JSON.stringify(userData));
 
@@ -223,14 +224,17 @@ function getCurrentUsername() {
 async function saveChatHistoryToServer(question, answer) {
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        if (!currentUser.user_id || !currentUser.tenant_id) {
-            console.warn('ไม่สามารถบันทึกประวัติลง Firestore: ไม่พบ USER_ID หรือ TENANT_ID');
+        if (!currentUser.user_id || !currentUser.tenant_id || !currentUser.access_token) {
+            console.warn('ไม่สามารถบันทึกประวัติลง Firestore: กรุณาออกจากระบบและเข้าสู่ระบบใหม่');
             return;
         }
 
         const response = await fetch(`${API_URL}/api/save-chat-history`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentUser.access_token}`
+            },
             body: JSON.stringify({
                 USER_ID: currentUser.user_id,
                 TENANT_ID: currentUser.tenant_id,
@@ -273,45 +277,145 @@ function saveToHistory(question, answer) {
     localStorage.setItem(storageKey, JSON.stringify(history));
 }
 
-function loadHistory() {
+async function loadHistory() {
     const historyList = document.getElementById('historyList');
     if (!historyList) return;
-    
-    // 2. ดึงประวัติเฉพาะของ Account ที่ล็อกอินอยู่
+
     const username = getCurrentUsername();
     const storageKey = `tatip_chat_history_${username}`;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const localHistory = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    let serverHistory = [];
+    let loadMessage = '';
 
-    let history = JSON.parse(localStorage.getItem(storageKey)) || [];
-    historyList.innerHTML = '';
-    
+    if (currentUser.user_id && currentUser.access_token) {
+        try {
+            const response = await fetch(`${API_URL}/api/history/${encodeURIComponent(currentUser.user_id)}`, {
+                headers: { 'Authorization': `Bearer ${currentUser.access_token}` }
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.detail || `HTTP ${response.status}`);
+            }
+            serverHistory = buildHistoryTurns(result.data || []);
+        } catch (error) {
+            console.error('โหลดประวัติจาก Firestore ไม่สำเร็จ:', error);
+            loadMessage = 'โหลดประวัติจากระบบไม่สำเร็จ กำลังแสดงประวัติในอุปกรณ์นี้';
+        }
+    } else {
+        loadMessage = 'เข้าสู่ระบบใหม่เพื่อดูประวัติที่บันทึกบน Firestore';
+    }
+
+    const seen = new Set();
+    const history = [...serverHistory, ...localHistory].filter(item => {
+        const key = `${item.question || ''}\u0000${item.answer || ''}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+    renderHistoryCards(history, loadMessage);
+}
+
+function buildHistoryTurns(messages) {
+    const ordered = [...messages].sort((left, right) =>
+        Date.parse(left.CREATE_DATE || 0) - Date.parse(right.CREATE_DATE || 0)
+    );
+    const waitingUsers = [];
+    const turns = [];
+
+    ordered.forEach(item => {
+        if (item.SENDER === 'user') {
+            waitingUsers.push(item);
+        } else if (item.SENDER === 'ai') {
+            const userMessage = waitingUsers.shift();
+            if (!userMessage) return;
+            const timestamp = item.CREATE_DATE || userMessage.CREATE_DATE;
+            const date = timestamp ? new Date(timestamp) : new Date();
+            turns.push({
+                id: item._document_id || userMessage._document_id || `history-${turns.length}`,
+                question: userMessage.MESSAGE || '',
+                answer: item.MESSAGE || '',
+                date: date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }),
+                time: date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                sortTime: date.getTime()
+            });
+        } else if (item.MESSAGE && item.REPLY) {
+            // Keep support for older records that stored a whole turn in one document.
+            const date = item.CREATE_DATE ? new Date(item.CREATE_DATE) : new Date();
+            turns.push({
+                id: item._document_id || `legacy-${turns.length}`,
+                question: item.MESSAGE,
+                answer: item.REPLY,
+                date: date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }),
+                time: date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                sortTime: date.getTime()
+            });
+        }
+    });
+
+    return turns.sort((left, right) => right.sortTime - left.sortTime);
+}
+
+function escapeHistoryHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+}
+
+function renderHistoryCards(history, loadMessage = '') {
+    const historyList = document.getElementById('historyList');
+    if (!historyList) return;
+
+    const statusHtml = loadMessage
+        ? `<p class="history-load-message" style="color:#64748B; grid-column:1/-1; text-align:center;">${escapeHistoryHtml(loadMessage)}</p>`
+        : '';
     if (history.length === 0) {
-        historyList.innerHTML = `<p style="color: #64748B; text-align: center; grid-column: 1/-1; padding: 3rem; font-size: 0.95rem;">
-            ยังไม่มีประวัติการสนทนาสำหรับบัญชี <strong>${username}</strong>
-        </p>`;
+        historyList.innerHTML = statusHtml || `<p style="color:#64748B; text-align:center; grid-column:1/-1; padding:3rem;">ยังไม่มีประวัติการสนทนาสำหรับบัญชี <strong>${escapeHistoryHtml(getCurrentUsername())}</strong></p>`;
         return;
     }
-    
-    history.forEach((item, index) => {
-        const safeQuestion = JSON.stringify(item.question);
-        const safeAnswer = JSON.stringify(item.answer);
 
-        historyList.innerHTML += `
-            <div class="history-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="font-size: 0.75rem; background: #fef2f2; color: #dc2626; padding: 4px 10px; border-radius: 6px; font-weight: 600;">${item.id}</span>
-                        <span style="font-size: 0.75rem; color: #94a3b8;"><i class="fa-regular fa-clock"></i> ${item.date} • ${item.time} น.</span>
-                    </div>
-                    <h4 style="font-size: 0.95rem; color: #1e293b; margin: 0 0 8px 0; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">📌 ${item.question}</h4>
-                    <p style="font-size: 0.85rem; color: #64748B; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5;">${item.answer}</p>
+    historyList.innerHTML = statusHtml + history.map(item => `
+        <div class="history-card" style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 2px 6px rgba(0,0,0,.03);">
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <span style="font-size:.75rem; background:#fef2f2; color:#dc2626; padding:4px 10px; border-radius:6px; font-weight:600;">${escapeHistoryHtml(item.id)}</span>
+                    <span style="font-size:.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${escapeHistoryHtml(item.date)} • ${escapeHistoryHtml(item.time)} น.</span>
                 </div>
-                <div style="margin-top: 18px; border-top: 1px solid #f1f5f9; padding-top: 12px; display: flex; justify-content: flex-end;">
-                    <button onclick='openTranscript(${safeQuestion}, ${safeAnswer})' style="background: #f8fafc; border: 1px solid #e2e8f0; color: #d32f2f; padding: 6px 14px; border-radius: 6px; font-family: 'Prompt', sans-serif; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                        ดูรายละเอียดเต็ม <i class="fa-solid fa-arrow-right" style="font-size: 0.7rem;"></i>
-                    </button>
-                </div>
-            </div>`;
+                <h4 style="font-size:.95rem; color:#1e293b; margin:0 0 8px; font-weight:600; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4;">📌 ${escapeHistoryHtml(item.question)}</h4>
+                <p style="font-size:.85rem; color:#64748B; margin:0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; line-height:1.5;">${escapeHistoryHtml(item.answer)}</p>
+            </div>
+            <div style="margin-top:18px; border-top:1px solid #f1f5f9; padding-top:12px; display:flex; justify-content:flex-end;">
+                <button type="button" data-open-transcript style="background:#f8fafc; border:1px solid #e2e8f0; color:#d32f2f; padding:6px 14px; border-radius:6px; font-family:'Prompt',sans-serif; font-size:.8rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">ดูรายละเอียดเต็ม <i class="fa-solid fa-arrow-right" style="font-size:.7rem;"></i></button>
+            </div>
+        </div>`).join('');
+
+    historyList.querySelectorAll('[data-open-transcript]').forEach((button, index) => {
+        button.addEventListener('click', () => openTranscript(history[index].question, history[index].answer));
     });
+}
+
+function openTranscript(question, answer) {
+    const modal = document.getElementById('transcriptModal');
+    const body = document.getElementById('transcriptBody');
+    if (!modal || !body) return;
+    body.innerHTML = `<h4>คำถาม</h4><p>${escapeHistoryHtml(question).replace(/\n/g, '<br>')}</p><h4>คำตอบ</h4><p>${escapeHistoryHtml(answer).replace(/\n/g, '<br>')}</p>`;
+    modal.style.display = 'flex';
+}
+
+function closeTranscriptModal() {
+    const modal = document.getElementById('transcriptModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function filterHistory() {
+    const search = (document.getElementById('historySearch')?.value || '').trim().toLowerCase();
+    document.querySelectorAll('#historyList .history-card').forEach(card => {
+        card.style.display = card.textContent.toLowerCase().includes(search) ? '' : 'none';
+    });
+}
+
+if (document.getElementById('historyList')) {
+    loadHistory();
 }
 
 // ==========================================
@@ -411,3 +515,4 @@ async function fetchCollectionData() {
         tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
     }
 }
+
