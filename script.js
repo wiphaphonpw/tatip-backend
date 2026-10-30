@@ -118,6 +118,15 @@ function startChatCategory(category) { window.location.href = `chat.html?q=${enc
 // ==========================================
 // 4. ระบบ API Chat (หน้า chat.html)
 // ==========================================
+function renderChatReply(value) {
+    const escaped = String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+    return escaped
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+}
+
 function handleChatKeyPress(event) { if (event.key === 'Enter') submitChatMessage(); }
 function sendChatMessage(text) {
     document.getElementById('chatInput').value = text;
@@ -174,7 +183,7 @@ async function submitChatMessage() {
         document.getElementById(typingId).remove();
 
         if (data.status === "success") {
-            const formattedReply = data.reply.replace(/\n/g, "<br>");
+            const formattedReply = renderChatReply(data.reply);
             chatBox.innerHTML += `
                 <div class="message-group ai">
                     <div class="message-avatar"><i class="fa-solid fa-robot"></i></div>
