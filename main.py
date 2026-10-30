@@ -1,8 +1,11 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import hashlib
 import hmac
 import base64
+import json
+import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 from pydantic import BaseModel, Field
@@ -21,6 +24,8 @@ vertexai.init(project=PROJECT_ID, location=LOCATION)
 db = firestore.Client(project=PROJECT_ID, database="customers")
 
 app = FastAPI()
+bearer_scheme = HTTPBearer(auto_error=False)
+SESSION_LIFETIME = timedelta(hours=24)
 
 # อนุญาตให้หน้าเว็บ (Frontend) เรียกใช้งาน API ได้
 app.add_middleware(
@@ -30,6 +35,69 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def create_session(user_document_id: str, user_id: str, tenant_id: str, role: str) -> str:
+    """Create an opaque bearer token and store only its hash in a user subcollection."""
+    token_payload = base64.urlsafe_b64encode(json.dumps({
+        "document_id": user_document_id,
+        "user_id": user_id,
+    }).encode("utf-8")).decode("ascii").rstrip("=")
+    token = f"{token_payload}.{secrets.token_urlsafe(32)}"
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+
+    db.collection("users").document(user_document_id).collection("sessions").document(token_hash).set({
+        "USER_ID": user_id,
+        "TENANT_ID": tenant_id,
+        "ROLE": role,
+        "CREATE_DATE": now,
+        "EXPIRES_AT": now + SESSION_LIFETIME,
+    })
+    return token
+
+
+def require_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> Dict[str, Any]:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="กรุณาเข้าสู่ระบบใหม่")
+
+    token = credentials.credentials
+    try:
+        payload_part = token.split(".", 1)[0]
+        padding = "=" * (-len(payload_part) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_part + padding).decode("utf-8"))
+        user_document_id = payload["document_id"]
+        user_id = payload["user_id"]
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        session_ref = (
+            db.collection("users").document(user_document_id)
+            .collection("sessions").document(token_hash)
+        )
+        session_snapshot = session_ref.get()
+        if not session_snapshot.exists:
+            raise HTTPException(status_code=401, detail="เซสชันหมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่")
+
+        session = session_snapshot.to_dict() or {}
+        expires_at = session.get("EXPIRES_AT")
+        if session.get("USER_ID") != user_id or expires_at is None:
+            raise HTTPException(status_code=401, detail="เซสชันไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่")
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at <= datetime.now(timezone.utc):
+            session_ref.delete()
+            raise HTTPException(status_code=401, detail="เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่")
+
+        return {
+            "USER_ID": user_id,
+            "TENANT_ID": session.get("TENANT_ID"),
+            "ROLE": session.get("ROLE"),
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="เซสชันไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่")
 
 # ==========================================
 # Pydantic Models
@@ -215,13 +283,18 @@ def create_customer_user(request: CreateUserRequest):
 
 # API บันทึกข้อความผู้ใช้และ AI แยกเป็นคนละเอกสาร
 @app.post("/api/save-chat-history")
-async def save_chat_history(request: SaveChatHistoryRequest):
+async def save_chat_history(
+    request: SaveChatHistoryRequest,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
     try:
         user_id = request.user_id.strip()
         tenant_id = request.tenant_id.strip()
         conversation_id = (request.conversation_id or user_id).strip()
         if not all((user_id, tenant_id, conversation_id, request.message.strip(), request.reply.strip())):
             raise HTTPException(status_code=400, detail="ข้อมูลประวัติแชทต้องไม่เว้นว่าง")
+        if user_id != current_user["USER_ID"] or tenant_id != current_user.get("TENANT_ID"):
+            raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์บันทึกประวัติของบัญชีนี้")
 
         user_timestamp = datetime.now(timezone.utc)
         ai_timestamp = user_timestamp + timedelta(microseconds=1)
@@ -257,8 +330,14 @@ async def save_chat_history(request: SaveChatHistoryRequest):
 
 # API อ่านประวัติแชทของผู้ใช้
 @app.get("/api/history/{user_id}")
-def get_chat_history(user_id: str, conversation_id: str | None = None):
+def get_chat_history(
+    user_id: str,
+    conversation_id: str | None = None,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
     try:
+        if user_id != current_user["USER_ID"]:
+            raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ดูประวัติของบัญชีนี้")
         query = db.collection("messages").where("USER_ID", "==", user_id)
         if conversation_id:
             query = query.where("CONVERSATION_ID", "==", conversation_id)
@@ -273,6 +352,8 @@ def get_chat_history(user_id: str, conversation_id: str | None = None):
             history.append(item)
         history.sort(key=lambda item: item.get("CREATE_DATE") or "")
         return {"status": "success", "data": history}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -334,20 +415,28 @@ def login_user(request: LoginRequest):
         docs = users_ref.where("USERNAME", "==", request.username).stream()
         
         user_found = None
+        user_document_id = None
         for doc in docs:
             data = doc.to_dict()
             if data.get("PASSWORD") == request.password:
                 user_found = data
+                user_document_id = doc.id
                 user_found.setdefault("USER_ID", doc.id)
                 break
         
         if user_found:
+            user_id = user_found.get("USER_ID")
+            tenant_id = user_found.get("TENANT_ID")
+            role = user_found.get("ROLE")
+            access_token = create_session(user_document_id, user_id, tenant_id, role)
             return {
                 "status": "success", 
                 "message": "เข้าสู่ระบบสำเร็จ",
-                "user_id": user_found.get("USER_ID"),
-                "role": user_found.get("ROLE"),
-                "tenant_id": user_found.get("TENANT_ID")
+                "user_id": user_id,
+                "role": role,
+                "tenant_id": tenant_id,
+                "access_token": access_token,
+                "token_type": "bearer"
             }
         else:
             raise HTTPException(status_code=401, detail="ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
@@ -412,4 +501,5 @@ async def line_webhook(request: Request):
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
