@@ -14,7 +14,7 @@
             <a href="index.html" class="brand-logo">
                 <div class="logo-box"><i class="fa-solid fa-robot"></i> <span class="logo-text">TATIP AI</span></div>
             </a>
-            <button onclick="clearAllHistory()" style="background:none; border:none; color:#DC2626; cursor:pointer; font-size:0.8rem; font-weight:600;"><i class="fa-solid fa-trash-can"></i> ล้างประวัติ</button>
+            <button onclick="clearAllHistory()" style="background:none; border:none; color:#DC2626; cursor:pointer; font-size:0.8rem; font-weight:600;"><i class="fa-solid fa-trash-can"></i> ล้างสำเนาในเครื่อง</button>
         </div>
     </header>
 
@@ -75,10 +75,9 @@
             try { username = JSON.parse(currentUserStr).username || 'guest'; } catch (e) {}
         }
         
-        if (confirm(`คุณต้องการล้างประวัติการสนทนาของบัญชี [ ${username} ] ใช่หรือไม่?`)) {
-            // ลบเฉพาะ Key ของบัญชีนี้
+        if (confirm(`ล้างสำเนาประวัติในเบราว์เซอร์ของบัญชี [ ${username} ] ใช่หรือไม่? ข้อมูลที่บันทึกใน Firestore จะไม่ถูกลบ`)) {
             localStorage.removeItem(`tatip_chat_history_${username}`);
-            loadHistory(); // โหลดหน้าตารางใหม่
+            loadHistory(); // โหลดประวัติจาก Firestore อีกครั้ง
         }
     }
 </script>
@@ -86,3 +85,4 @@
     <script src="./script.js"></script>
 </body>
 </html>
+
