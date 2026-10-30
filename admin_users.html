@@ -95,6 +95,77 @@
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;
         }
+    
+
+        /* ---------- VISUAL POLISH: admin dashboard ---------- */
+        body {
+            background:
+                radial-gradient(ellipse at 92% 0%, rgba(211,47,47,.08), transparent 28rem),
+                linear-gradient(180deg, #f7f8fb 0%, #f1f3f7 100%);
+            color: #182235;
+        }
+        .dashboard-container { max-width: 1440px; }
+        .admin-header {
+            position: relative; overflow: hidden; border: 1px solid rgba(226,232,240,.9);
+            border-radius: 18px; padding: 23px 28px;
+            background: linear-gradient(110deg, #fff 0%, #fff 68%, #fff6f6 100%);
+            box-shadow: 0 16px 38px -27px rgba(127,18,24,.25), 0 4px 12px rgba(24,34,53,.04);
+        }
+        .admin-header::after {
+            content: ""; position: absolute; width: 190px; height: 190px; right: -58px; top: -105px;
+            border: 1px solid rgba(211,47,47,.12); border-radius: 50%;
+            box-shadow: 0 0 0 22px rgba(211,47,47,.035), 0 0 0 48px rgba(211,47,47,.025);
+            pointer-events: none;
+        }
+        .admin-header > * { position: relative; z-index: 1; }
+        .admin-header h1 { letter-spacing: -.025em; }
+        .card {
+            border: 1px solid rgba(226,232,240,.9); border-radius: 16px;
+            box-shadow: 0 14px 34px -25px rgba(24,34,53,.24), 0 3px 10px rgba(24,34,53,.035);
+            padding: 26px;
+        }
+        .card h3 { color: #B91C1C; border-bottom-color: #F4E6E6; }
+        .btn-logout, .btn-primary, #addCollectionDocButton, #refreshKnowledgeButton {
+            transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease;
+        }
+        .btn-logout { border: 1px solid #e5eaf0; }
+        .btn-primary { border-radius: 10px; box-shadow: 0 6px 14px rgba(211,47,47,.13); }
+        .form-group input:focus, .form-group select:focus, #newDocJson:focus {
+            outline: none; border-color: #dc7777; box-shadow: 0 0 0 3px rgba(211,47,47,.1);
+        }
+        .table-responsive {
+            border: 1px solid #edf0f4; border-radius: 12px; background: #fff;
+        }
+        table { border-collapse: separate; border-spacing: 0; }
+        th { background: #fff7f7; color: #7f1d1d; }
+        th:first-child { border-top-left-radius: 10px; }
+        th:last-child { border-top-right-radius: 10px; }
+        td, th { border-bottom-color: #eef1f5; }
+        tr:last-child td { border-bottom: 0; }
+        #knowledgePanel {
+            position: relative; overflow: hidden;
+            background: linear-gradient(120deg, #fff 0%, #fff 72%, #fffafa 100%);
+        }
+        #knowledgePanel::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, #8f1117, #d32f2f 48%, #f2aaaa);
+        }
+        #knowledgePanel > * { position: relative; }
+        #knowledgePanel h3 i { color: #d32f2f; }
+        .knowledge-badge { box-shadow: inset 0 0 0 1px rgba(22,101,52,.06); }
+        @media (hover: hover) {
+            .btn-logout:hover, #refreshKnowledgeButton:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(24,34,53,.08); }
+            .btn-primary:hover, #addCollectionDocButton:hover { transform: translateY(-1px); box-shadow: 0 9px 18px rgba(211,47,47,.18); }
+            tr:hover td { background: #fffafa; }
+        }
+        @media (max-width: 640px) {
+            body { padding: 12px; }
+            .admin-header { padding: 18px; align-items: flex-start; gap: 14px; }
+            .admin-header h1 { font-size: 1.18rem; }
+            .card { padding: 18px; border-radius: 14px; }
+            .table-controls { align-items: flex-start; }
+        }
+
     </style>
 </head>
 <body>
