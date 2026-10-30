@@ -22,13 +22,13 @@
             transition: all 0.2s;
         }
         .chip-btn.active {
-            background: #0f172a !important;
+            background: #c81e1e !important;
             color: #ffffff !important;
-            border-color: #0f172a !important;
+            border-color: #c81e1e !important;
             font-weight: 600;
         }
         .chip-btn:hover {
-            background: #f1f5f9;
+            background: #fff4f4;
         }
 
         /* การ์ด FAQ */
@@ -47,6 +47,14 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0,0,0,0.06);
         }
+        .faq-empty-state { margin: 1.5rem 0; padding: 2.5rem 1rem; border: 1px dashed #e6bcbc; border-radius: 18px; background: linear-gradient(135deg,#fff,#fff8f8); text-align: center; }
+        .faq-empty-state[hidden] { display: none; }
+        .faq-empty-icon { width: 54px; height: 54px; margin: 0 auto .8rem; border-radius: 16px; display: grid; place-items: center; background: #fdecec; color: #c81e1e; font-size: 1.25rem; }
+        .faq-empty-state h3 { margin: 0 0 .25rem; color: #182235; font-size: 1.05rem; }
+        .faq-empty-state p { margin: 0 0 1rem; color: #64748b; font-size: .88rem; }
+        .faq-empty-action { display: inline-flex; align-items: center; justify-content: center; padding: .65rem 1.1rem; border-radius: 12px; background: #c81e1e; color: #fff; text-decoration: none; font-weight: 600; }
+        .faq-empty-action:hover { background: #a31616; }
+
     </style>
 </head>
 <body>
@@ -71,6 +79,7 @@
                 <button class="chip-btn" data-tab="camera" onclick="switchFaqTab('camera', this)"><i class="fa-solid fa-video"></i> กล้อง / การเชื่อมต่อ</button>
                 <button class="chip-btn" data-tab="system" onclick="switchFaqTab('system', this)"><i class="fa-solid fa-desktop"></i> ระบบและการวิเคราะห์</button>
                 <button class="chip-btn" data-tab="account" onclick="switchFaqTab('account', this)"><i class="fa-solid fa-user-gear"></i> บัญชีและการตั้งค่า</button>
+                <button class="chip-btn" data-tab="alerts" onclick="switchFaqTab('alerts', this)"><i class="fa-solid fa-bell"></i> การแจ้งเตือน</button>
             </div>
         </div>
 
@@ -162,6 +171,12 @@
             </div>
 
         </div>
+        <section id="faqEmptyState" class="faq-empty-state" hidden aria-live="polite">
+            <div class="faq-empty-icon"><i class="fa-regular fa-folder-open"></i></div>
+            <h3>ยังไม่มีบทความในหมวดนี้</h3>
+            <p id="faqEmptyMessage">ลองเลือกหมวดอื่น หรือถาม TATIP AI ได้เลย</p>
+            <a id="faqAskAiLink" class="faq-empty-action" href="chat.html">ถาม TATIP AI</a>
+        </section>
     </main>
 
     <!-- BOTTOM NAVIGATION BAR -->
@@ -191,23 +206,44 @@
     <!-- สคริปต์สลับแท็บแบบอิสระ ไม่ดึงจากภายนอก -->
     <script>
         function switchFaqTab(targetCategory, element) {
-            // 1. เปลี่ยนไฮไลท์สีปุ่ม
             var allButtons = document.querySelectorAll('.chip-btn');
             for (var i = 0; i < allButtons.length; i++) {
                 allButtons[i].classList.remove('active');
             }
-            element.classList.add('active');
+            if (element) element.classList.add('active');
 
-            // 2. ซ่อน/แสดง การ์ดด้วย style.setProperty โดยตรง
+            var labels = {
+                camera: 'กล้อง / การเชื่อมต่อ',
+                system: 'Dashboard และระบบ',
+                account: 'บัญชีผู้ใช้',
+                alerts: 'การแจ้งเตือน'
+            };
             var allCards = document.querySelectorAll('.faq-card');
+            var visibleCount = 0;
             for (var j = 0; j < allCards.length; j++) {
-                var cardCat = allCards[j].getAttribute('data-cat');
-                if (targetCategory === 'all' || cardCat === targetCategory) {
-                    allCards[j].style.setProperty('display', 'flex', 'important');
-                } else {
-                    allCards[j].style.setProperty('display', 'none', 'important');
+                var matches = targetCategory === 'all' || allCards[j].getAttribute('data-cat') === targetCategory;
+                allCards[j].style.setProperty('display', matches ? 'flex' : 'none', 'important');
+                if (matches) visibleCount++;
+            }
+
+            var emptyState = document.getElementById('faqEmptyState');
+            if (emptyState) {
+                emptyState.hidden = visibleCount > 0;
+                if (visibleCount === 0 && targetCategory !== 'all') {
+                    document.getElementById('faqEmptyMessage').textContent =
+                        'หมวด' + (labels[targetCategory] || 'นี้') + 'ยังไม่มีบทความในขณะนี้';
+                    document.getElementById('faqAskAiLink').href =
+                        'chat.html?q=' + encodeURIComponent('สอบถามเรื่อง ' + (labels[targetCategory] || 'นี้'));
                 }
             }
+        }
+
+        var requestedCategory = new URLSearchParams(window.location.search).get('category');
+        var categoryButton = requestedCategory
+            ? document.querySelector('.chip-btn[data-tab="' + requestedCategory + '"]')
+            : null;
+        if (categoryButton) {
+            switchFaqTab(requestedCategory, categoryButton);
         }
     </script>
 </body>
