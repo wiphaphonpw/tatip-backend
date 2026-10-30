@@ -12,3 +12,4 @@ httpx==0.28.1
 PyYAML==6.0.2
 python-dotenv==1.0.1
 line-bot-sdk
+python-multipart==0.0.20

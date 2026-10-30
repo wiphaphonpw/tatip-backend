@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import hashlib
@@ -6,6 +6,10 @@ import hmac
 import base64
 import json
 import secrets
+import logging
+import os
+import tempfile
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 from pydantic import BaseModel, Field
@@ -98,6 +102,14 @@ def require_current_user(
         raise
     except Exception:
         raise HTTPException(status_code=401, detail="เซสชันไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่")
+
+
+def require_admin_user(
+    current_user: Dict[str, Any] = Depends(require_current_user),
+) -> Dict[str, Any]:
+    if current_user.get("ROLE") != "admin":
+        raise HTTPException(status_code=403, detail="เฉพาะ Admin เท่านั้นที่จัดการเอกสารความรู้ได้")
+    return current_user
 
 # ==========================================
 # Pydantic Models
@@ -356,6 +368,104 @@ def get_chat_history(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# API แสดงรายการเอกสารที่อัปโหลดเข้า RAG Corpus
+@app.get("/api/admin/knowledge/files")
+def list_knowledge_files(
+    current_user: Dict[str, Any] = Depends(require_admin_user),
+):
+    try:
+        documents = db.collection("knowledge_articles").where("SOURCE_TYPE", "==", "rag_file").stream()
+        items = []
+        for document in documents:
+            item = document.to_dict() or {}
+            item["_document_id"] = document.id
+            created_at = item.get("CREATE_DATE")
+            if hasattr(created_at, "isoformat"):
+                item["CREATE_DATE"] = created_at.isoformat()
+            items.append(item)
+        items.sort(key=lambda item: item.get("CREATE_DATE") or "", reverse=True)
+        return {"status": "success", "data": items}
+    except Exception as error:
+        logging.exception("Failed to list RAG knowledge files")
+        raise HTTPException(status_code=500, detail="ไม่สามารถโหลดรายการเอกสารความรู้ได้") from error
+
+
+# API อัปโหลดเอกสารจากหน้า Admin เข้า Vertex AI RAG Corpus
+@app.post("/api/admin/knowledge/upload")
+async def upload_knowledge_file(
+    file: UploadFile = File(...),
+    title: str = Form(default=""),
+    current_user: Dict[str, Any] = Depends(require_admin_user),
+):
+    allowed_suffixes = {".pdf", ".txt", ".md", ".docx", ".pptx", ".html", ".json"}
+    filename = Path(file.filename or "").name
+    suffix = Path(filename).suffix.lower()
+    if not filename or suffix not in allowed_suffixes:
+        raise HTTPException(status_code=400, detail="รองรับไฟล์ PDF, TXT, Markdown, DOCX, PPTX, HTML และ JSON เท่านั้น")
+
+    document_title = (title.strip() or Path(filename).stem)[:120]
+    max_file_size = 25 * 1024 * 1024
+    temp_path = None
+    total_size = 0
+    try:
+        with tempfile.NamedTemporaryFile(prefix="tatip-rag-", suffix=suffix, delete=False) as temp_file:
+            temp_path = temp_file.name
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                total_size += len(chunk)
+                if total_size > max_file_size:
+                    raise HTTPException(status_code=413, detail="ไฟล์มีขนาดเกิน 25 MB")
+                temp_file.write(chunk)
+
+        if total_size == 0:
+            raise HTTPException(status_code=400, detail="ไฟล์ว่างเปล่า")
+
+        rag_file = rag.upload_file(
+            corpus_name=CORPUS_NAME,
+            path=temp_path,
+            display_name=document_title,
+        )
+        rag_file_name = getattr(rag_file, "name", "")
+        if not rag_file_name:
+            raise RuntimeError("RAG Engine did not return a file resource name")
+
+        rag_file_id = rag_file_name.rsplit("/", 1)[-1]
+        now = datetime.now(timezone.utc)
+        db.collection("knowledge_articles").document(rag_file_id).set({
+            "SOURCE_TYPE": "rag_file",
+            "TITLE": document_title,
+            "FILE_NAME": filename,
+            "RAG_FILE_ID": rag_file_id,
+            "RAG_FILE_NAME": rag_file_name,
+            "STATUS": "พร้อมใช้",
+            "UPLOADED_BY": current_user["USER_ID"],
+            "FILE_SIZE_BYTES": total_size,
+            "CREATE_DATE": now,
+            "UPDATED_AT": now,
+        }, merge=True)
+        return {
+            "status": "success",
+            "title": document_title,
+            "file_name": filename,
+            "rag_file_id": rag_file_id,
+            "message": "เพิ่มเอกสารเข้า RAG Corpus สำเร็จ",
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to upload knowledge document to RAG Corpus")
+        raise HTTPException(
+            status_code=502,
+            detail="นำเข้าเอกสารไม่สำเร็จ กรุณาตรวจสอบสิทธิ์ Vertex AI ของ Backend และลองใหม่",
+        ) from error
+    finally:
+        await file.close()
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+
 
 # API บันทึกเคสแจ้งปัญหา (Support Cases)
 @app.post("/api/admin/create-case")
