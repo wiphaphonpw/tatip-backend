@@ -79,7 +79,4 @@ jobs:
                       temp_path = temp.name
                   subprocess.run(["node", "--check", temp_path], check=True)
           PY
-<<<<<<< HEAD
 
-=======
->>>>>>> 18a54ff (Update project files)

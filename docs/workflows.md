@@ -45,7 +45,4 @@ session token -> Show question and answer together.
 Never share a screenshot that exposes an access_token. If the History request
 returns 401, sign in again. If it returns 403, check that the logged-in
 account matches the requested user ID.
-<<<<<<< HEAD
 
-=======
->>>>>>> 18a54ff (Update project files)
