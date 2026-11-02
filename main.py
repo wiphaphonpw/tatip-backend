@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 from fastapi import FastAPI, Request, HTTPException, Depends, UploadFile, File, Form
+=======
+from fastapi import FastAPI, Request, HTTPException, Depends
+>>>>>>> 18a54ff (Update project files)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import hashlib
@@ -6,10 +10,13 @@ import hmac
 import base64
 import json
 import secrets
+<<<<<<< HEAD
 import logging
 import os
 import tempfile
 from pathlib import Path
+=======
+>>>>>>> 18a54ff (Update project files)
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 from pydantic import BaseModel, Field
@@ -103,6 +110,7 @@ def require_current_user(
     except Exception:
         raise HTTPException(status_code=401, detail="เซสชันไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่")
 
+<<<<<<< HEAD
 
 def require_admin_user(
     current_user: Dict[str, Any] = Depends(require_current_user),
@@ -118,6 +126,8 @@ def require_admin_or_manager(
         raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ใช้งานส่วนผู้ดูแลระบบ")
     return current_user
 
+=======
+>>>>>>> 18a54ff (Update project files)
 # ==========================================
 # Pydantic Models
 # ==========================================
