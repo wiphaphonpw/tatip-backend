@@ -92,11 +92,56 @@ window.logoutUser = function() {
 // ==========================================
 function openSupportModal() { document.getElementById('ticketModal')?.classList.add('active'); }
 function closeSupportModal() { document.getElementById('ticketModal')?.classList.remove('active'); }
-function submitSupportTicket(event) {
+async function submitSupportTicket(event) {
     event.preventDefault();
-    alert('ระบบได้รับ Ticket ของคุณแล้ว วิศวกรจะติดต่อกลับโดยเร็วที่สุดครับ');
-    closeSupportModal();
-    event.target.reset();
+    const form = event.currentTarget;
+    const issue = form.querySelector('textarea')?.value.trim() || '';
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+    if (!currentUser.access_token || !currentUser.user_id) {
+        alert('กรุณาเข้าสู่ระบบก่อนส่งเรื่องให้เจ้าหน้าที่');
+        return;
+    }
+    if (issue.length < 5) {
+        alert('กรุณาระบุรายละเอียดปัญหาอย่างน้อย 5 ตัวอักษร');
+        return;
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton?.innerHTML;
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งเรื่อง...';
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/support-cases`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentUser.access_token}`
+            },
+            body: JSON.stringify({
+                issue,
+                conversation_id: currentUser.user_id
+            })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.status !== 'success') {
+            throw new Error(result.detail || 'ส่งเรื่องไม่สำเร็จ กรุณาลองใหม่');
+        }
+
+        closeSupportModal();
+        form.reset();
+        alert(`ส่งเรื่องให้เจ้าหน้าที่สำเร็จ เลขที่เคส ${result.case_id}`);
+    } catch (error) {
+        alert(error.message || 'ส่งเรื่องไม่สำเร็จ กรุณาลองใหม่');
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText || 'ส่งเรื่อง';
+        }
+    }
 }
 function handleDirectContactSubmit(event) {
     event.preventDefault();
@@ -473,26 +518,41 @@ function closeAddModal() {
 }
 
 // ฟังก์ชันสลับดูข้อมูลทุกตารางและแปลง JSON ให้เป็นตารางคอลัมน์อัตโนมัติ
+function escapeCollectionCell(value) {
+    return String(value ?? '-').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+}
+
 async function fetchCollectionData() {
-    const colName = document.getElementById('collectionSelect').value;
+    const colName = document.getElementById('collectionSelect')?.value;
     const tbody = document.getElementById('dynamicTableBody');
     const thead = document.getElementById('dynamicTableHeader');
-    
-    if (!tbody || !thead) return;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
-    tbody.innerHTML = `<tr><td colspan="10" class="loading">กำลังดึงข้อมูลจากตาราง ${colName}...</td></tr>`;
+    if (!colName || !tbody || !thead) return;
+    if (!currentUser.access_token) {
+        thead.innerHTML = '<th>สถานะ</th>';
+        tbody.innerHTML = '<tr><td class="loading">กรุณาเข้าสู่ระบบใหม่เพื่อดูข้อมูล</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = `<tr><td colspan="12" class="loading">กำลังดึงข้อมูลจากตาราง ${escapeCollectionCell(colName)}...</td></tr>`;
 
     try {
-        const response = await fetch(`${API_URL}/api/admin/collection/${colName}`);
-        const result = await response.json();
+        const response = await fetch(`${API_URL}/api/admin/collection/${encodeURIComponent(colName)}`, {
+            headers: { 'Authorization': `Bearer ${currentUser.access_token}` }
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.status !== 'success') {
+            throw new Error(result.detail || 'ไม่สามารถดึงข้อมูลตารางนี้ได้');
+        }
 
         tbody.innerHTML = '';
-        if (result.status === 'success' && result.data.length > 0) {
+        if (Array.isArray(result.data) && result.data.length > 0) {
             const allKeysSet = new Set();
-            result.data.forEach(item => {
-                Object.keys(item).forEach(key => allKeysSet.add(key));
-            });
-            
+            result.data.forEach(item => Object.keys(item).forEach(key => allKeysSet.add(key)));
+
             const keys = Array.from(allKeysSet);
             const docIdIndex = keys.indexOf('_document_id');
             if (docIdIndex > -1) {
@@ -500,39 +560,89 @@ async function fetchCollectionData() {
                 keys.unshift('_document_id');
             }
 
-            let headerHtml = `<th>#</th>`;
+            let headerHtml = '<th>#</th>';
             keys.forEach(key => {
                 const cleanKey = key === '_document_id' ? 'Document ID' : key.toUpperCase();
-                headerHtml += `<th>${cleanKey}</th>`;
+                headerHtml += `<th>${escapeCollectionCell(cleanKey)}</th>`;
             });
+            const canUpdateCases = colName === 'support_cases' &&
+                ['admin', 'branch_manager'].includes(currentUser.role);
+            if (canUpdateCases) headerHtml += '<th>อัปเดตสถานะ</th>';
             thead.innerHTML = headerHtml;
 
+            const statusLabels = {
+                open: 'เปิด',
+                in_progress: 'กำลังดำเนินการ',
+                resolved: 'แก้ไขแล้ว',
+                closed: 'ปิดเคส'
+            };
             result.data.forEach((item, index) => {
                 let rowHtml = `<td>${index + 1}</td>`;
                 keys.forEach(key => {
                     let val = item[key];
-                    if (typeof val === 'object' && val !== null) {
-                        val = JSON.stringify(val);
-                    } else if (val === undefined || val === null) {
-                        val = '-';
-                    }
-                    
-                    if (key === '_document_id') {
-                        rowHtml += `<td><code>${val}</code></td>`;
-                    } else {
-                        rowHtml += `<td>${val}</td>`;
-                    }
+                    if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
+                    if (val === undefined || val === null) val = '-';
+                    const safeValue = escapeCollectionCell(val);
+                    rowHtml += key === '_document_id'
+                        ? `<td><code>${safeValue}</code></td>`
+                        : `<td>${safeValue}</td>`;
                 });
-                tbody.innerHTML += `<tr>${rowHtml}</tr>`;
-            });
 
+                if (canUpdateCases) {
+                    const caseId = String(item._document_id || '');
+                    const currentStatus = String(item.STATUS || 'open');
+                    const statusOptions = Object.entries(statusLabels)
+                        .map(([value, label]) => `<option value="${value}" ${currentStatus === value ? 'selected' : ''}>${label}</option>`)
+                        .join('');
+                    rowHtml += `<td><select data-case-id="${escapeCollectionCell(caseId)}" aria-label="สถานะเคส">${statusOptions}</select> <button type="button" class="btn-primary" style="padding:.35rem .6rem" onclick="updateSupportCaseStatusFromRow(this)">บันทึก</button></td>`;
+                }
+                tbody.insertAdjacentHTML('beforeend', `<tr>${rowHtml}</tr>`);
+            });
         } else {
-            thead.innerHTML = `<th>สถานะ</th>`;
-            tbody.innerHTML = `<tr><td class="loading">ตารางนี้ยังไม่มีข้อมูล (Document ว่างเปล่า)</td></tr>`;
+            thead.innerHTML = '<th>สถานะ</th>';
+            tbody.innerHTML = '<tr><td class="loading">ตารางนี้ยังไม่มีข้อมูล (Document ว่างเปล่า)</td></tr>';
         }
     } catch (error) {
-        console.error('Error:', error);
-        tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
+        console.error('Error loading Firestore collection:', error);
+        thead.innerHTML = '<th>สถานะ</th>';
+        tbody.innerHTML = `<tr><td class="loading" style="color:red;">${escapeCollectionCell(error.message || 'ไม่สามารถดึงข้อมูลตารางนี้ได้')}</td></tr>`;
     }
 }
 
+async function updateSupportCaseStatusFromRow(button) {
+    const select = button?.parentElement?.querySelector('select[data-case-id]');
+    if (!select) return;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (!currentUser.access_token) {
+        alert('กรุณาเข้าสู่ระบบใหม่ก่อนอัปเดตสถานะเคส');
+        return;
+    }
+
+    const caseId = select.dataset.caseId;
+    const status = select.value;
+    const oldStatus = select.dataset.savedStatus || select.querySelector('option[selected]')?.value || 'open';
+    select.disabled = true;
+    button.disabled = true;
+    try {
+        const response = await fetch(`${API_URL}/api/admin/support-cases/${encodeURIComponent(caseId)}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentUser.access_token}`
+            },
+            body: JSON.stringify({ status })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.status !== 'success') {
+            throw new Error(result.detail || 'อัปเดตสถานะเคสไม่สำเร็จ');
+        }
+        select.dataset.savedStatus = status;
+        alert(`อัปเดตสถานะเคส ${caseId} เป็น “${select.options[select.selectedIndex].text}” แล้ว`);
+    } catch (error) {
+        select.value = oldStatus;
+        alert(error.message || 'อัปเดตสถานะเคสไม่สำเร็จ');
+    } finally {
+        select.disabled = false;
+        button.disabled = false;
+    }
+}
