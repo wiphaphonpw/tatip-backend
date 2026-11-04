@@ -20,7 +20,7 @@ from google.cloud import firestore
 
 # 1. กำหนดค่าโปรเจกต์และคลังข้อมูล
 PROJECT_ID = "tatip-ai-rag"
-LOCATION = "us-central1"
+LOCATION = "asia-southeast1"
 CORPUS_NAME = "projects/tatip-ai-rag/locations/asia-southeast1/ragCorpora/2305843009213693952"
 
 # 2. เริ่มต้นการเชื่อมต่อ Vertex AI และ Firestore
