@@ -82,7 +82,11 @@
                 <button class="btn-close-modal" onclick="closeSupportModal()">&times;</button>
             </div>
             <form onsubmit="submitSupportTicket(event)">
-                <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="3" required></textarea></div>
+                <div class="form-group">
+                    <label for="supportIssue">รายละเอียดปัญหา <span class="req">*</span></label>
+                    <textarea id="supportIssue" rows="3" maxlength="3000" placeholder="อธิบายปัญหาที่ต้องการให้เจ้าหน้าที่ช่วยเหลือ" required></textarea>
+                    <small>ระบบจะผูกเคสกับบัญชีและ Tenant ที่คุณเข้าสู่ระบบโดยอัตโนมัติ</small>
+                </div>
                 <div style="display:flex; justify-content:flex-end; gap:0.4rem;">
                     <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ยกเลิก</button>
                     <button type="submit" style="background:#C81E1E; color:white; border:none; padding:0.4rem 0.8rem; border-radius:4px;">ส่งเรื่อง</button>
@@ -91,6 +95,6 @@
         </div>
     </div>
 
-    <script src="./script.js?v=20261104-chatlogo1"></script>
+    <script src="./script.js?v=20261104-supportcase1"></script>
 </body>
 </html>
