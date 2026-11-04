@@ -428,20 +428,24 @@
         const colName = document.getElementById('collectionSelect').value;
         const tbody = document.getElementById('dynamicTableBody');
         const thead = document.getElementById('dynamicTableHeader');
-        
-        tbody.innerHTML = `<tr><td colspan="10" class="loading">กำลังดึงข้อมูลจากตาราง ${colName}...</td></tr>`;
+        const currentUser = getCurrentAdmin();
+
+        tbody.innerHTML = `<tr><td colspan="12" class="loading">กำลังดึงข้อมูลจากตาราง ${escapeAdminHtml(colName)}...</td></tr>`;
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/collection/${colName}`, { headers: getAdminAuthHeaders() });
-            const result = await response.json();
+            const response = await fetch(`${API_URL}/api/admin/collection/${encodeURIComponent(colName)}`, {
+                headers: getAdminAuthHeaders()
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.status !== 'success') {
+                throw new Error(result.detail || 'ไม่สามารถดึงข้อมูลตารางนี้ได้');
+            }
 
             tbody.innerHTML = '';
-            if (result.status === 'success' && result.data.length > 0) {
+            if (Array.isArray(result.data) && result.data.length > 0) {
                 const allKeysSet = new Set();
-                result.data.forEach(item => {
-                    Object.keys(item).forEach(key => allKeysSet.add(key));
-                });
-                
+                result.data.forEach(item => Object.keys(item).forEach(key => allKeysSet.add(key)));
+
                 const keys = Array.from(allKeysSet);
                 const docIdIndex = keys.indexOf('_document_id');
                 if (docIdIndex > -1) {
@@ -449,41 +453,90 @@
                     keys.unshift('_document_id');
                 }
 
-                let headerHtml = `<th>#</th>`;
+                const canUpdateCases = colName === 'support_cases' &&
+                    ['admin', 'branch_manager'].includes(currentUser.role);
+                let headerHtml = '<th>#</th>';
                 keys.forEach(key => {
                     const cleanKey = key === '_document_id' ? 'Document ID' : key.toUpperCase();
                     headerHtml += `<th>${escapeAdminHtml(cleanKey)}</th>`;
                 });
+                if (canUpdateCases) headerHtml += '<th>อัปเดตสถานะ</th>';
                 thead.innerHTML = headerHtml;
 
+                const statusLabels = {
+                    open: 'เปิด',
+                    in_progress: 'กำลังดำเนินการ',
+                    resolved: 'แก้ไขแล้ว',
+                    closed: 'ปิดเคส'
+                };
                 result.data.forEach((item, index) => {
                     let rowHtml = `<td>${index + 1}</td>`;
                     keys.forEach(key => {
                         let val = item[key];
-                        if (typeof val === 'object' && val !== null) {
-                            val = JSON.stringify(val);
-                        } else if (val === undefined || val === null) {
-                            val = '-';
-                        }
-                        
-                        if (key === '_document_id') {
-                            rowHtml += `<td><code>${escapeAdminHtml(val)}</code></td>`;
-                        } else {
-                            rowHtml += `<td>${escapeAdminHtml(val)}</td>`;
-                        }
+                        if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
+                        if (val === undefined || val === null) val = '-';
+                        rowHtml += key === '_document_id'
+                            ? `<td><code>${escapeAdminHtml(val)}</code></td>`
+                            : `<td>${escapeAdminHtml(val)}</td>`;
                     });
-                    tbody.innerHTML += `<tr>${rowHtml}</tr>`;
-                });
 
+                    if (canUpdateCases) {
+                        const caseId = String(item._document_id || '');
+                        const currentStatus = String(item.STATUS || 'open');
+                        const options = Object.entries(statusLabels)
+                            .map(([value, label]) => `<option value="${value}" ${value === currentStatus ? 'selected' : ''}>${label}</option>`)
+                            .join('');
+                        rowHtml += `<td><select data-case-id="${escapeAdminHtml(caseId)}" data-saved-status="${escapeAdminHtml(currentStatus)}" aria-label="สถานะเคส">${options}</select> <button type="button" class="btn-primary" style="padding:.35rem .6rem" onclick="updateSupportCaseStatusFromRow(this)">บันทึก</button></td>`;
+                    }
+                    tbody.insertAdjacentHTML('beforeend', `<tr>${rowHtml}</tr>`);
+                });
             } else {
-                thead.innerHTML = `<th>สถานะ</th>`;
-                tbody.innerHTML = `<tr><td class="loading">ตารางนี้ยังไม่มีข้อมูล (Document ว่างเปล่า)</td></tr>`;
+                thead.innerHTML = '<th>สถานะ</th>';
+                tbody.innerHTML = '<tr><td class="loading">ตารางนี้ยังไม่มีข้อมูล (Document ว่างเปล่า)</td></tr>';
             }
         } catch (error) {
-            console.error('Error:', error);
-            tbody.innerHTML = `<tr><td class="loading" style="color: red;">ไม่สามารถดึงข้อมูลตารางนี้ได้</td></tr>`;
+            console.error('Error loading Firestore collection:', error);
+            thead.innerHTML = '<th>สถานะ</th>';
+            tbody.innerHTML = `<tr><td class="loading" style="color:red;">${escapeAdminHtml(error.message || 'ไม่สามารถดึงข้อมูลตารางนี้ได้')}</td></tr>`;
         }
     }
+
+    async function updateSupportCaseStatusFromRow(button) {
+        const select = button?.parentElement?.querySelector('select[data-case-id]');
+        if (!select) return;
+        const currentUser = getCurrentAdmin();
+        const caseId = select.dataset.caseId;
+        const previousStatus = select.dataset.savedStatus || select.value;
+        const status = select.value;
+
+        if (status === previousStatus) {
+            alert('สถานะเคสยังไม่มีการเปลี่ยนแปลง');
+            return;
+        }
+
+        select.disabled = true;
+        button.disabled = true;
+        try {
+            const response = await fetch(`${API_URL}/api/admin/support-cases/${encodeURIComponent(caseId)}`, {
+                method: 'PATCH',
+                headers: getAdminAuthHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ status })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.status !== 'success') {
+                throw new Error(result.detail || 'อัปเดตสถานะเคสไม่สำเร็จ');
+            }
+            select.dataset.savedStatus = status;
+            alert(`อัปเดตสถานะเคส ${caseId} เป็น “${select.options[select.selectedIndex].text}” แล้ว`);
+        } catch (error) {
+            select.value = previousStatus;
+            alert(error.message || 'อัปเดตสถานะเคสไม่สำเร็จ');
+        } finally {
+            select.disabled = false;
+            button.disabled = false;
+        }
+    }
+}
 
     function openAddModal() {
         const colName = document.getElementById('collectionSelect').value;
