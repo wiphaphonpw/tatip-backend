@@ -11,7 +11,7 @@ import os
 import tempfile
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Any
+from typing import Dict, Any, Literal
 from pydantic import BaseModel, Field
 import vertexai
 from vertexai.preview import rag
@@ -146,6 +146,15 @@ class CreateUserRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+class CustomerSupportCaseRequest(BaseModel):
+    issue: str = Field(min_length=5, max_length=3000)
+    camera_name: str = Field(default="", max_length=120)
+    conversation_id: str | None = None
+
+class UpdateSupportCaseStatusRequest(BaseModel):
+    status: Literal["open", "in_progress", "resolved", "closed"]
+    admin_note: str | None = Field(default=None, max_length=2000)
 
 class SupportCaseRequest(BaseModel):
     case_id: str
@@ -501,6 +510,94 @@ async def upload_knowledge_file(
             os.remove(temp_path)
 
 
+# API สำหรับลูกค้าเปิด Support Case จากหน้าแชท
+@app.post("/api/support-cases", status_code=201)
+def submit_customer_support_case(
+    request: CustomerSupportCaseRequest,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
+    issue = request.issue.strip()
+    if len(issue) < 5:
+        raise HTTPException(status_code=400, detail="กรุณาระบุรายละเอียดปัญหาอย่างน้อย 5 ตัวอักษร")
+
+    user_id = current_user["USER_ID"]
+    tenant_id = current_user.get("TENANT_ID")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="ไม่พบข้อมูลองค์กรของผู้ใช้")
+
+    try:
+        user_snapshot = db.collection("users").document(user_id).get()
+        user_data = user_snapshot.to_dict() or {} if user_snapshot.exists else {}
+        now = datetime.now(timezone.utc)
+        case_id = f"CASE-{now.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3).upper()}"
+        conversation_id = (request.conversation_id or user_id).strip()
+        case_data = {
+            "CASE_ID": case_id,
+            "USER_ID": user_id,
+            "TENANT_ID": tenant_id,
+            "CONVERSATION_ID": conversation_id,
+            "BRANCH": user_data.get("BRANCH_NAME", ""),
+            "CAMERA_NAME": request.camera_name.strip(),
+            "CAMERA_STATUS": "unknown",
+            "ISSUE": issue,
+            "PRIORITY": "P2",
+            "STATUS": "open",
+            "COMPLETED_STEPS": [],
+            "CREATE_DATE": now,
+            "UPDATED_AT": now,
+        }
+        db.collection("support_cases").document(case_id).set(case_data)
+        return {
+            "status": "success",
+            "case_id": case_id,
+            "message": "ส่งเรื่องให้เจ้าหน้าที่สำเร็จ",
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to submit customer support case")
+        raise HTTPException(status_code=500, detail="ไม่สามารถส่งเรื่องให้เจ้าหน้าที่ได้ กรุณาลองใหม่") from error
+
+
+# API สำหรับ Admin หรือ Branch Manager อัปเดตสถานะ Support Case
+@app.patch("/api/admin/support-cases/{case_id}")
+def update_support_case_status(
+    case_id: str,
+    request: UpdateSupportCaseStatusRequest,
+    current_user: Dict[str, Any] = Depends(require_admin_or_manager),
+):
+    try:
+        case_ref = db.collection("support_cases").document(case_id)
+        case_snapshot = case_ref.get()
+        if not case_snapshot.exists:
+            raise HTTPException(status_code=404, detail="ไม่พบ Support Case นี้")
+
+        case_data = case_snapshot.to_dict() or {}
+        if current_user["ROLE"] == "branch_manager" and case_data.get("TENANT_ID") != current_user.get("TENANT_ID"):
+            raise HTTPException(status_code=403, detail="จัดการได้เฉพาะเคสใน Tenant ของตนเอง")
+
+        now = datetime.now(timezone.utc)
+        updates = {
+            "STATUS": request.status,
+            "UPDATED_AT": now,
+            "UPDATED_BY": current_user["USER_ID"],
+        }
+        if request.admin_note is not None:
+            updates["ADMIN_NOTE"] = request.admin_note.strip()
+        if request.status in {"resolved", "closed"}:
+            updates["RESOLVED_AT"] = now
+        else:
+            updates["RESOLVED_AT"] = firestore.DELETE_FIELD
+
+        case_ref.update(updates)
+        return {"status": "success", "case_id": case_id, "new_status": request.status}
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to update support case status")
+        raise HTTPException(status_code=500, detail="ไม่สามารถอัปเดตสถานะเคสได้") from error
+
+
 # API บันทึกเคสแจ้งปัญหา (Support Cases)
 @app.post("/api/admin/create-case")
 async def create_support_case(
@@ -509,7 +606,7 @@ async def create_support_case(
 ):
     try:
         case_data = {
-            "CASE_id": request.case_id,
+            "CASE_ID": request.case_id,
             "USER_ID": request.user_id,
             "TENANT_ID": request.tenant_id,
             "BRANCH": request.branch,
