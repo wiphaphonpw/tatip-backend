@@ -136,7 +136,7 @@ function resetChat() {
     if(confirm('ต้องการเริ่มการสนทนาใหม่หรือไม่?')) {
         document.getElementById('chatMessages').innerHTML = `
             <div class="message-group ai">
-                <div class="message-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="message-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
                 <div class="message-body">
                     <div class="message-bubble">สวัสดีค่ะ TATIP AI ยินดีให้บริการค่ะ คุณสามารถพิมพ์สอบถามปัญหากล้อง วงจรปิด การใช้งาน Dashboard หรือการตั้งค่าต่างๆ ได้เลยค่ะ</div>
                     <div class="message-time">เมื่อครู่นี้</div>
@@ -166,7 +166,7 @@ async function submitChatMessage() {
     const typingId = "typing-" + Date.now();
     chatBox.innerHTML += `
         <div id="${typingId}" class="message-group ai">
-            <div class="message-avatar"><i class="fa-solid fa-robot"></i></div>
+            <div class="message-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
             <div class="message-body">
                 <div class="message-bubble" style="color: #64748B; font-style: italic;"><i class="fa-solid fa-circle-notch fa-spin"></i> กำลังค้นหาข้อมูลจาก RAG Engine...</div>
             </div>
@@ -186,7 +186,7 @@ async function submitChatMessage() {
             const formattedReply = renderChatReply(data.reply);
             chatBox.innerHTML += `
                 <div class="message-group ai">
-                    <div class="message-avatar"><i class="fa-solid fa-robot"></i></div>
+                    <div class="message-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
                     <div class="message-body">
                         <div class="message-bubble">${formattedReply}</div>
                         <div class="message-time">${new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.</div>
