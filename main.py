@@ -190,7 +190,7 @@ async def get_rag_reply(user_message: str) -> str:
         )
 
         model = GenerativeModel(
-            "gemini-2.5-flash-lite",
+            "gemini-3.5-flash",
             system_instruction=strict_system_instruction,
             generation_config=GenerationConfig(temperature=0.0)
         )
