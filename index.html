@@ -1,14 +1,9 @@
 <script>
-    // เปิด Dashboard เป็นหน้าหลักสำหรับเจ้าหน้าที่ และคงหน้าคู่มือสำหรับลูกค้า
-    try {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-        if (!currentUser) {
-            window.location.replace('login.html');
-        } else if (['admin', 'branch_manager'].includes(currentUser.role)) {
-            window.location.replace('admin_dashboard.html');
-        }
-    } catch (error) {
-        window.location.replace('login.html');
+    // ตรวจสอบว่ามีข้อมูลการเข้าสู่ระบบในเครื่องหรือยัง
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+        // ถ้ายังไม่ได้ล็อกอิน ให้บังคับเด้งกลับไปหน้า login.html ทันที
+        window.location.href = 'login.html';
     }
 </script>
 <!DOCTYPE html>
