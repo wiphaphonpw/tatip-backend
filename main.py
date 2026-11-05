@@ -255,8 +255,12 @@ async def get_rag_reply(user_message: str) -> str:
 # ==========================================
 
 def get_support_info():
-    snapshot = db.collection("system_settings").document("support").get()
-    saved = snapshot.to_dict() or {} if snapshot.exists else {}
+    try:
+        snapshot = db.collection("system_settings").document("support").get()
+        saved = snapshot.to_dict() or {} if snapshot.exists else {}
+    except Exception:
+        logging.exception("Could not load public support settings")
+        saved = {}
     business_hours = str(saved.get("BUSINESS_HOURS") or "").strip()
     response_time = str(saved.get("RESPONSE_TIME") or "").strip()
     return {
