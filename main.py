@@ -29,6 +29,11 @@ SUPPORT_FILE_LIMIT = 5
 SUPPORT_FILE_BYTES_LIMIT = 20 * 1024 * 1024
 SUPPORT_TOTAL_BYTES_LIMIT = 20 * 1024 * 1024
 SUPPORT_ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"}
+SUPPORT_INFO_DEFAULTS = {
+    "BUSINESS_HOURS": "ยังไม่ได้ตั้งค่าเวลาทำการ",
+    "RESPONSE_TIME": "ยังไม่ได้กำหนดเวลาตอบกลับ",
+    "TIMEZONE": "Asia/Bangkok",
+}
 
 # 2. เริ่มต้นการเชื่อมต่อ Vertex AI และ Firestore
 vertexai.init(project=PROJECT_ID, location=LOCATION)
@@ -174,6 +179,10 @@ class CustomerCaseFeedbackRequest(BaseModel):
     rating: int = Field(ge=1, le=5)
     comment: str = Field(default="", max_length=1000)
 
+class SupportSettingsRequest(BaseModel):
+    business_hours: str = Field(min_length=1, max_length=250)
+    response_time: str = Field(min_length=1, max_length=200)
+
 class UpdateSupportCaseStatusRequest(BaseModel):
     status: Literal["open", "in_progress", "resolved", "closed"]
     admin_note: str | None = Field(default=None, max_length=2000)
@@ -245,9 +254,62 @@ async def get_rag_reply(user_message: str) -> str:
 # API Endpoints
 # ==========================================
 
+def get_support_info():
+    snapshot = db.collection("system_settings").document("support").get()
+    saved = snapshot.to_dict() or {} if snapshot.exists else {}
+    business_hours = str(saved.get("BUSINESS_HOURS") or "").strip()
+    response_time = str(saved.get("RESPONSE_TIME") or "").strip()
+    return {
+        "business_hours": business_hours or SUPPORT_INFO_DEFAULTS["BUSINESS_HOURS"],
+        "response_time": response_time or SUPPORT_INFO_DEFAULTS["RESPONSE_TIME"],
+        "timezone": str(saved.get("TIMEZONE") or SUPPORT_INFO_DEFAULTS["TIMEZONE"]),
+        "configured": bool(business_hours and response_time),
+    }
+
+
 @app.get("/")
 def read_root():
     return {"message": "TATIP AI Backend is running!"}
+
+
+@app.get("/api/support/info")
+def get_public_support_info():
+    return {"status": "success", "data": get_support_info()}
+
+
+@app.get("/api/admin/support-settings")
+def get_admin_support_settings(current_user: Dict[str, Any] = Depends(require_admin_user)):
+    snapshot = db.collection("system_settings").document("support").get()
+    saved = snapshot.to_dict() or {} if snapshot.exists else {}
+    return {
+        "status": "success",
+        "data": {
+            "business_hours": str(saved.get("BUSINESS_HOURS") or ""),
+            "response_time": str(saved.get("RESPONSE_TIME") or ""),
+            "timezone": str(saved.get("TIMEZONE") or "Asia/Bangkok"),
+            "updated_at": saved.get("UPDATED_AT").isoformat() if hasattr(saved.get("UPDATED_AT"), "isoformat") else None,
+        },
+    }
+
+
+@app.put("/api/admin/support-settings")
+def update_admin_support_settings(
+    request: SupportSettingsRequest,
+    current_user: Dict[str, Any] = Depends(require_admin_user),
+):
+    business_hours = request.business_hours.strip()
+    response_time = request.response_time.strip()
+    if not business_hours or not response_time:
+        raise HTTPException(status_code=400, detail="กรุณากรอกเวลาทำการและเวลาตอบกลับ")
+    db.collection("system_settings").document("support").set({
+        "BUSINESS_HOURS": business_hours,
+        "RESPONSE_TIME": response_time,
+        "TIMEZONE": "Asia/Bangkok",
+        "UPDATED_AT": datetime.now(timezone.utc),
+        "UPDATED_BY": current_user["USER_ID"],
+    }, merge=True)
+    return {"status": "success", "message": "บันทึกข้อมูลการให้บริการแล้ว"}
+
 
 # API สำหรับรับคำถามและตอบกลับ (RAG Chat หน้าเว็บ)
 @app.post("/api/chat")
@@ -883,6 +945,7 @@ def get_customer_dashboard_summary(current_user: Dict[str, Any] = Depends(requir
         recent.sort(key=lambda item: item.get("updated_at") or "", reverse=True)
         return {
             "status": "success",
+            "support_info": get_support_info(),
             "profile": {"display_name": str(user_data.get("USERNAME") or user_id),
                         "branch": str(user_data.get("BRANCH_NAME") or ""),
                         "tenant_name": str(user_data.get("TENANT_NAME") or "")},
