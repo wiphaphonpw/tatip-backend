@@ -167,6 +167,9 @@ class CustomerSupportCaseRequest(BaseModel):
     camera_name: str = Field(default="", max_length=120)
     conversation_id: str | None = None
 
+class CustomerCaseReplyRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=3000)
+
 class UpdateSupportCaseStatusRequest(BaseModel):
     status: Literal["open", "in_progress", "resolved", "closed"]
     admin_note: str | None = Field(default=None, max_length=2000)
@@ -879,6 +882,117 @@ def get_customer_dashboard_summary(current_user: Dict[str, Any] = Depends(requir
         raise HTTPException(status_code=500, detail="โหลดภาพรวมของคุณไม่สำเร็จ") from error
 
 
+@app.get("/api/customer/support-cases/{case_id}")
+def get_customer_support_case_detail(
+    case_id: str,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
+    case_snapshot = db.collection("support_cases").document(case_id).get()
+    if not case_snapshot.exists:
+        raise HTTPException(status_code=404, detail="ไม่พบเคสนี้")
+    data = case_snapshot.to_dict() or {}
+    if (str(data.get("USER_ID") or "").strip() != str(current_user.get("USER_ID") or "").strip()
+        or str(data.get("TENANT_ID") or "").strip() != str(current_user.get("TENANT_ID") or "").strip()):
+        raise HTTPException(status_code=404, detail="ไม่พบเคสนี้")
+
+    def customer_case_iso(value):
+        if hasattr(value, "to_datetime"):
+            value = value.to_datetime()
+        return value.isoformat() if hasattr(value, "isoformat") else None
+
+    status = str(data.get("STATUS") or "open").lower()
+    created_at = customer_case_iso(data.get("CREATE_DATE") or data.get("CREATED_AT"))
+    updated_at = customer_case_iso(data.get("UPDATED_AT") or data.get("CREATE_DATE") or data.get("CREATED_AT"))
+    events = [{
+        "event_id": "created",
+        "event_type": "created",
+        "sender": "system",
+        "message": "ส่งเคสเข้าระบบแล้ว",
+        "status": "open",
+        "created_at": created_at,
+    }]
+    for event in data.get("CASE_UPDATES") or []:
+        if not isinstance(event, dict):
+            continue
+        events.append({
+            "event_id": str(event.get("EVENT_ID") or ""),
+            "event_type": str(event.get("EVENT_TYPE") or "message"),
+            "sender": str(event.get("SENDER") or "support"),
+            "message": str(event.get("MESSAGE") or ""),
+            "status": str(event.get("STATUS") or ""),
+            "created_at": customer_case_iso(event.get("CREATE_DATE")),
+        })
+    if status != "open" and not any(item.get("event_type") == "status" and item.get("status") == status for item in events):
+        events.append({
+            "event_id": "current-status",
+            "event_type": "status",
+            "sender": "support",
+            "message": "สถานะปัจจุบัน: " + {
+                "in_progress": "กำลังดำเนินการ",
+                "resolved": "แก้ไขแล้ว",
+                "closed": "ปิดเคสแล้ว",
+            }.get(status, status),
+            "status": status,
+            "created_at": updated_at,
+        })
+    events.sort(key=lambda item: item.get("created_at") or "")
+    attachments = [{
+        "attachment_id": str(item.get("ATTACHMENT_ID")),
+        "file_name": str(item.get("FILE_NAME") or "ไฟล์แนบ"),
+        "content_type": str(item.get("CONTENT_TYPE") or ""),
+    } for item in (data.get("ATTACHMENTS") or [])
+      if isinstance(item, dict) and item.get("ATTACHMENT_ID")]
+    return {
+        "status": "success",
+        "case": {
+            "case_id": case_snapshot.id,
+            "issue": str(data.get("ISSUE") or data.get("CONTENT") or ""),
+            "status": status,
+            "priority": str(data.get("PRIORITY") or "P2"),
+            "branch": str(data.get("BRANCH") or ""),
+            "camera_name": str(data.get("CAMERA_NAME") or ""),
+            "created_at": created_at,
+            "updated_at": updated_at,
+            "attachments": attachments,
+        },
+        "events": events,
+    }
+
+
+@app.post("/api/customer/support-cases/{case_id}/replies", status_code=201)
+def reply_to_customer_support_case(
+    case_id: str,
+    request: CustomerCaseReplyRequest,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
+    message = request.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="กรุณาพิมพ์ข้อความก่อนส่ง")
+    case_ref = db.collection("support_cases").document(case_id)
+    case_snapshot = case_ref.get()
+    if not case_snapshot.exists:
+        raise HTTPException(status_code=404, detail="ไม่พบเคสนี้")
+    data = case_snapshot.to_dict() or {}
+    if (str(data.get("USER_ID") or "").strip() != str(current_user.get("USER_ID") or "").strip()
+        or str(data.get("TENANT_ID") or "").strip() != str(current_user.get("TENANT_ID") or "").strip()):
+        raise HTTPException(status_code=404, detail="ไม่พบเคสนี้")
+    if str(data.get("STATUS") or "open").lower() == "closed":
+        raise HTTPException(status_code=409, detail="เคสนี้ปิดแล้ว กรุณาเปิดเคสใหม่หากยังต้องการความช่วยเหลือ")
+    now = datetime.now(timezone.utc)
+    case_ref.update({
+        "CASE_UPDATES": firestore.ArrayUnion([{
+            "EVENT_ID": secrets.token_hex(8),
+            "EVENT_TYPE": "message",
+            "SENDER": "customer",
+            "MESSAGE": message,
+            "CREATE_DATE": now,
+        }]),
+        "UPDATED_AT": now,
+        "LAST_CUSTOMER_MESSAGE_AT": now,
+    })
+    return {"status": "success", "case_id": case_id, "message": "ส่งข้อความเพิ่มเติมให้เจ้าหน้าที่แล้ว"}
+
+
 @app.get("/api/customer/support-cases/{case_id}/attachments/{attachment_id}")
 def get_customer_case_attachment(case_id: str, attachment_id: str,
         current_user: Dict[str, Any] = Depends(require_current_user)):
@@ -1002,6 +1116,21 @@ def update_support_case_status(
         else:
             updates["RESOLVED_AT"] = firestore.DELETE_FIELD
 
+        if previous_status != request.status:
+            status_labels = {
+                "open": "เคสได้รับการอัปเดต: รอดำเนินการ",
+                "in_progress": "เจ้าหน้าที่กำลังดำเนินการ",
+                "resolved": "เจ้าหน้าที่แจ้งว่าแก้ไขแล้ว",
+                "closed": "เคสถูกปิดแล้ว",
+            }
+            updates["CASE_UPDATES"] = firestore.ArrayUnion([{
+                "EVENT_ID": secrets.token_hex(8),
+                "EVENT_TYPE": "status",
+                "SENDER": "support",
+                "STATUS": request.status,
+                "MESSAGE": status_labels[request.status],
+                "CREATE_DATE": now,
+            }])
         case_ref.update(updates)
         line_notification = "unchanged"
         if previous_status != request.status:
