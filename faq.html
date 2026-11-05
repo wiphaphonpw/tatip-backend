@@ -80,6 +80,13 @@
         .article-disclaimer{color:#7b8798;font-size:.77rem;margin:.6rem 0 0}
         @media(max-width:600px){.article-head{padding:.9rem 1rem}.article-body{padding:1rem}.article-head h2{font-size:1rem}.faq-card{min-height:0}}
 
+            .faq-search{display:flex;align-items:center;gap:.85rem;margin:0 0 1.1rem}
+        .faq-search-box{position:relative;flex:1;max-width:620px}
+        .faq-search-box i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8794a8}
+        .faq-search-box input{width:100%;padding:.8rem .9rem .8rem 2.55rem;border:1px solid #dbe2ec;border-radius:13px;background:#fff;font:400 .9rem 'Prompt',sans-serif;color:#172033;outline:none}
+        .faq-search-box input:focus{border-color:#d75b60;box-shadow:0 0 0 3px #c81e1e18}
+        .faq-count{white-space:nowrap;color:#718096;font-size:.8rem}
+        @media(max-width:580px){.faq-search{align-items:stretch;flex-direction:column;gap:.35rem}.faq-search-box{max-width:none}.faq-count{padding-left:.2rem}}
     </style>
 </head>
 <body>
@@ -95,6 +102,12 @@
         <div class="page-title-box" style="margin-bottom: 1.25rem;">
             <h2 style="font-size: 1.3rem; font-weight: 700; color: #0e1626;"><i class="fa-solid fa-circle-question" style="color: #c81e1e;"></i> คำถามที่พบบ่อย (FAQ)</h2>
             <p style="font-size: 0.85rem; color: #5b6779;">กดเลือกหมวดหมู่ที่ต้องการด้านล่าง เพื่อดูคำถามและวิธีแก้ไขปัญหา</p>
+        </div>
+        <div class="faq-search">
+            <label class="faq-search-box"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="faqSearch" type="search" placeholder="ค้นหาคำถาม เช่น IP กล้อง, ไม่มีภาพ, Heatmap" autocomplete="off" aria-label="ค้นหาบทความ FAQ">
+            </label>
+            <span class="faq-count" id="faqCount" aria-live="polite"></span>
         </div>
 
         <!-- แท็บกดเปลี่ยนหมวดหมู่ -->
@@ -248,38 +261,39 @@
 
     <!-- สคริปต์สลับแท็บแบบอิสระ ไม่ดึงจากภายนอก -->
     <script>
+        var activeFaqCategory = 'all';
         function switchFaqTab(targetCategory, element) {
-            var allButtons = document.querySelectorAll('.chip-btn');
-            for (var i = 0; i < allButtons.length; i++) {
-                allButtons[i].classList.remove('active');
-            }
+            activeFaqCategory = targetCategory || 'all';
+            document.querySelectorAll('.chip-btn').forEach(function(button) { button.classList.remove('active'); });
             if (element) element.classList.add('active');
-
-            var labels = {
-                camera: 'กล้อง / การเชื่อมต่อ',
-                system: 'Dashboard และระบบ',
-                account: 'บัญชีผู้ใช้',
-                alerts: 'การแจ้งเตือน'
-            };
-            var allCards = document.querySelectorAll('.faq-card');
+            applyFaqFilters();
+        }
+        function applyFaqFilters() {
+            var labels = {camera:'กล้อง / การเชื่อมต่อ',system:'Dashboard และระบบ',account:'บัญชีผู้ใช้',alerts:'การแจ้งเตือน'};
+            var term = (document.getElementById('faqSearch').value || '').trim().toLocaleLowerCase('th');
+            var cards = document.querySelectorAll('.faq-card');
             var visibleCount = 0;
-            for (var j = 0; j < allCards.length; j++) {
-                var matches = targetCategory === 'all' || allCards[j].getAttribute('data-cat') === targetCategory;
-                allCards[j].style.setProperty('display', matches ? 'flex' : 'none', 'important');
+            cards.forEach(function(card) {
+                var categoryMatches = activeFaqCategory === 'all' || card.getAttribute('data-cat') === activeFaqCategory;
+                var textMatches = !term || card.textContent.toLocaleLowerCase('th').includes(term);
+                var matches = categoryMatches && textMatches;
+                card.style.setProperty('display', matches ? 'flex' : 'none', 'important');
                 if (matches) visibleCount++;
-            }
-
+            });
+            document.getElementById('faqCount').textContent = 'แสดง ' + visibleCount + ' บทความ';
             var emptyState = document.getElementById('faqEmptyState');
             if (emptyState) {
                 emptyState.hidden = visibleCount > 0;
-                if (visibleCount === 0 && targetCategory !== 'all') {
-                    document.getElementById('faqEmptyMessage').textContent =
-                        'หมวด' + (labels[targetCategory] || 'นี้') + 'ยังไม่มีบทความในขณะนี้';
+                if (!visibleCount) {
+                    document.getElementById('faqEmptyMessage').textContent = term
+                        ? 'ไม่พบบทความที่ตรงกับคำค้น ลองใช้คำสั้น ๆ หรือเลือกหมวดอื่น'
+                        : 'หมวด' + (labels[activeFaqCategory] || 'นี้') + 'ยังไม่มีบทความในขณะนี้';
                     document.getElementById('faqAskAiLink').href =
-                        'chat.html?q=' + encodeURIComponent('สอบถามเรื่อง ' + (labels[targetCategory] || 'นี้'));
+                        'chat.html?q=' + encodeURIComponent(term || ('สอบถามเรื่อง ' + (labels[activeFaqCategory] || 'นี้')));
                 }
             }
         }
+        document.getElementById('faqSearch').addEventListener('input', applyFaqFilters);
 
         var requestedCategory = new URLSearchParams(window.location.search).get('category');
         var categoryButton = requestedCategory
