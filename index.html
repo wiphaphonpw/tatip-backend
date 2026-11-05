@@ -26,9 +26,10 @@
         .news-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px #14213b16}
         .news-card:focus-visible{outline:3px solid #f2a3a3;outline-offset:3px}
         .news-art{height:145px;position:relative;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#fff2f2,#f6f7fb)}
-        .news-art:before,.news-art:after{content:'';position:absolute;border:1px solid #e7b7b9;border-radius:22px;transform:rotate(-12deg)}
+        .news-art:before,.news-art:after{display:none;content:'';position:absolute;border:1px solid #e7b7b9;border-radius:22px;transform:rotate(-12deg)}
         .news-art:before{width:65%;height:70%;left:-5%;top:35%;background:#ffffff66}
         .news-art:after{width:55%;height:75%;right:-8%;top:-30%;background:#ffffff80}
+        .news-art img{display:block;width:100%;height:100%;object-fit:cover}
         .news-art-icon{z-index:1;display:grid;place-items:center;width:62px;height:62px;border-radius:20px;background:#fff;color:#c91f27;box-shadow:0 8px 24px #7f1d1d1a;font-size:1.55rem}
         .news-art-label{position:absolute;z-index:1;bottom:12px;left:14px;padding:.25rem .55rem;border-radius:99px;background:#172033d9;color:#fff;font-size:.68rem}
         .news-content{padding:1rem;display:flex;flex-direction:column;flex:1}
@@ -236,19 +237,19 @@
             </div>
             <div class="news-grid">
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('restaurant')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('restaurant')}">
-                    <span class="news-art"><span class="news-art-icon"><i class="fa-solid fa-utensils"></i></span><span class="news-art-label">ร้านอาหาร · คาเฟ่</span></span>
+                    <span class="news-art"><img src="./assets/business-restaurant.png" alt="กล้องวงจรปิดภายในร้านอาหาร" loading="lazy"><span class="news-art-label">ร้านอาหาร · คาเฟ่</span></span>
                     <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านอาหาร: ภาพชัดในแสงน้อยและจุดบริการ</h3><p>เริ่มจากทางเข้า จุดชำระเงิน และพื้นที่ปฏิบัติงาน เลือกคุณสมบัติภาพให้เหมาะกับแสงของแต่ละจุด</p><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
                 </article>
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('retail')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('retail')}">
-                    <span class="news-art"><span class="news-art-icon"><i class="fa-solid fa-store"></i></span><span class="news-art-label">ร้านค้าปลีก</span></span>
+                    <span class="news-art"><img src="./assets/business-retail.png" alt="กล้องวงจรปิดในร้านค้าปลีก" loading="lazy"><span class="news-art-label">ร้านค้าปลีก</span></span>
                     <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านค้า: ทางเข้า เคาน์เตอร์ และทางเดิน</h3><p>วางแผนมุมมองให้ครอบคลุมจุดเข้าออกและจุดบริการ พร้อมรับมือแสงย้อนจากหน้าร้าน</p><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
                 </article>
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('warehouse')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('warehouse')}">
-                    <span class="news-art"><span class="news-art-icon"><i class="fa-solid fa-warehouse"></i></span><span class="news-art-label">คลังสินค้า · โรงงาน</span></span>
+                    <span class="news-art"><img src="./assets/business-warehouse.png" alt="กล้องวงจรปิดในคลังสินค้า" loading="lazy"><span class="news-art-label">คลังสินค้า · โรงงาน</span></span>
                     <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 4 นาที</span></span><h3>คลังสินค้า: พื้นที่กว้างและจุดรับส่งของ</h3><p>พิจารณาระยะมองเห็น สภาพแสง และสภาพแวดล้อมของพื้นที่ติดตั้งทั้งในและนอกอาคาร</p><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
                 </article>
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('office')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('office')}">
-                    <span class="news-art"><span class="news-art-icon"><i class="fa-solid fa-building"></i></span><span class="news-art-label">สำนักงาน · อาคาร</span></span>
+                    <span class="news-art"><img src="./assets/business-office.png" alt="กล้องวงจรปิดในสำนักงาน" loading="lazy"><span class="news-art-label">สำนักงาน · อาคาร</span></span>
                     <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>สำนักงาน: โถงต้อนรับและทางเดิน</h3><p>ออกแบบตำแหน่งติดตั้งตามพื้นที่ใช้งานจริง เลี่ยงมุมอับ และคำนึงถึงความเป็นส่วนตัว</p><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
                 </article>
             </div>
