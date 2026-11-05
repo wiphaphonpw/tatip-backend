@@ -16,6 +16,47 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./styles.css?v=20261102-mobile1">
     <style>
+        .business-news{margin:2.2rem 0 2.4rem}
+        .business-news-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1rem}
+        .business-news-head h2{margin:.55rem 0 .2rem;font-size:1.4rem;color:#172033}
+        .business-news-head p{margin:0;color:#64748b;font-size:.88rem}
+        .news-kicker{display:inline-flex;align-items:center;gap:.45rem;padding:.35rem .7rem;border-radius:99px;background:#fff0f0;color:#bb1e25;font-size:.74rem;font-weight:600}
+        .news-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+        .news-card{display:flex;flex-direction:column;text-align:left;padding:0;overflow:hidden;width:100%;background:#fff;border:1px solid #e2e8f0;border-radius:17px;box-shadow:0 5px 18px #14213b0b;color:#172033;font:inherit;cursor:pointer;transition:transform .2s,box-shadow .2s}
+        .news-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px #14213b16}
+        .news-card:focus-visible{outline:3px solid #f2a3a3;outline-offset:3px}
+        .news-art{height:145px;position:relative;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#fff2f2,#f6f7fb)}
+        .news-art:before,.news-art:after{content:'';position:absolute;border:1px solid #e7b7b9;border-radius:22px;transform:rotate(-12deg)}
+        .news-art:before{width:65%;height:70%;left:-5%;top:35%;background:#ffffff66}
+        .news-art:after{width:55%;height:75%;right:-8%;top:-30%;background:#ffffff80}
+        .news-art-icon{z-index:1;display:grid;place-items:center;width:62px;height:62px;border-radius:20px;background:#fff;color:#c91f27;box-shadow:0 8px 24px #7f1d1d1a;font-size:1.55rem}
+        .news-art-label{position:absolute;z-index:1;bottom:12px;left:14px;padding:.25rem .55rem;border-radius:99px;background:#172033d9;color:#fff;font-size:.68rem}
+        .news-content{padding:1rem;display:flex;flex-direction:column;flex:1}
+        .news-meta{display:flex;justify-content:space-between;gap:.5rem;color:#718096;font-size:.69rem}
+        .news-type{color:#c81e1e;font-weight:600}
+        .news-content h3{font-size:.98rem;line-height:1.45;margin:.55rem 0 .35rem}
+        .news-content p{font-size:.8rem;line-height:1.6;color:#64748b;margin:0;flex:1}
+        .news-read{margin-top:.8rem;padding-top:.65rem;border-top:1px solid #edf0f5;color:#c81e1e;font-size:.77rem;font-weight:600;display:flex;justify-content:space-between}
+        .news-disclaimer{margin:.8rem 0 0;color:#7b8798;font-size:.75rem}
+        .news-overlay[hidden]{display:none}
+        .news-overlay{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:18px;background:#111827a8;backdrop-filter:blur(3px)}
+        .news-dialog{width:min(760px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 22px 70px #0f172a40}
+        .news-dialog-head{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;padding:1.15rem 1.35rem;background:#fff;border-bottom:1px solid #e8edf3}
+        .news-dialog-head h2{margin:.25rem 0 0;font-size:1.15rem;line-height:1.45}
+        .news-dialog-body{padding:1.1rem 1.35rem 1.4rem}
+        .news-dialog-body>p{color:#526176;line-height:1.75;margin:0 0 1rem}
+        .news-guide-block{padding:1rem;margin:.8rem 0;border:1px solid #edf0f5;border-radius:14px;background:#fff}
+        .news-guide-block h3{font-size:.95rem;margin:0 0 .55rem;color:#172033}
+        .news-guide-block ul{margin:0;padding-left:1.2rem;color:#526176;line-height:1.75;font-size:.88rem}
+        .news-source-links{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:1rem}
+        .news-source-links a{color:#a51d24;background:#fff3f3;border:1px solid #f0d0d1;border-radius:9px;padding:.45rem .65rem;text-decoration:none;font-size:.75rem;font-weight:600}
+        .news-close{border:0;background:#f3f4f6;border-radius:10px;width:38px;height:38px;color:#334155;cursor:pointer;font-size:1rem}
+        @media(max-width:1000px){.news-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:900px){.business-news-head{align-items:flex-start;flex-direction:column}}
+        @media(max-width:560px){.news-grid{grid-template-columns:1fr}.business-news{margin:1.5rem 0}.business-news-head h2{font-size:1.2rem}.news-art{height:165px}.news-overlay{padding:10px}.news-dialog-head,.news-dialog-body{padding:1rem}}
+    </style>
+
+    <style>
         .tutorial-section{margin:2.2rem 0 2.4rem}
         .tutorial-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1rem}
         .tutorial-kicker{display:inline-flex;align-items:center;gap:.45rem;padding:.35rem .7rem;border-radius:99px;background:#fff0f0;color:#bb1e25;font-size:.74rem;font-weight:600}
@@ -185,6 +226,35 @@
             <p class="tutorial-note"><i class="fa-solid fa-circle-info"></i> พื้นที่คลิปเตรียมไว้ให้แล้ว สามารถใส่วิดีโอจริงภายหลังได้โดยไม่ต้องเปลี่ยนโครงหน้า</p>
         </section>
 
+        <section class="business-news" aria-labelledby="businessNewsHeading">
+            <div class="business-news-head">
+                <div>
+                    <span class="news-kicker"><i class="fa-regular fa-newspaper"></i> ข่าวสารและไอเดียธุรกิจ</span>
+                    <h2 id="businessNewsHeading">เลือกกล้องให้เหมาะกับพื้นที่ของคุณ</h2>
+                    <p>แนวคิดเริ่มต้นสำหรับร้านอาหาร ร้านค้า คลังสินค้า และสำนักงาน</p>
+                </div>
+            </div>
+            <div class="news-grid">
+                <button class="news-card" type="button" onclick="openBusinessGuide('restaurant')">
+                    <span class="news-art"><span class="news-art-icon"><i class="fa-solid fa-utensils"></i></span><span class="news-art-label">ร้านอาหาร · คาเฟ่</span></span>
+                    <span class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านอาหาร: ภาพชัดในแสงน้อยและจุดบริการ</h3><p>เริ่มจากทางเข้า จุดชำระเงิน และพื้นที่ปฏิบัติงาน เลือกคุณสมบัติภาพให้เหมาะกับแสงของแต่ละจุด</p><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></span>
+                </button>
+                <button class="news-card" type="button" onclick="openBusinessGuide('retail')">
+                    <span class="news-art"><span class="news-art-icon"><i class="fa-solid fa-store"></i></span><span class="news-art-label">ร้านค้าปลีก</span></span>
+                    <span class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านค้า: ทางเข้า เคาน์เตอร์ และทางเดิน</h3><p>วางแผนมุมมองให้ครอบคลุมจุดเข้าออกและจุดบริการ พร้อมรับมือแสงย้อนจากหน้าร้าน</p><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></span>
+                </button>
+                <button class="news-card" type="button" onclick="openBusinessGuide('warehouse')">
+                    <span class="news-art"><span class="news-art-icon"><i class="fa-solid fa-warehouse"></i></span><span class="news-art-label">คลังสินค้า · โรงงาน</span></span>
+                    <span class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 4 นาที</span></span><h3>คลังสินค้า: พื้นที่กว้างและจุดรับส่งของ</h3><p>พิจารณาระยะมองเห็น สภาพแสง และสภาพแวดล้อมของพื้นที่ติดตั้งทั้งในและนอกอาคาร</p><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></span>
+                </button>
+                <button class="news-card" type="button" onclick="openBusinessGuide('office')">
+                    <span class="news-art"><span class="news-art-icon"><i class="fa-solid fa-building"></i></span><span class="news-art-label">สำนักงาน · อาคาร</span></span>
+                    <span class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>สำนักงาน: โถงต้อนรับและทางเดิน</h3><p>ออกแบบตำแหน่งติดตั้งตามพื้นที่ใช้งานจริง เลี่ยงมุมอับ และคำนึงถึงความเป็นส่วนตัว</p><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></span>
+                </button>
+            </div>
+            <p class="news-disclaimer"><i class="fa-solid fa-circle-info"></i> เป็นแนวทางเบื้องต้น ไม่ได้ระบุยี่ห้อหรือรุ่น ก่อนซื้อควรตรวจมุมติดตั้ง แสง ระยะ และความเข้ากันได้กับระบบบันทึกภาพเดิม</p>
+        </section>
+
 <section class="home-bottom-layout">
             <div class="top-faqs-container">
                 <div class="faqs-header">
@@ -255,5 +325,71 @@
     </div>
 
     <script src="./script.js"></script>
+    <div class="news-overlay" id="businessGuideOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="businessGuideTitle" onclick="if(event.target===this)closeBusinessGuide()">
+        <article class="news-dialog">
+            <header class="news-dialog-head">
+                <div><span class="news-kicker" id="businessGuideCategory"></span><h2 id="businessGuideTitle"></h2></div>
+                <button class="news-close" type="button" onclick="closeBusinessGuide()" aria-label="ปิดบทความ"><i class="fa-solid fa-xmark"></i></button>
+            </header>
+            <div class="news-dialog-body" id="businessGuideBody"></div>
+        </article>
+    </div>
+    <script>
+        const businessGuideData = {
+            restaurant: {
+                category: 'ร้านอาหาร · คาเฟ่', title: 'เลือกกล้องสำหรับร้านอาหารและคาเฟ่',
+                intro: 'เริ่มจากระบุเหตุการณ์ที่ต้องการเห็น เช่น จุดเข้าออก จุดชำระเงิน หรือพื้นที่ปฏิบัติงาน แล้วเลือกตำแหน่งและคุณสมบัติภาพให้เหมาะกับแสงและระยะของแต่ละจุด',
+                camera: ['กล้องโดมสำหรับมุมมองภายในร้านที่ต้องการติดตั้งอย่างเรียบร้อย', 'กล้องเลนส์ปรับระยะได้เมื่อจำเป็นต้องดูรายละเอียดเฉพาะจุด เช่น เคาน์เตอร์หรือทางเข้า'],
+                features: ['พื้นที่แสงน้อยควรทดลองภาพในช่วงเวลาที่ร้านเปิดจริง', 'ทางเข้าที่มีแสงด้านนอกสว่างกว่าด้านในควรพิจารณา WDR', 'จัดตำแหน่งให้ครอบคลุมจุดสำคัญโดยไม่หันเข้าพื้นที่ส่วนตัว'],
+                sources: [['แนวทางสำหรับร้านอาหาร', 'https://www.axis.com/solutions/hotels-and-restaurants'], ['ความต่างของแสงและ WDR', 'https://whitepapers.axis.com/en-us/wide-dynamic-range']]
+            },
+            retail: {
+                category: 'ร้านค้าปลีก', title: 'เลือกกล้องสำหรับร้านค้าปลีก',
+                intro: 'ทำแผนผังร้านก่อน แล้วทำเครื่องหมายทางเข้า เคาน์เตอร์ชำระเงิน และแนวชั้นวางที่ต้องการดู จากนั้นกำหนดมุมกล้องให้ลดจุดบอดและได้รายละเอียดตามระยะจริง',
+                camera: ['กล้องโดมเหมาะกับมุมมองภายในร้านและทางเดิน', 'กล้องแบบ Bullet อาจเหมาะกับจุดภายนอกหรือแนวทางเข้า ทั้งนี้ให้เลือกตามสภาพติดตั้ง'],
+                features: ['พิจารณา WDR สำหรับทางเข้าที่มีแสงย้อนหรือความต่างของแสงมาก', 'เลือกเลนส์และความละเอียดตามระยะที่ต้องดู ไม่ใช่ดูจำนวนเมกะพิกเซลอย่างเดียว', 'ตรวจความเข้ากันได้กับ NVR และระบบเดิมก่อนซื้อ'],
+                sources: [['รูปแบบกล้องเครือข่าย', 'https://www.axis.com/products/network-cameras'], ['ความต่างของแสงและ WDR', 'https://whitepapers.axis.com/en-us/wide-dynamic-range']]
+            },
+            warehouse: {
+                category: 'คลังสินค้า · โรงงาน', title: 'เลือกกล้องสำหรับคลังสินค้าและโรงงาน',
+                intro: 'พื้นที่กว้างควรแบ่งเป็นโซน เช่น ประตูรับส่งของ ทางเดิน และพื้นที่เก็บสินค้า แล้วกำหนดว่าต้องเห็นภาพรวมหรืออ่านรายละเอียดในระยะใกล้',
+                camera: ['กล้อง Bullet สำหรับแนวรั้วหรือจุดภายนอก เมื่อรุ่นนั้นรองรับสภาพอากาศของพื้นที่', 'กล้องโดมหรือกล้องมุมกว้างสำหรับพื้นที่ภายในและทางเดิน'],
+                features: ['ตรวจระดับการป้องกันฝุ่นและน้ำให้เหมาะกับจุดติดตั้งจริง', 'พื้นที่มืดหรือใช้งานกลางคืนควรดูผลทดสอบภาพในสภาพแสงจริง', 'คำนวณพื้นที่เก็บบันทึก แบนด์วิดท์ และระยะสายร่วมด้วย'],
+                sources: [['รูปแบบกล้องเครือข่าย', 'https://www.axis.com/products/network-cameras'], ['ความต่างของแสงและ WDR', 'https://whitepapers.axis.com/en-us/wide-dynamic-range']]
+            },
+            office: {
+                category: 'สำนักงาน · อาคาร', title: 'เลือกกล้องสำหรับสำนักงานและอาคาร',
+                intro: 'เริ่มจากจุดเข้าออก โถงต้อนรับ และทางเดินที่ต้องการดูแล เลือกมุมกล้องที่เห็นเส้นทางสัญจรได้โดยไม่เก็บภาพเกินความจำเป็น',
+                camera: ['กล้องโดมสำหรับโถงและพื้นที่ภายในที่ต้องการมุมมองกว้าง', 'กล้องแบบปรับระยะได้สำหรับจุดที่ต้องกำหนดขอบเขตภาพเป็นพิเศษ'],
+                features: ['พิจารณา WDR หากกล้องหันเข้าหาหน้าต่างหรือประตูที่มีแสงย้อน', 'ทดสอบภาพในช่วงเวลาทำงานจริงและตรวจจุดอับ', 'กำหนดสิทธิ์การเข้าถึงและแนวทางจัดเก็บภาพตามนโยบายองค์กร'],
+                sources: [['รูปแบบกล้องเครือข่าย', 'https://www.axis.com/products/network-cameras'], ['ความต่างของแสงและ WDR', 'https://whitepapers.axis.com/en-us/wide-dynamic-range']]
+            }
+        };
+        function guideEscape(value) {
+            return String(value || '').replace(/[&<>"']/g, function(ch) {
+                return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+            });
+        }
+        function openBusinessGuide(key) {
+            const data = businessGuideData[key];
+            if (!data) return;
+            document.getElementById('businessGuideCategory').textContent = data.category;
+            document.getElementById('businessGuideTitle').textContent = data.title;
+            const cameraItems = data.camera.map(item => '<li>' + guideEscape(item) + '</li>').join('');
+            const featureItems = data.features.map(item => '<li>' + guideEscape(item) + '</li>').join('');
+            const sourceLinks = data.sources.map(item => '<a href="' + guideEscape(item[1]) + '" target="_blank" rel="noopener noreferrer">' + guideEscape(item[0]) + ' <i class="fa-solid fa-arrow-up-right-from-square"></i></a>').join('');
+            document.getElementById('businessGuideBody').innerHTML = '<p>' + guideEscape(data.intro) + '</p><section class="news-guide-block"><h3><i class="fa-solid fa-video" style="color:#c91f27"></i> รูปแบบกล้องที่ควรพิจารณา</h3><ul>' + cameraItems + '</ul></section><section class="news-guide-block"><h3><i class="fa-solid fa-sliders" style="color:#c91f27"></i> คุณสมบัติและจุดตรวจสอบ</h3><ul>' + featureItems + '</ul></section><p class="news-disclaimer">คำแนะนำเป็นแนวทางเริ่มต้น ควรทดลองภาพจากมุมติดตั้งจริงและตรวจระบบบันทึกภาพเดิมก่อนเลือกซื้อ</p><div class="news-source-links">' + sourceLinks + '</div>';
+            document.getElementById('businessGuideOverlay').hidden = false;
+            document.body.style.overflow = 'hidden';
+            document.querySelector('#businessGuideOverlay .news-close').focus();
+        }
+        function closeBusinessGuide() {
+            document.getElementById('businessGuideOverlay').hidden = true;
+            document.body.style.overflow = '';
+        }
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') closeBusinessGuide();
+        });
+    </script>
 </body>
 </html>
