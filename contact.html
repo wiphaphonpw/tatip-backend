@@ -264,7 +264,7 @@
                 }
 
                 statusElement.textContent = result.case_id
-                    ? `ส่งข้อความแล้ว เจ้าหน้าที่จะติดต่อกลับ รหัสเคส: ${result.case_id}${result.attachment_count ? ` (แนบ ${result.attachment_count} ไฟล์)` : ''}`
+                    ? `ส่งข้อความแล้ว รหัสเคส: ${result.case_id}${result.attachment_count ? ` (แนบ ${result.attachment_count} ไฟล์)` : ''} · เวลาตอบกลับโดยประมาณ: ${result.support_info?.response_time || 'ตามเวลาทำการ'}`
                     : result.message || 'ส่งข้อความให้เจ้าหน้าที่แล้ว';
                 statusElement.style.color = '#15803d';
                 form.reset();
