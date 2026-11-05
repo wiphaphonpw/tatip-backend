@@ -1085,6 +1085,82 @@ def notify_support_case_status(case_data: Dict[str, Any], case_id: str, status: 
         return "failed"
 
 
+# API ให้เจ้าหน้าที่ดูบทสนทนาและตอบกลับ Support Case
+@app.get("/api/admin/support-cases/{case_id}")
+def get_admin_support_case_detail(
+    case_id: str,
+    current_user: Dict[str, Any] = Depends(require_admin_or_manager),
+):
+    case_snapshot = db.collection("support_cases").document(case_id).get()
+    if not case_snapshot.exists:
+        raise HTTPException(status_code=404, detail="ไม่พบ Support Case นี้")
+    data = case_snapshot.to_dict() or {}
+    if current_user["ROLE"] == "branch_manager" and data.get("TENANT_ID") != current_user.get("TENANT_ID"):
+        raise HTTPException(status_code=403, detail="ดูได้เฉพาะเคสใน Tenant ของตนเอง")
+
+    def staff_case_iso(value):
+        if hasattr(value, "to_datetime"):
+            value = value.to_datetime()
+        return value.isoformat() if hasattr(value, "isoformat") else None
+
+    return {
+        "status": "success",
+        "case": {
+            "case_id": case_snapshot.id,
+            "user_id": str(data.get("USER_ID") or ""),
+            "tenant_id": str(data.get("TENANT_ID") or ""),
+            "issue": str(data.get("ISSUE") or data.get("CONTENT") or ""),
+            "status": str(data.get("STATUS") or "open").lower(),
+            "branch": str(data.get("BRANCH") or ""),
+            "camera_name": str(data.get("CAMERA_NAME") or ""),
+            "created_at": staff_case_iso(data.get("CREATE_DATE") or data.get("CREATED_AT")),
+            "updated_at": staff_case_iso(data.get("UPDATED_AT") or data.get("CREATE_DATE")),
+        },
+        "events": [{
+            "event_id": str(event.get("EVENT_ID") or ""),
+            "event_type": str(event.get("EVENT_TYPE") or "message"),
+            "sender": str(event.get("SENDER") or "support"),
+            "message": str(event.get("MESSAGE") or ""),
+            "status": str(event.get("STATUS") or ""),
+            "created_at": staff_case_iso(event.get("CREATE_DATE")),
+        } for event in (data.get("CASE_UPDATES") or []) if isinstance(event, dict)],
+    }
+
+
+@app.post("/api/admin/support-cases/{case_id}/replies", status_code=201)
+def reply_to_support_case(
+    case_id: str,
+    request: CustomerCaseReplyRequest,
+    current_user: Dict[str, Any] = Depends(require_admin_or_manager),
+):
+    message = request.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="กรุณาพิมพ์ข้อความก่อนส่ง")
+    case_ref = db.collection("support_cases").document(case_id)
+    case_snapshot = case_ref.get()
+    if not case_snapshot.exists:
+        raise HTTPException(status_code=404, detail="ไม่พบ Support Case นี้")
+    data = case_snapshot.to_dict() or {}
+    if current_user["ROLE"] == "branch_manager" and data.get("TENANT_ID") != current_user.get("TENANT_ID"):
+        raise HTTPException(status_code=403, detail="ตอบกลับได้เฉพาะเคสใน Tenant ของตนเอง")
+    if str(data.get("STATUS") or "open").lower() == "closed":
+        raise HTTPException(status_code=409, detail="เคสปิดแล้ว ไม่สามารถตอบกลับได้")
+    now = datetime.now(timezone.utc)
+    case_ref.update({
+        "CASE_UPDATES": firestore.ArrayUnion([{
+            "EVENT_ID": secrets.token_hex(8),
+            "EVENT_TYPE": "message",
+            "SENDER": "support",
+            "MESSAGE": message,
+            "CREATE_DATE": now,
+        }]),
+        "UPDATED_AT": now,
+        "LAST_SUPPORT_MESSAGE_AT": now,
+        "UPDATED_BY": current_user["USER_ID"],
+    })
+    return {"status": "success", "case_id": case_id, "message": "ส่งข้อความตอบกลับแล้ว"}
+
+
 # API สำหรับ Admin หรือ Branch Manager อัปเดตสถานะ Support Case
 @app.patch("/api/admin/support-cases/{case_id}")
 def update_support_case_status(
