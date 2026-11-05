@@ -818,6 +818,97 @@ def submit_customer_support_case(
         raise HTTPException(status_code=500, detail="ไม่สามารถส่งเรื่องให้เจ้าหน้าที่ได้ กรุณาลองใหม่") from error
 
 
+@app.get("/api/customer/dashboard/summary")
+def get_customer_dashboard_summary(current_user: Dict[str, Any] = Depends(require_current_user)):
+    user_id = str(current_user.get("USER_ID") or "").strip()
+    tenant_id = str(current_user.get("TENANT_ID") or "").strip()
+    if not user_id or not tenant_id:
+        raise HTTPException(status_code=401, detail="กรุณาเข้าสู่ระบบใหม่")
+    try:
+        user_doc = next(iter(db.collection("users").where("USER_ID", "==", user_id).limit(1).stream()), None)
+        if user_doc is None:
+            user_doc = db.collection("users").document(user_id).get()
+        user_data = user_doc.to_dict() or {} if user_doc and user_doc.exists else {}
+        counts = {"open": 0, "in_progress": 0, "resolved": 0, "closed": 0}
+        recent, file_count = [], 0
+        def iso(value):
+            if hasattr(value, "to_datetime"):
+                value = value.to_datetime()
+            return value.isoformat() if hasattr(value, "isoformat") else None
+        query = db.collection("support_cases").where("USER_ID", "==", user_id).stream()
+        for doc in query:
+            data = doc.to_dict() or {}
+            if str(data.get("TENANT_ID") or "").strip() != tenant_id:
+                continue
+            status = str(data.get("STATUS") or "open").lower()
+            if status not in counts:
+                status = "open"
+            counts[status] += 1
+            raw_files = data.get("ATTACHMENTS") or []
+            files = [{
+                "attachment_id": str(item.get("ATTACHMENT_ID")),
+                "file_name": str(item.get("FILE_NAME") or "ไฟล์แนบ"),
+                "content_type": str(item.get("CONTENT_TYPE") or ""),
+            } for item in raw_files if isinstance(item, dict) and item.get("ATTACHMENT_ID")] if isinstance(raw_files, list) else []
+            file_count += len(files)
+            created = iso(data.get("CREATE_DATE") or data.get("CREATED_AT"))
+            updated = iso(data.get("UPDATED_AT") or data.get("CREATE_DATE") or data.get("CREATED_AT"))
+            recent.append({
+                "case_id": doc.id, "issue": str(data.get("ISSUE") or data.get("CONTENT") or ""),
+                "status": status, "priority": str(data.get("PRIORITY") or "P2"),
+                "camera_name": str(data.get("CAMERA_NAME") or ""),
+                "branch": str(data.get("BRANCH") or user_data.get("BRANCH_NAME") or ""),
+                "created_at": created, "updated_at": updated, "attachments": files,
+            })
+        recent.sort(key=lambda item: item.get("updated_at") or "", reverse=True)
+        return {
+            "status": "success",
+            "profile": {"display_name": str(user_data.get("USERNAME") or user_id),
+                        "branch": str(user_data.get("BRANCH_NAME") or ""),
+                        "tenant_name": str(user_data.get("TENANT_NAME") or "")},
+            "summary": {"total": sum(counts.values()), "open": counts["open"],
+                        "in_progress": counts["in_progress"],
+                        "resolved": counts["resolved"] + counts["closed"],
+                        "attachments": file_count},
+            "recent_cases": recent[:50],
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to load customer dashboard")
+        raise HTTPException(status_code=500, detail="โหลดภาพรวมของคุณไม่สำเร็จ") from error
+
+
+@app.get("/api/customer/support-cases/{case_id}/attachments/{attachment_id}")
+def get_customer_case_attachment(case_id: str, attachment_id: str,
+        current_user: Dict[str, Any] = Depends(require_current_user)):
+    case_doc = db.collection("support_cases").document(case_id).get()
+    if not case_doc.exists:
+        raise HTTPException(status_code=404, detail="ไม่พบไฟล์แนบนี้")
+    data = case_doc.to_dict() or {}
+    if (str(data.get("USER_ID") or "").strip() != str(current_user.get("USER_ID") or "").strip()
+        or str(data.get("TENANT_ID") or "").strip() != str(current_user.get("TENANT_ID") or "").strip()):
+        raise HTTPException(status_code=404, detail="ไม่พบไฟล์แนบนี้")
+    item = next((x for x in data.get("ATTACHMENTS", [])
+                 if isinstance(x, dict) and x.get("ATTACHMENT_ID") == attachment_id), None)
+    if not item:
+        raise HTTPException(status_code=404, detail="ไม่พบไฟล์แนบนี้")
+    try:
+        media_type = item.get("CONTENT_TYPE", "application/octet-stream")
+        if media_type not in SUPPORT_ALLOWED_MIME_TYPES:
+            raise HTTPException(status_code=415, detail="ชนิดไฟล์นี้ไม่รองรับ")
+        content = support_media_bucket().blob(item["OBJECT_NAME"]).download_as_bytes()
+        filename = "".join(c for c in str(item.get("FILE_NAME", "attachment")) if c.isalnum() or c in "._-")[:100] or "attachment"
+        return Response(content=content, media_type=media_type, headers={
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"})
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to load customer attachment")
+        raise HTTPException(status_code=503, detail="เปิดไฟล์แนบไม่สำเร็จ") from error
+
+
 def line_api_configured() -> bool:
     return bool(os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip())
 
