@@ -606,6 +606,68 @@ def submit_customer_support_case(
         raise HTTPException(status_code=500, detail="ไม่สามารถส่งเรื่องให้เจ้าหน้าที่ได้ กรุณาลองใหม่") from error
 
 
+def line_api_configured() -> bool:
+    return bool(os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip())
+
+
+def send_line_push_message(line_user_id: str, message_text: str) -> bool:
+    access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
+    if not access_token or not line_user_id:
+        return False
+    try:
+        response = requests.post(
+            "https://api.line.me/v2/bot/message/push",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "to": line_user_id,
+                "messages": [{"type": "text", "text": message_text[:5000]}],
+            },
+            timeout=10,
+        )
+        if response.status_code >= 300:
+            logging.warning("LINE push failed with status %s", response.status_code)
+            return False
+        return True
+    except requests.RequestException:
+        logging.exception("LINE push request failed")
+        return False
+
+
+def notify_support_case_status(case_data: Dict[str, Any], case_id: str, status: str) -> str:
+    user_id = str(case_data.get("USER_ID") or "").strip()
+    if not user_id or user_id.lower() == "guest":
+        return "not_linked"
+    try:
+        user_query = db.collection("users").where("USER_ID", "==", user_id).limit(1).stream()
+        user_snapshot = next(iter(user_query), None)
+        if user_snapshot is None:
+            user_snapshot = db.collection("users").document(user_id).get()
+            if not user_snapshot.exists:
+                return "not_linked"
+        user_data = user_snapshot.to_dict() or {}
+        line_user_id = str(user_data.get("LINE_USER_ID") or "").strip()
+        if not line_user_id:
+            return "not_linked"
+
+        status_labels = {
+            "open": "รับเรื่องแล้ว",
+            "in_progress": "กำลังดำเนินการ",
+            "resolved": "แก้ไขแล้ว",
+            "closed": "ปิดเคสแล้ว",
+        }
+        message_text = (
+            f"TATIP AI แจ้งอัปเดตเคส {case_id}\n"
+            f"สถานะ: {status_labels.get(status, status)}"
+        )
+        return "sent" if send_line_push_message(line_user_id, message_text) else "failed"
+    except Exception:
+        logging.exception("Could not prepare LINE status notification")
+        return "failed"
+
+
 # API สำหรับ Admin หรือ Branch Manager อัปเดตสถานะ Support Case
 @app.patch("/api/admin/support-cases/{case_id}")
 def update_support_case_status(
@@ -623,6 +685,7 @@ def update_support_case_status(
         if current_user["ROLE"] == "branch_manager" and case_data.get("TENANT_ID") != current_user.get("TENANT_ID"):
             raise HTTPException(status_code=403, detail="จัดการได้เฉพาะเคสใน Tenant ของตนเอง")
 
+        previous_status = case_data.get("STATUS")
         now = datetime.now(timezone.utc)
         updates = {
             "STATUS": request.status,
@@ -637,7 +700,15 @@ def update_support_case_status(
             updates["RESOLVED_AT"] = firestore.DELETE_FIELD
 
         case_ref.update(updates)
-        return {"status": "success", "case_id": case_id, "new_status": request.status}
+        line_notification = "unchanged"
+        if previous_status != request.status:
+            line_notification = notify_support_case_status(case_data, case_id, request.status)
+        return {
+            "status": "success",
+            "case_id": case_id,
+            "new_status": request.status,
+            "line_notification": line_notification,
+        }
     except HTTPException:
         raise
     except Exception as error:
@@ -743,60 +814,197 @@ def login_user(request: LoginRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Create a short-lived code to securely link the signed-in TATIP account to LINE.
+@app.get("/api/line/link-status")
+def get_line_link_status(current_user: Dict[str, Any] = Depends(require_current_user)):
+    user_query = db.collection("users").where("USER_ID", "==", current_user["USER_ID"]).limit(1).stream()
+    user_snapshot = next(iter(user_query), None)
+    if user_snapshot is None:
+        user_snapshot = db.collection("users").document(current_user["USER_ID"]).get()
+    user_data = user_snapshot.to_dict() or {} if user_snapshot.exists else {}
+    return {"status": "success", "linked": bool(user_data.get("LINE_USER_ID"))}
+
+
+@app.post("/api/line/link-code")
+def create_line_link_code(current_user: Dict[str, Any] = Depends(require_current_user)):
+    if not os.getenv("LINE_CHANNEL_SECRET", "").strip() or not line_api_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="LINE ยังตั้งค่าไม่ครบ กรุณาให้ผู้ดูแลตั้งค่า LINE Channel Secret และ Access Token ใน Cloud Run",
+        )
+
+    user_query = db.collection("users").where("USER_ID", "==", current_user["USER_ID"]).limit(1).stream()
+    user_snapshot = next(iter(user_query), None)
+    if user_snapshot is None:
+        user_snapshot = db.collection("users").document(current_user["USER_ID"]).get()
+    if not user_snapshot.exists:
+        raise HTTPException(status_code=404, detail="ไม่พบบัญชีผู้ใช้")
+
+    raw_code = f"TATIP-{secrets.token_hex(4).upper()}"
+    code_hash = hashlib.sha256(raw_code.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    codes_ref = db.collection("line_link_codes")
+    for old_code in codes_ref.where("USER_ID", "==", current_user["USER_ID"]).stream():
+        old_code.reference.delete()
+
+    codes_ref.document(code_hash).set({
+        "USER_ID": current_user["USER_ID"],
+        "USER_DOCUMENT_ID": user_snapshot.id,
+        "CREATE_DATE": now,
+        "EXPIRES_AT": now + timedelta(minutes=10),
+    })
+    return {
+        "status": "success",
+        "code": raw_code,
+        "expires_in_seconds": 600,
+        "message": "ส่งข้อความ เชื่อม ตามด้วยรหัสนี้ไปยัง LINE Official Account ของ TATIP ภายใน 10 นาที",
+    }
+
+
 # LINE Webhook Endpoint
 @app.post("/api/line/webhook")
 async def line_webhook(request: Request):
     try:
-        data = await request.json()
+        body = await request.body()
+        channel_secret = os.getenv("LINE_CHANNEL_SECRET", "").strip()
+        signature = request.headers.get("x-line-signature", "")
+        if channel_secret:
+            expected_signature = base64.b64encode(
+                hmac.new(channel_secret.encode("utf-8"), body, hashlib.sha256).digest()
+            ).decode("ascii")
+            if not signature or not hmac.compare_digest(signature, expected_signature):
+                raise HTTPException(status_code=401, detail="ลายเซ็น LINE webhook ไม่ถูกต้อง")
+
+        data = json.loads(body.decode("utf-8") or "{}")
         events = data.get("events", [])
 
         for event in events:
-            if event.get("type") == "message" and event.get("message", {}).get("type") == "text":
-                line_user_id = event["source"]["userId"]
-                user_message = event["message"]["text"]
+            if event.get("type") != "message" or event.get("message", {}).get("type") != "text":
+                continue
+            source = event.get("source") or {}
+            line_user_id = str(source.get("userId") or "")
+            user_message = str(event.get("message", {}).get("text") or "").strip()
+            if not line_user_id or not user_message:
+                continue
 
-                # ค้นหาผู้ใช้จากตาราง users
-                users_ref = db.collection("users")
-                query = users_ref.where("LINE_USER_ID", "==", line_user_id).stream()
+            command_parts = user_message.split()
+            if command_parts and command_parts[0].lower() in {"เชื่อม", "/link"}:
+                if not channel_secret or not signature:
+                    logging.warning("Rejected LINE account-link command because webhook signature validation is not configured")
+                    continue
+                if len(command_parts) != 2:
+                    send_line_push_message(
+                        line_user_id,
+                        "รูปแบบไม่ถูกต้อง กรุณาส่งข้อความ “เชื่อม TATIP-รหัส” ที่แสดงบนหน้าเว็บ",
+                    )
+                    continue
 
-                tenant_id = "default_tenant"
-                for doc in query:
-                    user_data = doc.to_dict()
-                    tenant_id = user_data.get("TENANT_ID", "default_tenant")
+                code_hash = hashlib.sha256(command_parts[1].upper().encode("utf-8")).hexdigest()
+                code_ref = db.collection("line_link_codes").document(code_hash)
+                transaction = db.transaction()
 
-                # ประมวลผล RAG
-                ai_reply = await get_rag_reply(user_message)
+                @firestore.transactional
+                def consume_link_code(txn):
+                    code_snapshot = code_ref.get(transaction=txn)
+                    if not code_snapshot.exists:
+                        return "invalid"
+                    code_data = code_snapshot.to_dict() or {}
+                    expires_at = code_data.get("EXPIRES_AT")
+                    if expires_at is None:
+                        return "invalid"
+                    if expires_at.tzinfo is None:
+                        expires_at = expires_at.replace(tzinfo=timezone.utc)
+                    if expires_at <= datetime.now(timezone.utc):
+                        txn.delete(code_ref)
+                        return "expired"
 
-                # บันทึกประวัติ LINE ตาม schema messages/conversations
-                user_id = line_user_id
-                conversation_id = f"line_{line_user_id}"
-                timestamp = datetime.now(timezone.utc)
-                ai_timestamp = timestamp + timedelta(microseconds=1)
-                batch = db.batch()
-                messages_ref = db.collection("messages")
-                for sender, text, created_at in (
-                    ("user", user_message, timestamp),
-                    ("ai", ai_reply, ai_timestamp),
-                ):
-                    batch.set(messages_ref.document(), {
-                        "CONVERSATION_ID": conversation_id,
-                        "USER_ID": user_id,
-                        "TENANT_ID": tenant_id,
-                        "SENDER": sender,
-                        "MESSAGE": text,
-                        "CREATE_DATE": created_at
-                    })
-                batch.set(db.collection("conversations").document(conversation_id), {
+                    owner_user_id = code_data.get("USER_ID")
+                    owner_doc_id = code_data.get("USER_DOCUMENT_ID")
+                    user_ref = db.collection("users").document(owner_doc_id)
+                    owner_snapshot = user_ref.get(transaction=txn)
+                    if not owner_snapshot.exists:
+                        txn.delete(code_ref)
+                        return "invalid"
+                    owner_data = owner_snapshot.to_dict() or {}
+                    current_line_id = owner_data.get("LINE_USER_ID")
+                    if current_line_id and current_line_id != line_user_id:
+                        # Authenticated account owner may securely replace an old LINE connection.
+                        pass
+
+                    txn.set(user_ref, {
+                        "LINE_USER_ID": line_user_id,
+                        "LINE_LINKED_AT": datetime.now(timezone.utc),
+                    }, merge=True)
+                    txn.delete(code_ref)
+                    return owner_user_id
+
+                linked_user_id = consume_link_code(transaction)
+                if linked_user_id == "expired":
+                    send_line_push_message(line_user_id, "รหัสเชื่อมบัญชีหมดอายุแล้ว กรุณาสร้างรหัสใหม่จากหน้า TATIP")
+                    continue
+                if linked_user_id in {"invalid", None}:
+                    send_line_push_message(line_user_id, "ไม่พบรหัสเชื่อมบัญชีนี้ หรือรหัสถูกใช้แล้ว กรุณาสร้างรหัสใหม่จากหน้า TATIP")
+                    continue
+
+                # A LINE account must not be connected to multiple TATIP accounts.
+                linked_elsewhere = False
+                for user_doc in db.collection("users").where("LINE_USER_ID", "==", line_user_id).stream():
+                    if user_doc.to_dict().get("USER_ID") != linked_user_id:
+                        linked_elsewhere = True
+                        break
+                if linked_elsewhere:
+                    # This check is after transaction in old data; remove only the just-created link.
+                    owner_query = db.collection("users").where("USER_ID", "==", linked_user_id).limit(1).stream()
+                    owner_doc = next(iter(owner_query), None)
+                    if owner_doc:
+                        owner_doc.reference.update({"LINE_USER_ID": firestore.DELETE_FIELD, "LINE_LINKED_AT": firestore.DELETE_FIELD})
+                    send_line_push_message(line_user_id, "LINE นี้เชื่อมกับบัญชี TATIP อื่นอยู่แล้ว กรุณาติดต่อผู้ดูแลระบบ")
+                    continue
+
+                send_line_push_message(line_user_id, f"เชื่อมบัญชี TATIP สำเร็จแล้ว ({linked_user_id}) จากนี้จะได้รับแจ้งเตือนสถานะเคสทาง LINE")
+                continue
+
+            # ข้อความอื่นยังคงใช้ RAG และบันทึกประวัติ LINE ตามเดิม
+            users_ref = db.collection("users")
+            query = users_ref.where("LINE_USER_ID", "==", line_user_id).stream()
+            tenant_id = "default_tenant"
+            for doc in query:
+                user_data = doc.to_dict() or {}
+                tenant_id = user_data.get("TENANT_ID", "default_tenant")
+
+            ai_reply = await get_rag_reply(user_message)
+            user_id = line_user_id
+            conversation_id = f"line_{line_user_id}"
+            timestamp = datetime.now(timezone.utc)
+            ai_timestamp = timestamp + timedelta(microseconds=1)
+            batch = db.batch()
+            messages_ref = db.collection("messages")
+            for sender, text, created_at in (
+                ("user", user_message, timestamp),
+                ("ai", ai_reply, ai_timestamp),
+            ):
+                batch.set(messages_ref.document(), {
                     "CONVERSATION_ID": conversation_id,
                     "USER_ID": user_id,
                     "TENANT_ID": tenant_id,
-                    "LAST_MESSAGE": ai_reply,
-                    "LAST_UPDATE": ai_timestamp
-                }, merge=True)
-                batch.commit()
+                    "SENDER": sender,
+                    "MESSAGE": text,
+                    "CREATE_DATE": created_at
+                })
+            batch.set(db.collection("conversations").document(conversation_id), {
+                "CONVERSATION_ID": conversation_id,
+                "USER_ID": user_id,
+                "TENANT_ID": tenant_id,
+                "LAST_MESSAGE": ai_reply,
+                "LAST_UPDATE": ai_timestamp
+            }, merge=True)
+            batch.commit()
 
         return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("LINE webhook processing failed")
+        raise HTTPException(status_code=500, detail="ประมวลผล LINE webhook ไม่สำเร็จ") from error
 
 
