@@ -156,6 +156,12 @@ class UpdateSupportCaseStatusRequest(BaseModel):
     status: Literal["open", "in_progress", "resolved", "closed"]
     admin_note: str | None = Field(default=None, max_length=2000)
 
+class PublicContactCaseRequest(BaseModel):
+    full_name: str = Field(min_length=1, max_length=120)
+    phone: str = Field(min_length=8, max_length=30)
+    issue: str = Field(min_length=5, max_length=3000)
+    website: str = Field(default="", max_length=200)
+
 class SupportCaseRequest(BaseModel):
     case_id: str
     user_id: str
@@ -508,6 +514,47 @@ async def upload_knowledge_file(
         await file.close()
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+# Public contact form for visitors who do not have a TATIP account.
+@app.post("/api/contact-cases", status_code=201)
+def submit_public_contact_case(request: PublicContactCaseRequest):
+    # Honeypot for basic bot filtering. Never persist visitor supplied identifiers.
+    if request.website.strip():
+        return {"status": "success", "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว"}
+
+    full_name = request.full_name.strip()
+    phone = request.phone.strip()
+    issue = request.issue.strip()
+    phone_digits = "".join(character for character in phone if character.isdigit())
+    if not full_name or len(phone_digits) < 8 or len(issue) < 5:
+        raise HTTPException(status_code=400, detail="กรุณาตรวจสอบชื่อ เบอร์โทรศัพท์ และรายละเอียดปัญหา")
+
+    now = datetime.now(timezone.utc)
+    case_id = f"CASE-{now.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3).upper()}"
+    case_data = {
+        "CASE_ID": case_id,
+        "USER_ID": "guest",
+        "TENANT_ID": "tenant_general",
+        "CONTACT_NAME": full_name,
+        "CONTACT_PHONE": phone,
+        "BRANCH": "Online Support",
+        "CAMERA_NAME": "N/A",
+        "CAMERA_STATUS": "unknown",
+        "ISSUE": issue,
+        "PRIORITY": "P2",
+        "STATUS": "open",
+        "SOURCE": "contact_form",
+        "COMPLETED_STEPS": [],
+        "CREATE_DATE": now,
+        "UPDATED_AT": now,
+    }
+    try:
+        db.collection("support_cases").document(case_id).set(case_data)
+        return {"status": "success", "case_id": case_id, "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว"}
+    except Exception as error:
+        logging.exception("Failed to submit public contact case")
+        raise HTTPException(status_code=500, detail="ไม่สามารถส่งข้อความได้ กรุณาลองใหม่") from error
 
 
 # API สำหรับลูกค้าเปิด Support Case จากหน้าแชท
