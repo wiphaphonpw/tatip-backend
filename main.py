@@ -17,12 +17,18 @@ from pydantic import BaseModel, Field
 import vertexai
 from vertexai.preview import rag
 from vertexai.generative_models import GenerativeModel, GenerationConfig
-from google.cloud import firestore
+from google.cloud import firestore, storage
+from fastapi.responses import Response
 
 # 1. กำหนดค่าโปรเจกต์และคลังข้อมูล
 PROJECT_ID = "tatip-ai-rag"
 LOCATION = "asia-southeast1"
 CORPUS_NAME = "projects/tatip-ai-rag/locations/asia-southeast1/ragCorpora/2305843009213693952"
+SUPPORT_MEDIA_BUCKET = os.getenv("SUPPORT_MEDIA_BUCKET", "").strip()
+SUPPORT_FILE_LIMIT = 5
+SUPPORT_FILE_BYTES_LIMIT = 20 * 1024 * 1024
+SUPPORT_TOTAL_BYTES_LIMIT = 20 * 1024 * 1024
+SUPPORT_ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"}
 
 # 2. เริ่มต้นการเชื่อมต่อ Vertex AI และ Firestore
 vertexai.init(project=PROJECT_ID, location=LOCATION)
@@ -526,18 +532,64 @@ async def upload_knowledge_file(
 
 
 # Public contact form supports both signed-in users and visitors.
+def support_media_bucket():
+    if not SUPPORT_MEDIA_BUCKET:
+        raise HTTPException(status_code=503, detail="ยังไม่ได้ตั้งค่า Cloud Storage สำหรับไฟล์แนบ")
+    return storage.Client(project=PROJECT_ID).bucket(SUPPORT_MEDIA_BUCKET)
+
+
+async def store_support_attachments(case_id: str, files: list[UploadFile]) -> list[Dict[str, Any]]:
+    if len(files) > SUPPORT_FILE_LIMIT:
+        raise HTTPException(status_code=400, detail=f"แนบไฟล์ได้ไม่เกิน {SUPPORT_FILE_LIMIT} ไฟล์")
+
+    bucket = support_media_bucket() if files else None
+    attachments = []
+    total_bytes = 0
+    for upload in files:
+        content_type = (upload.content_type or "").lower().split(";", 1)[0].strip()
+        if content_type not in SUPPORT_ALLOWED_MIME_TYPES:
+            raise HTTPException(status_code=400, detail="รองรับเฉพาะ JPG, PNG, WEBP, MP4 และ WEBM")
+        content = await upload.read(SUPPORT_FILE_BYTES_LIMIT + 1)
+        if not content:
+            raise HTTPException(status_code=400, detail="ไฟล์แนบต้องไม่ว่างเปล่า")
+        if len(content) > SUPPORT_FILE_BYTES_LIMIT:
+            raise HTTPException(status_code=413, detail="ไฟล์แต่ละไฟล์ต้องมีขนาดไม่เกิน 20 MB")
+        total_bytes += len(content)
+        if total_bytes > SUPPORT_TOTAL_BYTES_LIMIT:
+            raise HTTPException(status_code=413, detail="ไฟล์แนบทั้งหมดรวมกันต้องไม่เกิน 20 MB")
+
+        original_name = Path(upload.filename or "attachment").name
+        safe_name = "".join(char for char in original_name if char.isalnum() or char in "._-")[:100] or "attachment"
+        attachment_id = secrets.token_hex(12)
+        object_name = f"support-cases/{case_id}/{attachment_id}-{safe_name}"
+        bucket.blob(object_name).upload_from_string(content, content_type=content_type)
+        attachments.append({
+            "ATTACHMENT_ID": attachment_id,
+            "FILE_NAME": safe_name,
+            "OBJECT_NAME": object_name,
+            "CONTENT_TYPE": content_type,
+            "SIZE_BYTES": len(content),
+            "CREATE_DATE": datetime.now(timezone.utc),
+        })
+    return attachments
+
+
+# Public contact form supports both signed-in users and visitors.
 @app.post("/api/contact-cases", status_code=201)
-def submit_public_contact_case(
-    request: PublicContactCaseRequest,
+async def submit_public_contact_case(
+    full_name: str = Form(..., min_length=1, max_length=120),
+    phone: str = Form(..., min_length=8, max_length=30),
+    issue: str = Form(..., min_length=5, max_length=3000),
+    website: str = Form(default="", max_length=200),
+    attachments: list[UploadFile] = File(default=[]),
     current_user: Dict[str, Any] | None = Depends(get_optional_current_user),
 ):
-    # Honeypot for basic bot filtering. Never persist visitor supplied identifiers.
-    if request.website.strip():
+    if website.strip():
         return {"status": "success", "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว"}
 
-    full_name = request.full_name.strip()
-    phone = request.phone.strip()
-    issue = request.issue.strip()
+    full_name = full_name.strip()
+    phone = phone.strip()
+    issue = issue.strip()
     phone_digits = "".join(character for character in phone if character.isdigit())
     if not full_name or len(phone_digits) < 8 or len(issue) < 5:
         raise HTTPException(status_code=400, detail="กรุณาตรวจสอบชื่อ เบอร์โทรศัพท์ และรายละเอียดปัญหา")
@@ -553,34 +605,168 @@ def submit_public_contact_case(
         if user_snapshot:
             branch_name = (user_snapshot.to_dict() or {}).get("BRANCH_NAME", "")
 
-    case_data = {
-        "CASE_ID": case_id,
-        "USER_ID": user_id,
-        "TENANT_ID": tenant_id,
-        "CONTACT_NAME": full_name,
-        "CONTACT_PHONE": phone,
-        "BRANCH": branch_name or "Online Support",
-        "CAMERA_NAME": "N/A",
-        "CAMERA_STATUS": "unknown",
-        "ISSUE": issue,
-        "PRIORITY": "P2",
-        "STATUS": "open",
-        "SOURCE": "contact_form",
-        "COMPLETED_STEPS": [],
-        "CREATE_DATE": now,
-        "UPDATED_AT": now,
-    }
     try:
+        stored_attachments = await store_support_attachments(case_id, attachments)
+        case_data = {
+            "CASE_ID": case_id,
+            "USER_ID": user_id,
+            "TENANT_ID": tenant_id,
+            "CONTACT_NAME": full_name,
+            "CONTACT_PHONE": phone,
+            "BRANCH": branch_name or "Online Support",
+            "CAMERA_NAME": "N/A",
+            "CAMERA_STATUS": "unknown",
+            "ISSUE": issue,
+            "PRIORITY": "P2",
+            "STATUS": "open",
+            "SOURCE": "contact_form",
+            "COMPLETED_STEPS": [],
+            "ATTACHMENTS": stored_attachments,
+            "CREATE_DATE": now,
+            "UPDATED_AT": now,
+        }
         db.collection("support_cases").document(case_id).set(case_data)
         return {
             "status": "success",
             "case_id": case_id,
             "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว",
             "linked_to_account": bool(current_user),
+            "attachment_count": len(stored_attachments),
         }
+    except HTTPException:
+        raise
     except Exception as error:
         logging.exception("Failed to submit public contact case")
         raise HTTPException(status_code=500, detail="ไม่สามารถส่งข้อความได้ กรุณาลองใหม่") from error
+    finally:
+        for upload in attachments:
+            await upload.close()
+
+
+@app.get("/api/admin/dashboard/summary")
+def get_admin_dashboard_summary(
+    current_user: Dict[str, Any] = Depends(require_admin_or_manager),
+):
+    cases_query = db.collection("support_cases")
+    if current_user["ROLE"] == "branch_manager":
+        cases_query = cases_query.where("TENANT_ID", "==", current_user.get("TENANT_ID"))
+    cases = [(doc.id, doc.to_dict() or {}) for doc in cases_query.stream()]
+    status_counts = {"open": 0, "in_progress": 0, "resolved": 0, "closed": 0}
+    category_counts: Dict[str, int] = {}
+    daily_counts: Dict[str, int] = {}
+    today = datetime.now(timezone.utc).date()
+    week_days = [(today - timedelta(days=offset)) for offset in range(6, -1, -1)]
+    for day in week_days:
+        daily_counts[day.isoformat()] = 0
+
+    def case_date(value):
+        if hasattr(value, "to_datetime"):
+            value = value.to_datetime()
+        if isinstance(value, datetime):
+            return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return None
+
+    recent = []
+    urgent_count = 0
+    attachment_count = 0
+    for case_id, data in cases:
+        status = str(data.get("STATUS", "open")).lower()
+        status_counts[status] = status_counts.get(status, 0) + 1
+        if str(data.get("PRIORITY", "")).upper() in {"P1", "URGENT", "HIGH"}:
+            urgent_count += 1
+        issue = str(data.get("ISSUE") or data.get("CONTENT") or "")
+        category = str(data.get("ISSUE_TYPE") or data.get("CATEGORY") or "").strip()
+        if not category:
+            issue_lower = issue.lower()
+            if any(word in issue_lower for word in ("กล้อง", "cctv", "camera", "ip address")):
+                category = "กล้อง / CCTV"
+            elif any(word in issue_lower for word in ("แจ้งเตือน", "line", "notification", "อีเมล")):
+                category = "การแจ้งเตือน"
+            elif any(word in issue_lower for word in ("dashboard", "รายงาน", "heatmap")):
+                category = "Dashboard"
+            elif any(word in issue_lower for word in ("บัญชี", "รหัสผ่าน", "user", "login")):
+                category = "บัญชีผู้ใช้"
+            elif any(word in issue_lower for word in ("internet", "network", "อินเทอร์เน็ต", "เครือข่าย")):
+                category = "เครือข่าย"
+            else:
+                category = "อื่น ๆ"
+        category_counts[category] = category_counts.get(category, 0) + 1
+        attachments = data.get("ATTACHMENTS") or []
+        if not isinstance(attachments, list):
+            attachments = []
+        attachment_count += len(attachments)
+        created = case_date(data.get("CREATE_DATE") or data.get("CREATED_AT"))
+        if created and (today - timedelta(days=6)) <= created.date() <= today:
+            key = created.date().isoformat()
+            daily_counts[key] = daily_counts.get(key, 0) + 1
+        recent.append({
+            "case_id": case_id,
+            "issue": issue,
+            "status": status,
+            "priority": str(data.get("PRIORITY", "P2")),
+            "tenant_id": str(data.get("TENANT_ID", "")),
+            "branch": str(data.get("BRANCH", "")),
+            "created_at": created.isoformat() if created else None,
+            "attachments": [{
+                "attachment_id": item.get("ATTACHMENT_ID"),
+                "file_name": item.get("FILE_NAME", "ไฟล์แนบ"),
+                "content_type": item.get("CONTENT_TYPE", ""),
+                "size_bytes": int(item.get("SIZE_BYTES") or 0),
+            } for item in attachments if isinstance(item, dict)],
+        })
+    recent.sort(key=lambda item: item["created_at"] or "", reverse=True)
+    return {
+        "status": "success",
+        "summary": {
+            "total": len(cases),
+            "open": status_counts["open"],
+            "in_progress": status_counts["in_progress"],
+            "resolved": status_counts["resolved"] + status_counts["closed"],
+            "urgent": urgent_count,
+            "attachments": attachment_count,
+        },
+        "status_counts": status_counts,
+        "categories": [{"name": key, "count": value} for key, value in sorted(category_counts.items(), key=lambda pair: pair[1], reverse=True)],
+        "last_7_days": [{"date": key, "count": value} for key, value in daily_counts.items()],
+        "recent_cases": recent[:12],
+    }
+
+
+@app.get("/api/admin/support-cases/{case_id}/attachments/{attachment_id}")
+def get_support_case_attachment(
+    case_id: str,
+    attachment_id: str,
+    current_user: Dict[str, Any] = Depends(require_admin_or_manager),
+):
+    case_snapshot = db.collection("support_cases").document(case_id).get()
+    if not case_snapshot.exists:
+        raise HTTPException(status_code=404, detail="ไม่พบเคสนี้")
+    case_data = case_snapshot.to_dict() or {}
+    if current_user["ROLE"] == "branch_manager" and case_data.get("TENANT_ID") != current_user.get("TENANT_ID"):
+        raise HTTPException(status_code=403, detail="ดูไฟล์ได้เฉพาะเคสใน Tenant ของตนเอง")
+    attachment = next((item for item in case_data.get("ATTACHMENTS", []) if isinstance(item, dict) and item.get("ATTACHMENT_ID") == attachment_id), None)
+    if not attachment:
+        raise HTTPException(status_code=404, detail="ไม่พบไฟล์แนบนี้")
+    try:
+        content_type = attachment.get("CONTENT_TYPE", "application/octet-stream")
+        if content_type not in SUPPORT_ALLOWED_MIME_TYPES:
+            raise HTTPException(status_code=415, detail="ชนิดไฟล์นี้ไม่รองรับ")
+        content = support_media_bucket().blob(attachment["OBJECT_NAME"]).download_as_bytes()
+        filename = "".join(char for char in str(attachment.get("FILE_NAME", "attachment")) if char.isalnum() or char in "._-")[:100] or "attachment"
+        return Response(
+            content=content,
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f'inline; filename="{filename}"',
+                "X-Content-Type-Options": "nosniff",
+                "Cache-Control": "private, no-store",
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to fetch private support attachment")
+        raise HTTPException(status_code=503, detail="เปิดไฟล์แนบไม่สำเร็จ") from error
 
 
 # API สำหรับลูกค้าเปิด Support Case จากหน้าแชท

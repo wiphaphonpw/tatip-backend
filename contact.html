@@ -64,6 +64,11 @@
                         <label for="contactIssue">รายละเอียดปัญหา <span class="req">*</span></label>
                         <textarea id="contactIssue" name="issue" rows="3" maxlength="3000" required></textarea>
                     </div>
+                    <div class="form-group">
+                        <label for="contactAttachments">รูปภาพหรือวิดีโอประกอบ (ไม่บังคับ)</label>
+                        <input id="contactAttachments" name="attachments" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+                        <small>แนบได้สูงสุด 5 ไฟล์ รองรับ JPG, PNG, WEBP, MP4, WEBM รวมไม่เกิน 20 MB</small>
+                    </div>
                     <div aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;">
                         <label for="contactWebsite">เว็บไซต์</label>
                         <input id="contactWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
@@ -117,6 +122,11 @@
                 <div class="form-group">
                     <label for="ticketIssue">รายละเอียดปัญหา <span class="req">*</span></label>
                     <textarea id="ticketIssue" name="issue" rows="3" maxlength="3000" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="ticketAttachments">รูปภาพหรือวิดีโอประกอบ (ไม่บังคับ)</label>
+                    <input id="ticketAttachments" name="attachments" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+                    <small>แนบได้สูงสุด 5 ไฟล์ รองรับ JPG, PNG, WEBP, MP4, WEBM รวมไม่เกิน 20 MB</small>
                 </div>
                 <div aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;">
                     <label for="ticketWebsite">เว็บไซต์</label>
@@ -210,12 +220,10 @@
         }
 
         async function sendPublicContactCase(form, statusElement, submitButton) {
-            const values = Object.fromEntries(new FormData(form).entries());
+            const formData = new FormData(form);
             const currentUser = getContactSession();
-            const headers = { 'Content-Type': 'application/json' };
-            if (currentUser.access_token) {
-                headers.Authorization = `Bearer ${currentUser.access_token}`;
-            }
+            const headers = {};
+            if (currentUser.access_token) headers.Authorization = `Bearer ${currentUser.access_token}`;
             statusElement.textContent = 'กำลังส่งข้อความ...';
             statusElement.style.color = '#64748b';
             submitButton.disabled = true;
@@ -224,7 +232,7 @@
                 const response = await fetch(`${CONTACT_API_URL}/api/contact-cases`, {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify(values)
+                    body: formData
                 });
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok || result.status !== 'success') {
@@ -232,7 +240,7 @@
                 }
 
                 statusElement.textContent = result.case_id
-                    ? `ส่งข้อความแล้ว เจ้าหน้าที่จะติดต่อกลับ รหัสเคส: ${result.case_id}`
+                    ? `ส่งข้อความแล้ว เจ้าหน้าที่จะติดต่อกลับ รหัสเคส: ${result.case_id}${result.attachment_count ? ` (แนบ ${result.attachment_count} ไฟล์)` : ''}`
                     : result.message || 'ส่งข้อความให้เจ้าหน้าที่แล้ว';
                 statusElement.style.color = '#15803d';
                 form.reset();

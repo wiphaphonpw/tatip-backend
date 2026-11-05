@@ -11,5 +11,6 @@ steps:
       - '--image=asia-southeast1-docker.pkg.dev/tatip-ai-rag/cloud-run-source-deploy/tatip-ai-service:latest'
       - '--region=us-central1'
       - '--allow-unauthenticated'
+      - '--update-env-vars=SUPPORT_MEDIA_BUCKET=tatip-ai-rag-support-media-417035159214'
 images:
   - 'asia-southeast1-docker.pkg.dev/tatip-ai-rag/cloud-run-source-deploy/tatip-ai-service:latest'
