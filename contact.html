@@ -38,6 +38,15 @@
                         <div class="phone-num">094-965-9976</div>
                     </div>
                 </div>
+                <div class="channel-card">
+                    <div class="channel-icon" style="background:#e9f8ef;color:#06a755;"><i class="fa-brands fa-line"></i></div>
+                    <div class="channel-info">
+                        <h4>รับแจ้งเตือนสถานะเคสผ่าน LINE</h4>
+                        <p id="lineLinkStatus" role="status" aria-live="polite" style="margin:.25rem 0;color:#64748b;">กำลังตรวจสอบการเชื่อมต่อ...</p>
+                        <button id="lineLinkButton" type="button" onclick="createLineLinkCode()" style="background:#06a755;color:#fff;border:0;padding:.45rem .75rem;border-radius:6px;margin-top:.3rem;">เชื่อมบัญชี LINE</button>
+                        <p id="lineLinkCode" style="margin:.4rem 0 0;color:#334155;"></p>
+                    </div>
+                </div>
             </div>
 
             <div class="contact-form-card">
@@ -128,6 +137,78 @@
             ? API_URL
             : 'https://tatip-backend-417035159214.us-central1.run.app';
 
+        function getContactSession() {
+            try {
+                return JSON.parse(localStorage.getItem('currentUser') || '{}');
+            } catch {
+                return {};
+            }
+        }
+
+        async function loadLineLinkStatus() {
+            const status = document.getElementById('lineLinkStatus');
+            const button = document.getElementById('lineLinkButton');
+            const currentUser = getContactSession();
+            if (!currentUser.access_token) {
+                status.textContent = 'เข้าสู่ระบบก่อน แล้วจึงเชื่อมบัญชี LINE เพื่อรับการแจ้งเตือน';
+                button.textContent = 'ไปหน้าเข้าสู่ระบบ';
+                button.onclick = () => { window.location.href = 'login.html'; };
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONTACT_API_URL}/api/line/link-status`, {
+                    headers: { 'Authorization': `Bearer ${currentUser.access_token}` }
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.detail || 'ตรวจสอบสถานะ LINE ไม่สำเร็จ');
+                if (result.linked) {
+                    status.textContent = 'เชื่อมบัญชีแล้ว คุณจะได้รับแจ้งเตือนเมื่อสถานะเคสเปลี่ยน';
+                    status.style.color = '#15803d';
+                    button.hidden = true;
+                } else {
+                    status.textContent = 'เชื่อมบัญชี TATIP กับ LINE ก่อน เพื่อให้ระบบส่งสถานะเคสให้';
+                }
+            } catch (error) {
+                status.textContent = error.message || 'ตรวจสอบสถานะ LINE ไม่สำเร็จ';
+                status.style.color = '#dc2626';
+            }
+        }
+
+        async function createLineLinkCode() {
+            const status = document.getElementById('lineLinkStatus');
+            const codeDisplay = document.getElementById('lineLinkCode');
+            const button = document.getElementById('lineLinkButton');
+            const currentUser = getContactSession();
+            if (!currentUser.access_token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            button.disabled = true;
+            status.textContent = 'กำลังสร้างรหัสเชื่อมบัญชี...';
+            codeDisplay.textContent = '';
+            try {
+                const response = await fetch(`${CONTACT_API_URL}/api/line/link-code`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${currentUser.access_token}` }
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || result.status !== 'success') {
+                    throw new Error(result.detail || 'สร้างรหัสเชื่อมบัญชีไม่สำเร็จ');
+                }
+                status.textContent = 'เปิด LINE Official Account ของ TATIP แล้วส่งข้อความนี้ภายใน 10 นาที:';
+                status.style.color = '#334155';
+                codeDisplay.textContent = `เชื่อม ${result.code}`;
+                codeDisplay.style.cssText = 'margin:.4rem 0 0;padding:.6rem .75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#166534;font-weight:700;word-break:break-word;';
+            } catch (error) {
+                status.textContent = error.message || 'สร้างรหัสเชื่อมบัญชีไม่สำเร็จ';
+                status.style.color = '#dc2626';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
         async function sendPublicContactCase(form, statusElement, submitButton) {
             const values = Object.fromEntries(new FormData(form).entries());
             statusElement.textContent = 'กำลังส่งข้อความ...';
@@ -177,6 +258,7 @@
             const form = event.currentTarget;
             sendPublicContactCase(form, document.getElementById('ticketFormStatus'), form.querySelector('[type="submit"]'));
         }
+        loadLineLinkStatus();
     </script>
 </body>
 </html>
