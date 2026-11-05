@@ -42,10 +42,24 @@
 
             <div class="contact-form-card">
                 <h3><i class="fa-solid fa-paper-plane text-red"></i> ฝากข้อความ</h3>
-                <form onsubmit="handleDirectContactSubmit(event)">
-                    <div class="form-group"><label>ชื่อ-นามสกุล <span class="req">*</span></label><input type="text" required></div>
-                    <div class="form-group"><label>เบอร์โทรศัพท์ <span class="req">*</span></label><input type="tel" required></div>
-                    <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="3" required></textarea></div>
+                <form id="directContactForm" onsubmit="handleDirectContactSubmit(event)">
+                    <div class="form-group">
+                        <label for="contactName">ชื่อ-นามสกุล <span class="req">*</span></label>
+                        <input id="contactName" name="full_name" type="text" maxlength="120" autocomplete="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPhone">เบอร์โทรศัพท์ <span class="req">*</span></label>
+                        <input id="contactPhone" name="phone" type="tel" maxlength="30" autocomplete="tel" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactIssue">รายละเอียดปัญหา <span class="req">*</span></label>
+                        <textarea id="contactIssue" name="issue" rows="3" maxlength="3000" required></textarea>
+                    </div>
+                    <div aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;">
+                        <label for="contactWebsite">เว็บไซต์</label>
+                        <input id="contactWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+                    </div>
+                    <p id="contactFormStatus" role="status" aria-live="polite"></p>
                     <button type="submit" class="btn-send-contact-form">ส่งข้อความ</button>
                 </form>
             </div>
@@ -83,108 +97,86 @@
                 <button class="btn-close-modal" onclick="closeSupportModal()">&times;</button>
             </div>
             <form onsubmit="submitSupportTicket(event)">
-                <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="3" required></textarea></div>
+                <div class="form-group">
+                    <label for="ticketName">ชื่อ-นามสกุล <span class="req">*</span></label>
+                    <input id="ticketName" name="full_name" type="text" maxlength="120" autocomplete="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="ticketPhone">เบอร์โทรศัพท์ <span class="req">*</span></label>
+                    <input id="ticketPhone" name="phone" type="tel" maxlength="30" autocomplete="tel" required>
+                </div>
+                <div class="form-group">
+                    <label for="ticketIssue">รายละเอียดปัญหา <span class="req">*</span></label>
+                    <textarea id="ticketIssue" name="issue" rows="3" maxlength="3000" required></textarea>
+                </div>
+                <div aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;">
+                    <label for="ticketWebsite">เว็บไซต์</label>
+                    <input id="ticketWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+                </div>
+                <p id="ticketFormStatus" role="status" aria-live="polite"></p>
                 <div style="display:flex; justify-content:flex-end; gap:0.4rem;">
-                    <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ยกเลิก</button>
+                    <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ปิด</button>
                     <button type="submit" style="background:#C81E1E; color:white; border:none; padding:0.4rem 0.8rem; border-radius:4px;">ส่งเรื่อง</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="./script.js"></script>
-    <script src="./script.js"></script>
-<script>
-    // ตั้งค่า API_URL ให้ตรงกับ Cloud Run ของคุณ
-    const BACKEND_URL = typeof API_URL !== 'undefined' ? API_URL : 'https://tatip-backend-417035159214.us-central1.run.app';
+    <script src="./script.js?v=20261105-publiccontact1"></script>
+    <script>
+        const CONTACT_API_URL = typeof API_URL !== 'undefined'
+            ? API_URL
+            : 'https://tatip-backend-417035159214.us-central1.run.app';
 
-    // ฟังก์ชันจัดการเมื่อส่งฟอร์ม "ฝากข้อความ"
-    async function handleDirectContactSubmit(event) {
-        event.preventDefault();
-        const inputs = event.target.querySelectorAll('input, textarea');
-        const name = inputs[0].value.trim();
-        const phone = inputs[1].value.trim();
-        const issue = inputs[2].value.trim();
+        async function sendPublicContactCase(form, statusElement, submitButton) {
+            const values = Object.fromEntries(new FormData(form).entries());
+            statusElement.textContent = 'กำลังส่งข้อความ...';
+            statusElement.style.color = '#64748b';
+            submitButton.disabled = true;
 
-        const caseId = "CASE-" + Date.now().toString().slice(-6);
+            try {
+                const response = await fetch(`${CONTACT_API_URL}/api/contact-cases`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(values)
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || result.status !== 'success') {
+                    throw new Error(result.detail || 'ไม่สามารถส่งข้อความได้ กรุณาลองใหม่');
+                }
 
-        const payload = {
-            case_id: caseId,
-            user_id: name,
-            tenant_id: "tenant_general",
-            branch: phone, // เก็บเบอร์โทรศัพท์ไว้ในฟิลด์ branch
-            camera_name: "N/A",
-            issue: issue,
-            priority: "P2"
-        };
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/admin/create-case`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await response.json();
-
-            if (response.ok && result.status === 'success') {
-                alert('✅ ส่งข้อความเรียบร้อยแล้ว! รหัสแจ้งเรื่องของคุณคือ: ' + caseId);
-                event.target.reset();
-            } else {
-                alert('❌ เกิดข้อผิดพลาด: ' + (result.detail || 'ไม่สามารถส่งข้อความได้'));
+                statusElement.textContent = result.case_id
+                    ? `ส่งข้อความแล้ว เจ้าหน้าที่จะติดต่อกลับ รหัสเคส: ${result.case_id}`
+                    : result.message || 'ส่งข้อความให้เจ้าหน้าที่แล้ว';
+                statusElement.style.color = '#15803d';
+                form.reset();
+            } catch (error) {
+                statusElement.textContent = error.message || 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่';
+                statusElement.style.color = '#dc2626';
+            } finally {
+                submitButton.disabled = false;
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
         }
-    }
 
-    // ฟังก์ชันเปิด/ปิด Modal และส่ง Ticket
-    function openSupportModal() {
-        document.getElementById('ticketModal').classList.add('active');
-    }
-
-    function closeSupportModal() {
-        document.getElementById('ticketModal').classList.remove('active');
-    }
-
-    async function submitSupportTicket(event) {
-        event.preventDefault();
-        const issue = event.target.querySelector('textarea').value.trim();
-        const caseId = "TICKET-" + Date.now().toString().slice(-6);
-
-        // ดึงข้อมูลผู้ใช้ที่ล็อกอินอยู่ (ถ้ามี)
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-
-        const payload = {
-            case_id: caseId,
-            user_id: currentUser.username || "Guest User",
-            tenant_id: currentUser.tenant_id || "DEFAULT",
-            branch: "Online Support",
-            camera_name: "CCTV-Support",
-            issue: issue,
-            priority: "P1"
-        };
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/admin/create-case`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await response.json();
-
-            if (response.ok && result.status === 'success') {
-                alert('✅ เปิด Ticket เรียบร้อยแล้ว! รหัส Ticket: ' + caseId);
-                closeSupportModal();
-                event.target.reset();
-            } else {
-                alert('❌ เกิดข้อผิดพลาดในการเปิด Ticket');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+        function handleDirectContactSubmit(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            sendPublicContactCase(form, document.getElementById('contactFormStatus'), form.querySelector('[type="submit"]'));
         }
-    }
-</script>
+
+        function openSupportModal() {
+            document.getElementById('ticketModal').classList.add('active');
+        }
+
+        function closeSupportModal() {
+            document.getElementById('ticketModal').classList.remove('active');
+        }
+
+        function submitSupportTicket(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            sendPublicContactCase(form, document.getElementById('ticketFormStatus'), form.querySelector('[type="submit"]'));
+        }
+    </script>
 </body>
 </html>
