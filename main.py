@@ -170,6 +170,10 @@ class CustomerSupportCaseRequest(BaseModel):
 class CustomerCaseReplyRequest(BaseModel):
     message: str = Field(min_length=1, max_length=3000)
 
+class CustomerCaseFeedbackRequest(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(default="", max_length=1000)
+
 class UpdateSupportCaseStatusRequest(BaseModel):
     status: Literal["open", "in_progress", "resolved", "closed"]
     admin_note: str | None = Field(default=None, max_length=2000)
@@ -672,7 +676,18 @@ def get_admin_dashboard_summary(
     recent = []
     urgent_count = 0
     attachment_count = 0
+    rating_sum = 0
+    rating_count = 0
     for case_id, data in cases:
+        feedback = data.get("CUSTOMER_FEEDBACK")
+        if isinstance(feedback, dict):
+            try:
+                rating = int(feedback.get("RATING", 0))
+            except (TypeError, ValueError):
+                rating = 0
+            if 1 <= rating <= 5:
+                rating_sum += rating
+                rating_count += 1
         status = str(data.get("STATUS", "open")).lower()
         status_counts[status] = status_counts.get(status, 0) + 1
         if str(data.get("PRIORITY", "")).upper() in {"P1", "URGENT", "HIGH"}:
@@ -727,6 +742,8 @@ def get_admin_dashboard_summary(
             "resolved": status_counts["resolved"] + status_counts["closed"],
             "urgent": urgent_count,
             "attachments": attachment_count,
+            "satisfaction_average": round(rating_sum / rating_count, 1) if rating_count else None,
+            "satisfaction_count": rating_count,
         },
         "status_counts": status_counts,
         "categories": [{"name": key, "count": value} for key, value in sorted(category_counts.items(), key=lambda pair: pair[1], reverse=True)],
@@ -954,6 +971,11 @@ def get_customer_support_case_detail(
             "created_at": created_at,
             "updated_at": updated_at,
             "attachments": attachments,
+            "feedback": ({
+                "rating": int(data.get("CUSTOMER_FEEDBACK", {}).get("RATING", 0)),
+                "comment": str(data.get("CUSTOMER_FEEDBACK", {}).get("COMMENT") or ""),
+                "created_at": customer_case_iso(data.get("CUSTOMER_FEEDBACK", {}).get("CREATE_DATE")),
+            } if isinstance(data.get("CUSTOMER_FEEDBACK"), dict) else None),
         },
         "events": events,
     }
@@ -991,6 +1013,57 @@ def reply_to_customer_support_case(
         "LAST_CUSTOMER_MESSAGE_AT": now,
     })
     return {"status": "success", "case_id": case_id, "message": "ส่งข้อความเพิ่มเติมให้เจ้าหน้าที่แล้ว"}
+
+
+@app.post("/api/customer/support-cases/{case_id}/feedback", status_code=201)
+def submit_customer_case_feedback(
+    case_id: str,
+    request: CustomerCaseFeedbackRequest,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
+    case_ref = db.collection("support_cases").document(case_id)
+    transaction = db.transaction()
+    now = datetime.now(timezone.utc)
+    feedback = {
+        "RATING": request.rating,
+        "COMMENT": request.comment.strip(),
+        "USER_ID": str(current_user.get("USER_ID") or ""),
+        "CREATE_DATE": now,
+    }
+
+    @firestore.transactional
+    def save_feedback(tx):
+        case_snapshot = case_ref.get(transaction=tx)
+        if not case_snapshot.exists:
+            raise HTTPException(status_code=404, detail="ไม่พบเคสนี้")
+        case_data = case_snapshot.to_dict() or {}
+        if (str(case_data.get("USER_ID") or "").strip() != str(current_user.get("USER_ID") or "").strip()
+            or str(case_data.get("TENANT_ID") or "").strip() != str(current_user.get("TENANT_ID") or "").strip()):
+            raise HTTPException(status_code=404, detail="ไม่พบเคสนี้")
+        if str(case_data.get("STATUS") or "open").lower() not in {"resolved", "closed"}:
+            raise HTTPException(status_code=409, detail="ประเมินได้เมื่อเคสแก้ไขแล้วหรือปิดเคส")
+        if isinstance(case_data.get("CUSTOMER_FEEDBACK"), dict):
+            raise HTTPException(status_code=409, detail="เคสนี้ได้รับการประเมินแล้ว")
+        tx.update(case_ref, {
+            "CUSTOMER_FEEDBACK": feedback,
+            "CASE_UPDATES": firestore.ArrayUnion([{
+                "EVENT_ID": secrets.token_hex(8),
+                "EVENT_TYPE": "feedback",
+                "SENDER": "customer",
+                "MESSAGE": f"ลูกค้าประเมินการช่วยเหลือ {request.rating}/5 ดาว"
+                    + (f": {request.comment.strip()}" if request.comment.strip() else ""),
+                "CREATE_DATE": now,
+            }]),
+        })
+
+    try:
+        save_feedback(transaction)
+        return {"status": "success", "case_id": case_id, "message": "ขอบคุณสำหรับการประเมิน"}
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to save customer case feedback")
+        raise HTTPException(status_code=500, detail="บันทึกการประเมินไม่สำเร็จ") from error
 
 
 @app.get("/api/customer/support-cases/{case_id}/attachments/{attachment_id}")
@@ -1115,6 +1188,11 @@ def get_admin_support_case_detail(
             "camera_name": str(data.get("CAMERA_NAME") or ""),
             "created_at": staff_case_iso(data.get("CREATE_DATE") or data.get("CREATED_AT")),
             "updated_at": staff_case_iso(data.get("UPDATED_AT") or data.get("CREATE_DATE")),
+            "customer_feedback": ({
+                "rating": int(data.get("CUSTOMER_FEEDBACK", {}).get("RATING", 0)),
+                "comment": str(data.get("CUSTOMER_FEEDBACK", {}).get("COMMENT") or ""),
+                "created_at": staff_case_iso(data.get("CUSTOMER_FEEDBACK", {}).get("CREATE_DATE")),
+            } if isinstance(data.get("CUSTOMER_FEEDBACK"), dict) else None),
         },
         "events": [{
             "event_id": str(event.get("EVENT_ID") or ""),
