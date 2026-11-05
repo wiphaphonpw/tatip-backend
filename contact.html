@@ -27,7 +27,7 @@
                 <div class="channel-card">
                     <div class="channel-icon red"><i class="fa-solid fa-ticket"></i></div>
                     <div class="channel-info">
-                        <h4>Ticket ซัพพอร์ต 24 ชม.</h4>
+                        <h4>ส่ง Ticket ได้ทุกเวลา</h4>
                         <button onclick="openSupportModal()" style="background:var(--primary-red); color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.75rem; margin-top:0.3rem;">เปิด Ticket</button>
                     </div>
                 </div>
@@ -45,6 +45,14 @@
                         <p id="lineLinkStatus" role="status" aria-live="polite" style="margin:.25rem 0;color:#64748b;">กำลังตรวจสอบการเชื่อมต่อ...</p>
                         <button id="lineLinkButton" type="button" onclick="createLineLinkCode()" style="background:#06a755;color:#fff;border:0;padding:.45rem .75rem;border-radius:6px;margin-top:.3rem;">เชื่อมบัญชี LINE</button>
                         <p id="lineLinkCode" style="margin:.4rem 0 0;color:#334155;"></p>
+                    </div>
+                </div>
+                <div class="channel-card">
+                    <div class="channel-icon" style="background:#fff4df;color:#a86b08;"><i class="fa-regular fa-clock"></i></div>
+                    <div class="channel-info">
+                        <h4>เวลาทำการและการตอบกลับ</h4>
+                        <p id="supportHoursInfo" role="status" aria-live="polite" style="margin:.25rem 0;color:#475569;">กำลังโหลดข้อมูล...</p>
+                        <p id="supportResponseInfo" style="margin:.25rem 0;color:#64748b;"></p>
                     </div>
                 </div>
             </div>
@@ -152,6 +160,22 @@
                 return JSON.parse(localStorage.getItem('currentUser') || '{}');
             } catch {
                 return {};
+            }
+        }
+
+        async function loadSupportInfo() {
+            const hours = document.getElementById('supportHoursInfo');
+            const responseTime = document.getElementById('supportResponseInfo');
+            try {
+                const response = await fetch(`${CONTACT_API_URL}/api/support/info`);
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.detail || 'โหลดข้อมูลเวลาบริการไม่สำเร็จ');
+                const info = result.data || {};
+                hours.textContent = `เวลาทำการ: ${info.business_hours || 'ยังไม่ได้ระบุ'}`;
+                responseTime.textContent = `เวลาตอบกลับโดยประมาณ: ${info.response_time || 'ยังไม่ได้ระบุ'} · เวลาไทย`;
+            } catch {
+                hours.textContent = 'ไม่สามารถโหลดเวลาทำการได้';
+                responseTime.textContent = 'ส่ง Ticket ได้ทุกเวลา';
             }
         }
 
@@ -271,6 +295,7 @@
             const form = event.currentTarget;
             sendPublicContactCase(form, document.getElementById('ticketFormStatus'), form.querySelector('[type="submit"]'));
         }
+        loadSupportInfo();
         loadLineLinkStatus();
     </script>
 </body>
