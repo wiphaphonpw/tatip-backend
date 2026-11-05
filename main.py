@@ -701,6 +701,7 @@ async def submit_public_contact_case(
             "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว",
             "linked_to_account": bool(current_user),
             "attachment_count": len(stored_attachments),
+            "support_info": get_support_info(),
         }
     except HTTPException:
         raise
