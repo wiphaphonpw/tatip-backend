@@ -211,6 +211,11 @@
 
         async function sendPublicContactCase(form, statusElement, submitButton) {
             const values = Object.fromEntries(new FormData(form).entries());
+            const currentUser = getContactSession();
+            const headers = { 'Content-Type': 'application/json' };
+            if (currentUser.access_token) {
+                headers.Authorization = `Bearer ${currentUser.access_token}`;
+            }
             statusElement.textContent = 'กำลังส่งข้อความ...';
             statusElement.style.color = '#64748b';
             submitButton.disabled = true;
@@ -218,7 +223,7 @@
             try {
                 const response = await fetch(`${CONTACT_API_URL}/api/contact-cases`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify(values)
                 });
                 const result = await response.json().catch(() => ({}));
