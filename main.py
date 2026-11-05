@@ -104,6 +104,14 @@ def require_current_user(
         raise HTTPException(status_code=401, detail="เซสชันไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่")
 
 
+def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> Dict[str, Any] | None:
+    if credentials is None:
+        return None
+    return require_current_user(credentials)
+
+
 def require_admin_user(
     current_user: Dict[str, Any] = Depends(require_current_user),
 ) -> Dict[str, Any]:
@@ -516,9 +524,12 @@ async def upload_knowledge_file(
             os.remove(temp_path)
 
 
-# Public contact form for visitors who do not have a TATIP account.
+# Public contact form supports both signed-in users and visitors.
 @app.post("/api/contact-cases", status_code=201)
-def submit_public_contact_case(request: PublicContactCaseRequest):
+def submit_public_contact_case(
+    request: PublicContactCaseRequest,
+    current_user: Dict[str, Any] | None = Depends(get_optional_current_user),
+):
     # Honeypot for basic bot filtering. Never persist visitor supplied identifiers.
     if request.website.strip():
         return {"status": "success", "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว"}
@@ -532,13 +543,22 @@ def submit_public_contact_case(request: PublicContactCaseRequest):
 
     now = datetime.now(timezone.utc)
     case_id = f"CASE-{now.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3).upper()}"
+    user_id = current_user["USER_ID"] if current_user else "guest"
+    tenant_id = (current_user.get("TENANT_ID") or "tenant_general") if current_user else "tenant_general"
+    branch_name = ""
+    if current_user:
+        user_query = db.collection("users").where("USER_ID", "==", user_id).limit(1).stream()
+        user_snapshot = next(iter(user_query), None)
+        if user_snapshot:
+            branch_name = (user_snapshot.to_dict() or {}).get("BRANCH_NAME", "")
+
     case_data = {
         "CASE_ID": case_id,
-        "USER_ID": "guest",
-        "TENANT_ID": "tenant_general",
+        "USER_ID": user_id,
+        "TENANT_ID": tenant_id,
         "CONTACT_NAME": full_name,
         "CONTACT_PHONE": phone,
-        "BRANCH": "Online Support",
+        "BRANCH": branch_name or "Online Support",
         "CAMERA_NAME": "N/A",
         "CAMERA_STATUS": "unknown",
         "ISSUE": issue,
@@ -551,7 +571,12 @@ def submit_public_contact_case(request: PublicContactCaseRequest):
     }
     try:
         db.collection("support_cases").document(case_id).set(case_data)
-        return {"status": "success", "case_id": case_id, "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว"}
+        return {
+            "status": "success",
+            "case_id": case_id,
+            "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว",
+            "linked_to_account": bool(current_user),
+        }
     except Exception as error:
         logging.exception("Failed to submit public contact case")
         raise HTTPException(status_code=500, detail="ไม่สามารถส่งข้อความได้ กรุณาลองใหม่") from error
