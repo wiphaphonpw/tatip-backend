@@ -15,6 +15,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="./styles.css?v=20261102-mobile1">
+    <style>
+        .tutorial-section{margin:2.2rem 0 2.4rem}
+        .tutorial-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1rem}
+        .tutorial-kicker{display:inline-flex;align-items:center;gap:.45rem;padding:.35rem .7rem;border-radius:99px;background:#fff0f0;color:#bb1e25;font-size:.74rem;font-weight:600}
+        .tutorial-heading h2{margin:.6rem 0 .2rem;font-size:1.4rem;color:#172033}
+        .tutorial-heading p{margin:0;color:#64748b;font-size:.88rem}
+        .tutorial-steps{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;color:#64748b;font-size:.78rem}
+        .tutorial-steps span{display:inline-flex;align-items:center;gap:.35rem;padding:.42rem .65rem;border-radius:10px;background:#fff;border:1px solid #e8edf3}
+        .tutorial-steps b{color:#c81e1e}
+        .tutorial-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+        .tutorial-card{overflow:hidden;background:#fff;border:1px solid #e2e8f0;border-radius:17px;box-shadow:0 5px 18px #14213b0b;transition:transform .2s,box-shadow .2s}
+        .tutorial-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px #14213b16}
+        .tutorial-screen{position:relative;aspect-ratio:16/9;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 70% 20%,#fff 0,#fff7f7 36%,#f3f5fa 100%);border-bottom:1px solid #edf0f5}
+        .tutorial-screen:before,.tutorial-screen:after{content:'';position:absolute;border:1px solid #e7b7b9;border-radius:16px;transform:rotate(-8deg)}
+        .tutorial-screen:before{width:56%;height:54%;left:9%;top:20%;background:#ffffffa8}
+        .tutorial-screen:after{width:40%;height:44%;right:8%;bottom:8%;background:#fff8}
+        .tutorial-play{position:relative;z-index:1;width:54px;height:54px;display:grid;place-items:center;border-radius:50%;background:#c91f27;color:#fff;box-shadow:0 8px 22px #c91f2744;font-size:1.05rem}
+        .tutorial-screen-label{position:absolute;z-index:1;bottom:12px;left:14px;padding:.25rem .5rem;border-radius:7px;background:#172033d9;color:#fff;font-size:.68rem}
+        .tutorial-body{padding:1rem 1.05rem 1.1rem}
+        .tutorial-meta{display:flex;justify-content:space-between;align-items:center;gap:.5rem;color:#718096;font-size:.72rem}
+        .tutorial-tag{padding:.22rem .55rem;border-radius:99px;background:#fff0f0;color:#bd2027;font-weight:600}
+        .tutorial-body h3{font-size:1rem;margin:.65rem 0 .35rem;color:#172033}
+        .tutorial-body p{margin:0;color:#64748b;font-size:.82rem;line-height:1.6;min-height:2.6em}
+        .tutorial-footer{display:flex;align-items:center;justify-content:space-between;margin-top:.8rem;padding-top:.7rem;border-top:1px solid #edf0f5;color:#a1aab8;font-size:.75rem}
+        .tutorial-coming{display:inline-flex;align-items:center;gap:.35rem;color:#b4232b;font-weight:600}
+        .tutorial-note{margin:.85rem 0 0;padding:.65rem .8rem;border:1px dashed #e5b8ba;border-radius:11px;background:#fffafa;color:#7b5960;font-size:.76rem}
+        @media(max-width:850px){.tutorial-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tutorial-heading{align-items:flex-start;flex-direction:column}}
+        @media(max-width:560px){.tutorial-grid{grid-template-columns:1fr}.tutorial-section{margin:1.5rem 0}.tutorial-heading h2{font-size:1.2rem}.tutorial-body p{min-height:0}}
+    </style>
+
 </head>
 <body>
 <header class="top-navbar">
@@ -98,7 +128,64 @@
             </div>
         </section>
 
-        <section class="home-bottom-layout">
+                <section class="tutorial-section" aria-labelledby="tutorialHeading">
+            <div class="tutorial-heading">
+                <div>
+                    <span class="tutorial-kicker"><i class="fa-solid fa-circle-play"></i> คลิปสอนใช้งาน</span>
+                    <h2 id="tutorialHeading">เรียนรู้วิธีใช้ TATIP ทีละขั้น</h2>
+                    <p>คู่มือวิดีโอจะช่วยให้เริ่มต้น ตั้งค่ากล้อง และอ่านผลบน Dashboard ได้ง่ายขึ้น</p>
+                </div>
+                <div class="tutorial-steps" aria-label="ลำดับการเรียนรู้">
+                    <span><b>01</b> เข้าสู่ระบบ</span><i class="fa-solid fa-chevron-right"></i>
+                    <span><b>02</b> ตั้งค่า ROI</span><i class="fa-solid fa-chevron-right"></i>
+                    <span><b>03</b> อ่านผลบน Dashboard</span>
+                </div>
+            </div>
+            <div class="tutorial-grid">
+                <!-- VIDEO SLOT: replace .tutorial-screen with a video element when the login tutorial is ready. -->
+                <article class="tutorial-card">
+                    <div class="tutorial-screen" aria-label="พื้นที่สำหรับวิดีโอสอนเข้าสู่ระบบ">
+                        <span class="tutorial-play"><i class="fa-solid fa-play"></i></span>
+                        <span class="tutorial-screen-label">พื้นที่วิดีโอ · 16:9</span>
+                    </div>
+                    <div class="tutorial-body">
+                        <div class="tutorial-meta"><span class="tutorial-tag">เริ่มต้นใช้งาน</span><span>บทที่ 01</span></div>
+                        <h3>เข้าสู่ระบบและเลือกสาขา</h3>
+                        <p>วิธีเข้าสู่ระบบ ตรวจสอบบัญชี และเลือกสาขาที่ต้องการใช้งาน</p>
+                        <div class="tutorial-footer"><span>วิดีโอสอน</span><span class="tutorial-coming"><i class="fa-regular fa-clock"></i> เตรียมคลิป</span></div>
+                    </div>
+                </article>
+                <!-- VIDEO SLOT: replace .tutorial-screen with a video element when the ROI tutorial is ready. -->
+                <article class="tutorial-card">
+                    <div class="tutorial-screen" aria-label="พื้นที่สำหรับวิดีโอสอนตั้งค่า ROI">
+                        <span class="tutorial-play"><i class="fa-solid fa-play"></i></span>
+                        <span class="tutorial-screen-label">พื้นที่วิดีโอ · 16:9</span>
+                    </div>
+                    <div class="tutorial-body">
+                        <div class="tutorial-meta"><span class="tutorial-tag">ตั้งค่ากล้อง</span><span>บทที่ 02</span></div>
+                        <h3>กำหนดพื้นที่ ROI</h3>
+                        <p>เลือกกล้อง วาดกรอบพื้นที่ที่ต้องการให้ระบบวิเคราะห์ และตรวจสอบก่อนบันทึก</p>
+                        <div class="tutorial-footer"><span>วิดีโอสอน</span><span class="tutorial-coming"><i class="fa-regular fa-clock"></i> เตรียมคลิป</span></div>
+                    </div>
+                </article>
+                <!-- VIDEO SLOT: replace .tutorial-screen with a video element when the Dashboard tutorial is ready. -->
+                <article class="tutorial-card">
+                    <div class="tutorial-screen" aria-label="พื้นที่สำหรับวิดีโอสอนอ่าน Dashboard">
+                        <span class="tutorial-play"><i class="fa-solid fa-play"></i></span>
+                        <span class="tutorial-screen-label">พื้นที่วิดีโอ · 16:9</span>
+                    </div>
+                    <div class="tutorial-body">
+                        <div class="tutorial-meta"><span class="tutorial-tag">ดูผลวิเคราะห์</span><span>บทที่ 03</span></div>
+                        <h3>อ่าน Dashboard และ Heatmap</h3>
+                        <p>ทำความเข้าใจตัวกรอง ช่วงเวลา ตัวเลขสรุป และจุดสีบน Heatmap</p>
+                        <div class="tutorial-footer"><span>วิดีโอสอน</span><span class="tutorial-coming"><i class="fa-regular fa-clock"></i> เตรียมคลิป</span></div>
+                    </div>
+                </article>
+            </div>
+            <p class="tutorial-note"><i class="fa-solid fa-circle-info"></i> พื้นที่คลิปเตรียมไว้ให้แล้ว สามารถใส่วิดีโอจริงภายหลังได้โดยไม่ต้องเปลี่ยนโครงหน้า</p>
+        </section>
+
+<section class="home-bottom-layout">
             <div class="top-faqs-container">
                 <div class="faqs-header">
                     <h3><i class="fa-solid fa-fire text-red"></i> คำถามพบบ่อย</h3>
