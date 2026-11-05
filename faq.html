@@ -333,12 +333,14 @@
             const category = guide?.category || card.dataset.cat || 'คำถามที่พบบ่อย';
             document.getElementById('articleCategory').textContent = category;
             document.getElementById('articleTitle').textContent = title;
-            const steps = guide?.steps || [description];
+            const intro = guide?.intro || description || 'แนวทางเบื้องต้นสำหรับหัวข้อนี้';
+            const steps = guide?.steps || [];
             const stepHtml = steps.map((step, index) => '<li><span class="step-no">' + (index + 1) + '</span><span>' + escapeArticle(step) + '</span></li>').join('');
             const visual = guide ? infographic(guide.visual) : '';
             const tip = guide?.tip ? '<div class="article-tip"><strong><i class="fa-solid fa-lightbulb"></i> ข้อควรรู้</strong><br>' + escapeArticle(guide.tip) + '</div>' : '';
-            const detail = guide ? '' : '<p class="article-intro">' + escapeArticle(description) + '</p>';
-            document.getElementById('articleBody').innerHTML = '<p class="article-intro">' + escapeArticle(guide?.intro || 'ดูคำตอบและแนวทางเบื้องต้นสำหรับหัวข้อนี้') + '</p>' + visual + '<h3 style="font-size:1rem;margin:1rem 0 .6rem">วิธีตรวจสอบ</h3><ol class="article-steps">' + stepHtml + '</ol>' + detail + (reference ? '<p class="article-disclaimer">' + escapeArticle(reference) + '</p>' : '') + tip + '<div class="article-actions"><a class="article-ask" href="chat.html?q=' + encodeURIComponent(title) + '"><i class="fa-solid fa-comments"></i> ถาม TATIP AI เพิ่มเติม</a></div>';
+            const stepsSection = guide ? '<h3 style="font-size:1rem;margin:1rem 0 .6rem">วิธีตรวจสอบ</h3><ol class="article-steps">' + stepHtml + '</ol>' : '';
+            const referenceNote = reference ? '<p class="article-disclaimer">' + escapeArticle(reference) + '</p>' : '';
+            document.getElementById('articleBody').innerHTML = '<p class="article-intro">' + escapeArticle(intro) + '</p>' + visual + stepsSection + referenceNote + tip + '<div class="article-actions"><a class="article-ask" href="chat.html?q=' + encodeURIComponent(title) + '"><i class="fa-solid fa-comments"></i> ถาม TATIP AI เพิ่มเติม</a></div>';
             articleDialog.showModal();
         }
         function closeFaqArticle() { articleDialog.close(); }
