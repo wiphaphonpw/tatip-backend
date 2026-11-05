@@ -1158,7 +1158,28 @@ def reply_to_support_case(
         "LAST_SUPPORT_MESSAGE_AT": now,
         "UPDATED_BY": current_user["USER_ID"],
     })
-    return {"status": "success", "case_id": case_id, "message": "ส่งข้อความตอบกลับแล้ว"}
+    line_notification = "not_linked"
+    try:
+        user_id = str(data.get("USER_ID") or "").strip()
+        user_snapshot = next(iter(db.collection("users").where("USER_ID", "==", user_id).limit(1).stream()), None)
+        if user_snapshot is None and user_id:
+            fallback = db.collection("users").document(user_id).get()
+            user_snapshot = fallback if fallback.exists else None
+        user_data = user_snapshot.to_dict() or {} if user_snapshot else {}
+        if user_data.get("TENANT_ID") == data.get("TENANT_ID"):
+            line_user_id = str(user_data.get("LINE_USER_ID") or "").strip()
+            if line_user_id:
+                text = f"TATIP AI มีข้อความตอบกลับจากเจ้าหน้าที่ในเคส {case_id} กรุณาเปิดหน้า Dashboard เพื่อติดตามรายละเอียด"
+                line_notification = "sent" if send_line_push_message(line_user_id, text) else "failed"
+    except Exception:
+        logging.exception("Could not send LINE notification for support reply")
+        line_notification = "failed"
+    return {
+        "status": "success",
+        "case_id": case_id,
+        "line_notification": line_notification,
+        "message": "ส่งข้อความตอบกลับแล้ว",
+    }
 
 
 # API สำหรับ Admin หรือ Branch Manager อัปเดตสถานะ Support Case
