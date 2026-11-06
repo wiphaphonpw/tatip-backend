@@ -22,6 +22,14 @@
         .business-news-head p{margin:0;color:#64748b;font-size:.88rem}
         .news-kicker{display:inline-flex;align-items:center;gap:.45rem;padding:.35rem .7rem;border-radius:99px;background:#fff0f0;color:#bb1e25;font-size:.74rem;font-weight:600}
         .news-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+        .business-infographic{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin:1rem 0 1.15rem}
+        .business-infographic-card{min-width:0;padding:.8rem;border:1px solid #e4e9f1;border-radius:15px;background:linear-gradient(145deg,#fff,#fff8f8);box-shadow:0 4px 14px #17203308}
+        .business-infographic-visual{height:82px;display:grid;place-items:center;margin-bottom:.55rem;border-radius:11px;background:linear-gradient(135deg,#fff0f0,#f4f7fb)}
+        .business-infographic-visual svg{width:100%;height:100%;max-width:190px}
+        .business-infographic-title{display:flex;align-items:center;gap:.45rem;margin:0 0 .25rem;color:#172033;font-size:.83rem;font-weight:700}
+        .business-infographic-number{display:inline-grid;place-items:center;width:23px;height:23px;flex:none;border-radius:8px;background:#ffeded;color:#c91f27;font-size:.68rem}
+        .business-infographic-card p{margin:0;color:#65748b;font-size:.75rem;line-height:1.55}
+        @media(max-width:640px){.business-infographic{grid-template-columns:1fr;gap:.55rem}.business-infographic-card{display:grid;grid-template-columns:76px minmax(0,1fr);column-gap:.7rem;align-items:center;padding:.65rem}.business-infographic-visual{grid-row:1 / span 2;height:64px;margin:0}.business-infographic-visual svg{max-width:76px}.business-infographic-title{align-self:end}.business-infographic-card p{align-self:start}}
         .news-card{display:flex;flex-direction:column;text-align:left;padding:0;overflow:hidden;width:100%;background:#fff;border:1px solid #e2e8f0;border-radius:17px;box-shadow:0 5px 18px #14213b0b;color:#172033;font:inherit;cursor:pointer;transition:transform .2s,box-shadow .2s}
         .news-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px #14213b16}
         .news-card:focus-visible{outline:3px solid #f2a3a3;outline-offset:3px}
@@ -238,6 +246,23 @@
                     <h2 id="businessNewsHeading">เลือกกล้องให้เหมาะกับพื้นที่ของคุณ</h2>
                     <p>แนวคิดเริ่มต้นสำหรับร้านอาหาร ร้านค้า คลังสินค้า และสำนักงาน</p>
                 </div>
+            </div>
+            <div class="business-infographic" aria-label="อินโฟกราฟิกเลือกกล้อง 3 เรื่อง">
+                <article class="business-infographic-card">
+                    <div class="business-infographic-visual"><svg viewBox="0 0 190 82" aria-hidden="true" focusable="false"><path d="M30 13h130v55H30z" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/><path d="M39 22h48v19H39zM95 22h56v10H95zM95 39h56v20H95z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/><path d="M19 17l11 7-11 7zM171 23l-11 7 11 7zM80 74l9-11 9 11z" fill="#c91f27"/><circle cx="51" cy="32" r="4.5" fill="#f3b323"/><circle cx="128" cy="27" r="4.5" fill="#f3b323"/><circle cx="126" cy="49" r="4.5" fill="#f3b323"/></svg></div>
+                    <h3 class="business-infographic-title"><span class="business-infographic-number">01</span>สำรวจพื้นที่</h3>
+                    <p>ทำเครื่องหมายทางเข้า จุดบริการ และมุมอับที่ต้องการดู</p>
+                </article>
+                <article class="business-infographic-card">
+                    <div class="business-infographic-visual"><svg viewBox="0 0 190 82" aria-hidden="true" focusable="false"><path d="M34 24h48c8 0 13 6 13 14v5H21v-5c0-8 5-14 13-14z" fill="#fff" stroke="#64748b" stroke-width="2"/><path d="M28 43h62L82 57H36z" fill="#fee2e2" stroke="#c91f27" stroke-width="2"/><circle cx="57" cy="49" r="4" fill="#c91f27"/><path d="M112 29h25l20 11v13h-54V40z" fill="#fff" stroke="#64748b" stroke-width="2"/><path d="M103 42h54v11h-54z" fill="#fee2e2" stroke="#c91f27" stroke-width="2"/><circle cx="148" cy="47" r="4" fill="#c91f27"/><path d="M57 17v-6m83 13v-6" stroke="#f3b323" stroke-width="3" stroke-linecap="round"/></svg></div>
+                    <h3 class="business-infographic-title"><span class="business-infographic-number">02</span>เลือกชนิดกล้อง</h3>
+                    <p>กล้องโดมดูภาพรวมในอาคาร · Bullet เหมาะกับทางเข้าและระยะไกล</p>
+                </article>
+                <article class="business-infographic-card">
+                    <div class="business-infographic-visual"><svg viewBox="0 0 190 82" aria-hidden="true" focusable="false"><circle cx="52" cy="38" r="19" fill="#fff7db" stroke="#f3b323" stroke-width="2"/><path d="M52 9v-5m0 72v-5M23 38h-6m70 0h-6M31 17l-4-4m50 50-4-4" stroke="#f3b323" stroke-width="2.5" stroke-linecap="round"/><path d="M112 21a19 19 0 1 0 28 28 17 17 0 0 1-28-28z" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/><rect x="105" y="59" width="57" height="9" rx="4.5" fill="#fee2e2"/><path d="M111 63.5h22" stroke="#c91f27" stroke-width="3" stroke-linecap="round"/><circle cx="153" cy="63.5" r="4" fill="#f3b323"/></svg></div>
+                    <h3 class="business-infographic-title"><span class="business-infographic-number">03</span>ตรวจคุณภาพภาพ</h3>
+                    <p>ลองภาพกลางวัน กลางคืน และจุดแสงย้อนก่อนติดตั้งจริง</p>
+                </article>
             </div>
             <div class="news-grid">
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('restaurant')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('restaurant')}">
