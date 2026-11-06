@@ -46,6 +46,17 @@
         .news-dialog-head h2{margin:.25rem 0 0;font-size:1.15rem;line-height:1.45}
         .news-dialog-body{padding:1.1rem 1.35rem 1.4rem}
         .news-dialog-body>p{color:#526176;line-height:1.75;margin:0 0 1rem}
+        .news-guide-infographic{margin:1rem 0 1.15rem;padding:1rem;border:1px solid #f1d2d4;border-radius:16px;background:linear-gradient(145deg,#fffafa,#fff 72%)}
+        .news-guide-infographic-head{display:flex;align-items:center;gap:.55rem;margin:0 0 .75rem;color:#172033;font-size:.95rem;font-weight:700}
+        .news-guide-infographic-head i{color:#c91f27}
+        .news-guide-infographic-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:0;padding:0;list-style:none}
+        .news-guide-infographic-step{min-width:0;padding:.65rem;border:1px solid #e9edf3;border-radius:13px;background:#fff}
+        .news-guide-infographic-art{height:78px;display:grid;place-items:center;margin-bottom:.45rem;border-radius:10px;background:linear-gradient(135deg,#fff3f3,#f8fafc)}
+        .news-guide-infographic-art svg{width:100%;height:100%;max-width:180px}
+        .news-guide-infographic-step h4{display:flex;align-items:center;gap:.4rem;margin:0 0 .25rem;color:#172033;font-size:.78rem}
+        .news-guide-infographic-number{display:inline-grid;place-items:center;width:21px;height:21px;flex:none;border-radius:7px;background:#ffeded;color:#c91f27;font-size:.65rem}
+        .news-guide-infographic-step p{margin:0;color:#64748b;font-size:.72rem;line-height:1.55}
+        @media(max-width:560px){.news-guide-infographic{padding:.8rem}.news-guide-infographic-grid{grid-template-columns:1fr}.news-guide-infographic-step{display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:.65rem;align-items:center}.news-guide-infographic-art{grid-row:1 / span 2;height:64px;margin:0}.news-guide-infographic-art svg{max-width:72px}.news-guide-infographic-step h4{align-self:end}.news-guide-infographic-step p{align-self:start}}
         .news-guide-block{padding:1rem;margin:.8rem 0;border:1px solid #edf0f5;border-radius:14px;background:#fff}
         .news-guide-block h3{font-size:.95rem;margin:0 0 .55rem;color:#172033}
         .news-guide-block ul{margin:0;padding-left:1.2rem;color:#526176;line-height:1.75;font-size:.88rem}
@@ -375,6 +386,24 @@
                 return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
             });
         }
+        const businessGuideZones = {
+            restaurant: ['ทางเข้า', 'จุดชำระเงิน', 'พื้นที่บริการ'],
+            retail: ['ประตูเข้าออก', 'เคาน์เตอร์', 'แนวชั้นวาง'],
+            warehouse: ['จุดรับส่งสินค้า', 'ชั้นจัดเก็บ', 'ทางเดิน/รั้ว'],
+            office: ['โถงต้อนรับ', 'ทางเดิน', 'พื้นที่ส่วนกลาง']
+        };
+        function buildBusinessInfographic(key, data) {
+            const zones = businessGuideZones[key] || ['ทางเข้า', 'จุดบริการ', 'พื้นที่สำคัญ'];
+            const cameraSummary = data.camera && data.camera[0] ? data.camera[0] : 'เลือกชนิดกล้องตามมุมมองและระยะใช้งาน';
+            const testSummary = data.features && data.features[0] ? data.features[0] : 'ทดลองภาพจากตำแหน่งติดตั้งจริง';
+            const cards = [
+                {number:'01',title:'กำหนดจุดที่ต้องเห็น',summary:zones.join(' · '),svg:'<svg viewBox="0 0 180 78" aria-hidden="true" focusable="false"><path d="M27 14h126v50H27z" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/><path d="M35 22h48v18H35zM91 22h54v9H91zM91 37h54v19H91z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/><path d="M18 18l10 6-10 6zM162 22l-10 6 10 6zM76 68l8-10 8 10z" fill="#c91f27"/><circle cx="47" cy="31" r="4" fill="#f3b323"/><circle cx="120" cy="27" r="4" fill="#f3b323"/><circle cx="118" cy="47" r="4" fill="#f3b323"/></svg>'},
+                {number:'02',title:'จับคู่ชนิดกล้อง',summary:cameraSummary,svg:'<svg viewBox="0 0 180 78" aria-hidden="true" focusable="false"><path d="M28 25h47c7 0 12 5 12 12v5H16v-5c0-7 5-12 12-12z" fill="#fff" stroke="#64748b" stroke-width="2"/><path d="M22 43h59l-8 12H30z" fill="#fee2e2" stroke="#c91f27" stroke-width="2"/><circle cx="51" cy="49" r="3.5" fill="#c91f27"/><path d="M109 30h23l18 10v12h-47V40z" fill="#fff" stroke="#64748b" stroke-width="2"/><path d="M103 42h48v10h-48z" fill="#fee2e2" stroke="#c91f27" stroke-width="2"/><circle cx="144" cy="47" r="3.5" fill="#c91f27"/><path d="M51 18v-6m88 12v-6" stroke="#f3b323" stroke-width="3" stroke-linecap="round"/></svg>'},
+                {number:'03',title:'ทดสอบภาพจริง',summary:testSummary,svg:'<svg viewBox="0 0 180 78" aria-hidden="true" focusable="false"><circle cx="48" cy="37" r="18" fill="#fff7db" stroke="#f3b323" stroke-width="2"/><path d="M48 10v-5m0 64v-5M21 37h-6m66 0h-6M29 18l-4-4m46 46-4-4" stroke="#f3b323" stroke-width="2.5" stroke-linecap="round"/><path d="M105 21a18 18 0 1 0 26 26 16 16 0 0 1-26-26z" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/><rect x="92" y="57" width="63" height="10" rx="5" fill="#fee2e2"/><path d="M98 62h22" stroke="#c91f27" stroke-width="3" stroke-linecap="round"/><circle cx="146" cy="62" r="4" fill="#f3b323"/></svg>'}
+            ];
+            return '<section class="news-guide-infographic" aria-label="อินโฟกราฟิกวางแผนเลือกกล้อง 3 ขั้น"><h3 class="news-guide-infographic-head"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> วางแผนเลือกกล้อง 3 ขั้น</h3><ol class="news-guide-infographic-grid">' + cards.map(function(card) { return '<li class="news-guide-infographic-step"><div class="news-guide-infographic-art">' + card.svg + '</div><h4><span class="news-guide-infographic-number">' + card.number + '</span>' + guideEscape(card.title) + '</h4><p>' + guideEscape(card.summary) + '</p></li>'; }).join('') + '</ol></section>';
+        }
+
         function openBusinessGuide(key) {
             const data = businessGuideData[key];
             if (!data) return;
@@ -383,7 +412,8 @@
             const cameraItems = data.camera.map(item => '<li>' + guideEscape(item) + '</li>').join('');
             const featureItems = data.features.map(item => '<li>' + guideEscape(item) + '</li>').join('');
             const sourceLinks = data.sources.map(item => '<a href="' + guideEscape(item[1]) + '" target="_blank" rel="noopener noreferrer">' + guideEscape(item[0]) + ' <i class="fa-solid fa-arrow-up-right-from-square"></i></a>').join('');
-            document.getElementById('businessGuideBody').innerHTML = '<p>' + guideEscape(data.intro) + '</p><section class="news-guide-block"><h3><i class="fa-solid fa-video" style="color:#c91f27"></i> รูปแบบกล้องที่ควรพิจารณา</h3><ul>' + cameraItems + '</ul></section><section class="news-guide-block"><h3><i class="fa-solid fa-sliders" style="color:#c91f27"></i> คุณสมบัติและจุดตรวจสอบ</h3><ul>' + featureItems + '</ul></section><p class="news-disclaimer">คำแนะนำเป็นแนวทางเริ่มต้น ควรทดลองภาพจากมุมติดตั้งจริงและตรวจระบบบันทึกภาพเดิมก่อนเลือกซื้อ</p><div class="news-source-links">' + sourceLinks + '</div>';
+            const infographic = buildBusinessInfographic(key, data);
+            document.getElementById('businessGuideBody').innerHTML = '<p>' + guideEscape(data.intro) + '</p>' + infographic + '<section class="news-guide-block"><h3><i class="fa-solid fa-video" style="color:#c91f27"></i> รูปแบบกล้องที่ควรพิจารณา</h3><ul>' + cameraItems + '</ul></section><section class="news-guide-block"><h3><i class="fa-solid fa-sliders" style="color:#c91f27"></i> คุณสมบัติและจุดตรวจสอบ</h3><ul>' + featureItems + '</ul></section><p class="news-disclaimer">คำแนะนำเป็นแนวทางเริ่มต้น ควรทดลองภาพจากมุมติดตั้งจริงและตรวจระบบบันทึกภาพเดิมก่อนเลือกซื้อ</p><div class="news-source-links">' + sourceLinks + '</div>';
             document.getElementById('businessGuideOverlay').hidden = false;
             document.body.style.overflow = 'hidden';
             document.querySelector('#businessGuideOverlay .news-close').focus();
