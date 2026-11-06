@@ -39,18 +39,18 @@
         .news-content p{font-size:.8rem;line-height:1.6;color:#64748b;margin:0;flex:1}
         .business-coverage-mini{margin-top:.75rem;padding:.65rem;border:1px solid #e8edf3;border-radius:12px;background:#f9fafc}
         .business-coverage-heading{display:flex;align-items:center;justify-content:space-between;gap:.3rem;margin-bottom:.45rem;color:#475569;font-size:.65rem;font-weight:700}
-        .business-coverage-heading i{color:#c91f27}
+        .business-coverage-heading i{color:#c91f27;margin-right:.25rem}
         .business-coverage-badge{padding:.15rem .35rem;border-radius:99px;background:#fff0f0;color:#a51d24;font-size:.58rem;white-space:nowrap}
-        .business-coverage-row{margin-top:.42rem}
-        .business-coverage-row-head{display:flex;justify-content:space-between;align-items:baseline;gap:.25rem}
-        .business-coverage-zone{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.66rem;font-weight:600}
-        .business-coverage-target{flex:none;color:#64748b;font-size:.59rem;white-space:nowrap}
-        .business-coverage-track{height:5px;margin-top:.2rem;overflow:hidden;border-radius:99px;background:#e7ebf1}
-        .business-coverage-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#c91f27,#f3b323)}
-        .business-coverage-scale{display:flex;justify-content:space-between;margin-top:.35rem;color:#94a3b8;font-size:.55rem}
+        .business-fov-graphic{height:100px;display:grid;place-items:center;overflow:hidden;border:1px solid #edf0f5;border-radius:10px;background:linear-gradient(180deg,#fff,#f8fafc)}
+        .business-fov-graphic svg{display:block;width:100%;height:100%}
+        .business-fov-dimensions{display:flex;justify-content:space-between;gap:.35rem;margin:.4rem 0;color:#738198;font-size:.58rem}
+        .business-fov-dimensions strong{color:#2563a8;font-weight:600}
+        .business-coverage-zones{display:grid;gap:.28rem}
+        .business-coverage-zone-row{display:flex;justify-content:space-between;align-items:center;gap:.25rem;padding-top:.28rem;border-top:1px solid #e8edf3}
+        .business-coverage-zone{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.64rem;font-weight:600}
+        .business-coverage-target{flex:none;color:#64748b;font-size:.58rem;white-space:nowrap}
         .business-coverage-note{margin:.5rem 0 0;color:#748197;font-size:.7rem;line-height:1.55}
         .business-coverage-note a{color:#a51d24;text-decoration:underline;text-underline-offset:2px}
-
         .news-read{margin-top:.8rem;padding-top:.65rem;border-top:1px solid #edf0f5;color:#c81e1e;font-size:.77rem;font-weight:600;display:flex;justify-content:space-between}
         .news-disclaimer{margin:.8rem 0 0;color:#7b8798;font-size:.75rem}
         .news-overlay[hidden]{display:none}
@@ -66,14 +66,14 @@
         .news-coverage-modal .business-coverage-mini{padding:1rem;border-radius:14px}
         .news-coverage-modal .business-coverage-heading{font-size:.8rem;margin-bottom:.65rem}
         .news-coverage-modal .business-coverage-badge{font-size:.68rem;padding:.2rem .5rem}
-        .news-coverage-modal .business-coverage-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(0,2fr);align-items:center;gap:.85rem;margin-top:.75rem}
-        .news-coverage-modal .business-coverage-zone{font-size:.82rem}
-        .news-coverage-modal .business-coverage-target{font-size:.74rem}
-        .news-coverage-modal .business-coverage-track{height:9px;margin-top:0}
-        .news-coverage-modal .business-coverage-scale{font-size:.68rem;margin-top:.65rem}
+        .news-coverage-modal .business-fov-graphic{height:205px}
+        .news-coverage-modal .business-fov-dimensions{font-size:.72rem;margin:.65rem 0}
+        .news-coverage-modal .business-coverage-zones{grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem}
+        .news-coverage-modal .business-coverage-zone-row{display:block;padding:.55rem;border:1px solid #e8edf3;border-radius:10px;background:#fff}
+        .news-coverage-modal .business-coverage-zone{display:block;margin-bottom:.2rem;font-size:.78rem}
+        .news-coverage-modal .business-coverage-target{font-size:.7rem}
         .news-coverage-modal-note{margin:.45rem 0 0;color:#748197;font-size:.72rem;line-height:1.55}
-        @media(max-width:560px){.news-coverage-modal .business-coverage-row{grid-template-columns:1fr;gap:.3rem}.news-coverage-modal .business-coverage-track{height:7px}.news-coverage-modal .business-coverage-target{font-size:.68rem}}
-        
+        @media(max-width:560px){.news-coverage-modal .business-fov-graphic{height:150px}.news-coverage-modal .business-coverage-zones{grid-template-columns:1fr}.news-coverage-modal .business-coverage-zone-row{display:flex;justify-content:space-between;align-items:center;gap:.4rem}.news-coverage-modal .business-coverage-zone{margin:0}}
         .news-guide-block{padding:1rem;margin:.8rem 0;border:1px solid #edf0f5;border-radius:14px;background:#fff}
         .news-guide-block h3{font-size:.95rem;margin:0 0 .55rem;color:#172033}
         .news-guide-block ul{margin:0;padding-left:1.2rem;color:#526176;line-height:1.75;font-size:.88rem}
@@ -270,34 +270,94 @@
             <div class="news-grid">
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('restaurant')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('restaurant')}">
                     <span class="news-art"><img src="./assets/business-restaurant.png" alt="กล้องวงจรปิดภายในร้านอาหาร" loading="lazy"><span class="news-art-label">ร้านอาหาร · คาเฟ่</span></span>
-                    <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านอาหาร: ภาพชัดในแสงน้อยและจุดบริการ</h3><p>เริ่มจากทางเข้า จุดชำระเงิน และพื้นที่ปฏิบัติงาน เลือกคุณสมบัติภาพให้เหมาะกับแสงของแต่ละจุด</p><div class="business-coverage-mini" aria-label="ตัวอย่างความกว้างฉากตามโซน">
-                        <div class="business-coverage-heading"><span><i class="fa-solid fa-camera" aria-hidden="true"></i> ความกว้างฉากตัวอย่าง</span><span class="business-coverage-badge">4MP*</span></div>
-                        <div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">ทางเข้า</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="ทางเข้า: จำแนก · ≤21.5 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="21.5"><span style="width:20%"></span></div></div><div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">จุดชำระเงิน</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="จุดชำระเงิน: ระบุตัว · ≤10.8 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="10.8"><span style="width:10%"></span></div></div><div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">พื้นที่บริการ</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="พื้นที่บริการ: สังเกต · ≤42.7 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="42.7"><span style="width:39%"></span></div></div>
-                        <div class="business-coverage-scale"><span>แถบแสดงความกว้าง</span><span>0–110 ม.</span></div>
+                    <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านอาหาร: ภาพชัดในแสงน้อยและจุดบริการ</h3><p>เริ่มจากทางเข้า จุดชำระเงิน และพื้นที่ปฏิบัติงาน เลือกคุณสมบัติภาพให้เหมาะกับแสงของแต่ละจุด</p><div class="business-coverage-mini" aria-label="มุมเลนส์และพื้นที่ภาพของ restaurant">
+                        <div class="business-coverage-heading"><span><i class="fa-solid fa-video" aria-hidden="true"></i> มุมมองและพื้นที่ภาพ</span><span class="business-coverage-badge">4MP*</span></div>
+                        <div class="business-fov-graphic"><svg viewBox="0 0 520 190" role="img" aria-label="มุมเลนส์ ระยะกล้อง และขนาดภาพที่ปลายทาง" preserveAspectRatio="xMidYMid meet">
+<path d="M95 94L399 31L399 159Z" fill="#9bd96a" opacity=".24"/>
+<path d="M96 94L399 31M96 94L399 159" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="7 6"/>
+<path d="M96 94L399 31L399 159Z" fill="#8ed14e" opacity=".12"/>
+<rect x="398" y="31" width="96" height="128" rx="2" fill="#8ed14e" stroke="#53ad36" stroke-width="2"/>
+<path d="M398 73H494M398 116H494" stroke="#fff" stroke-width="2" opacity=".9"/>
+<path d="M417 31v128M450 31v128" stroke="#4a9f37" stroke-width="1" stroke-dasharray="3 4" opacity=".65"/>
+<text x="408" y="58" font-size="10" font-weight="700" fill="#2e6a25">Z1</text><text x="434" y="101" font-size="10" font-weight="700" fill="#2e6a25">Z2</text><text x="463" y="144" font-size="10" font-weight="700" fill="#2e6a25">Z3</text>
+<rect x="17" y="72" width="64" height="45" fill="#fff" stroke="#1577bd" stroke-width="3"/><rect x="81" y="83" width="14" height="23" fill="#fff" stroke="#1577bd" stroke-width="3"/><text x="26" y="100" font-size="12" font-weight="700" fill="#1577bd">CAM</text>
+<path d="M111 94h269" stroke="#d21f27" stroke-width="3"/><path d="M380 94l-13-7v14z" fill="#d21f27"/><text x="201" y="85" font-size="12" font-weight="700" fill="#c91f27">ระยะ D</text>
+<path d="M130 77a40 40 0 0 1 0 34" fill="none" stroke="#27a9e8" stroke-width="2.5"/><path d="M130 77l-2 8 7-3M130 111l-2-8 7 3" fill="#27a9e8"/><text x="129" y="64" font-size="11" font-weight="700" fill="#167cb9">มุมเลนส์ θ</text>
+<path d="M400 20h92" stroke="#167cb9" stroke-width="2"/><path d="M400 20l8-5v10zM492 20l-8-5v10z" fill="#167cb9"/><text x="416" y="14" font-size="10" font-weight="700" fill="#167cb9">กว้างภาพ W</text>
+<path d="M507 34v121" stroke="#167cb9" stroke-width="2"/><path d="M507 34l-5 8h10zM507 155l-5-8h10z" fill="#167cb9"/><text x="515" y="100" font-size="9" font-weight="700" fill="#167cb9" transform="rotate(90 515 100)">สูงภาพ H</text>
+<text x="402" y="177" font-size="9" font-weight="600" fill="#526176">พื้นที่ภาพปลายทาง</text>
+</svg></div>
+                        <div class="business-fov-dimensions"><span><strong>θ</strong> มุมเลนส์</span><span><strong>D</strong> ระยะ</span><span><strong>W × H</strong> ขนาดภาพ</span></div>
+                        <div class="business-coverage-zones"><div class="business-coverage-zone-row"><span class="business-coverage-zone">ทางเข้า</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">จุดชำระเงิน</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">พื้นที่บริการ</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div></div>
                     </div><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
                 </article>
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('retail')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('retail')}">
                     <span class="news-art"><img src="./assets/business-retail.png" alt="กล้องวงจรปิดในร้านค้าปลีก" loading="lazy"><span class="news-art-label">ร้านค้าปลีก</span></span>
-                    <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านค้า: ทางเข้า เคาน์เตอร์ และทางเดิน</h3><p>วางแผนมุมมองให้ครอบคลุมจุดเข้าออกและจุดบริการ พร้อมรับมือแสงย้อนจากหน้าร้าน</p><div class="business-coverage-mini" aria-label="ตัวอย่างความกว้างฉากตามโซน">
-                        <div class="business-coverage-heading"><span><i class="fa-solid fa-camera" aria-hidden="true"></i> ความกว้างฉากตัวอย่าง</span><span class="business-coverage-badge">4MP*</span></div>
-                        <div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">ทางเข้า</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="ทางเข้า: ระบุตัว · ≤10.8 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="10.8"><span style="width:10%"></span></div></div><div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">เคาน์เตอร์</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="เคาน์เตอร์: ระบุตัว · ≤10.8 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="10.8"><span style="width:10%"></span></div></div><div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">แนวชั้นวาง</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="แนวชั้นวาง: สังเกต · ≤42.7 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="42.7"><span style="width:39%"></span></div></div>
-                        <div class="business-coverage-scale"><span>แถบแสดงความกว้าง</span><span>0–110 ม.</span></div>
+                    <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านค้า: ทางเข้า เคาน์เตอร์ และทางเดิน</h3><p>วางแผนมุมมองให้ครอบคลุมจุดเข้าออกและจุดบริการ พร้อมรับมือแสงย้อนจากหน้าร้าน</p><div class="business-coverage-mini" aria-label="มุมเลนส์และพื้นที่ภาพของ retail">
+                        <div class="business-coverage-heading"><span><i class="fa-solid fa-video" aria-hidden="true"></i> มุมมองและพื้นที่ภาพ</span><span class="business-coverage-badge">4MP*</span></div>
+                        <div class="business-fov-graphic"><svg viewBox="0 0 520 190" role="img" aria-label="มุมเลนส์ ระยะกล้อง และขนาดภาพที่ปลายทาง" preserveAspectRatio="xMidYMid meet">
+<path d="M95 94L399 31L399 159Z" fill="#9bd96a" opacity=".24"/>
+<path d="M96 94L399 31M96 94L399 159" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="7 6"/>
+<path d="M96 94L399 31L399 159Z" fill="#8ed14e" opacity=".12"/>
+<rect x="398" y="31" width="96" height="128" rx="2" fill="#8ed14e" stroke="#53ad36" stroke-width="2"/>
+<path d="M398 73H494M398 116H494" stroke="#fff" stroke-width="2" opacity=".9"/>
+<path d="M417 31v128M450 31v128" stroke="#4a9f37" stroke-width="1" stroke-dasharray="3 4" opacity=".65"/>
+<text x="408" y="58" font-size="10" font-weight="700" fill="#2e6a25">Z1</text><text x="434" y="101" font-size="10" font-weight="700" fill="#2e6a25">Z2</text><text x="463" y="144" font-size="10" font-weight="700" fill="#2e6a25">Z3</text>
+<rect x="17" y="72" width="64" height="45" fill="#fff" stroke="#1577bd" stroke-width="3"/><rect x="81" y="83" width="14" height="23" fill="#fff" stroke="#1577bd" stroke-width="3"/><text x="26" y="100" font-size="12" font-weight="700" fill="#1577bd">CAM</text>
+<path d="M111 94h269" stroke="#d21f27" stroke-width="3"/><path d="M380 94l-13-7v14z" fill="#d21f27"/><text x="201" y="85" font-size="12" font-weight="700" fill="#c91f27">ระยะ D</text>
+<path d="M130 77a40 40 0 0 1 0 34" fill="none" stroke="#27a9e8" stroke-width="2.5"/><path d="M130 77l-2 8 7-3M130 111l-2-8 7 3" fill="#27a9e8"/><text x="129" y="64" font-size="11" font-weight="700" fill="#167cb9">มุมเลนส์ θ</text>
+<path d="M400 20h92" stroke="#167cb9" stroke-width="2"/><path d="M400 20l8-5v10zM492 20l-8-5v10z" fill="#167cb9"/><text x="416" y="14" font-size="10" font-weight="700" fill="#167cb9">กว้างภาพ W</text>
+<path d="M507 34v121" stroke="#167cb9" stroke-width="2"/><path d="M507 34l-5 8h10zM507 155l-5-8h10z" fill="#167cb9"/><text x="515" y="100" font-size="9" font-weight="700" fill="#167cb9" transform="rotate(90 515 100)">สูงภาพ H</text>
+<text x="402" y="177" font-size="9" font-weight="600" fill="#526176">พื้นที่ภาพปลายทาง</text>
+</svg></div>
+                        <div class="business-fov-dimensions"><span><strong>θ</strong> มุมเลนส์</span><span><strong>D</strong> ระยะ</span><span><strong>W × H</strong> ขนาดภาพ</span></div>
+                        <div class="business-coverage-zones"><div class="business-coverage-zone-row"><span class="business-coverage-zone">ทางเข้า</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">เคาน์เตอร์</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">แนวชั้นวาง</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div></div>
                     </div><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
                 </article>
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('warehouse')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('warehouse')}">
                     <span class="news-art"><img src="./assets/business-warehouse.png" alt="กล้องวงจรปิดในคลังสินค้า" loading="lazy"><span class="news-art-label">คลังสินค้า · โรงงาน</span></span>
-                    <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 4 นาที</span></span><h3>คลังสินค้า: พื้นที่กว้างและจุดรับส่งของ</h3><p>พิจารณาระยะมองเห็น สภาพแสง และสภาพแวดล้อมของพื้นที่ติดตั้งทั้งในและนอกอาคาร</p><div class="business-coverage-mini" aria-label="ตัวอย่างความกว้างฉากตามโซน">
-                        <div class="business-coverage-heading"><span><i class="fa-solid fa-camera" aria-hidden="true"></i> ความกว้างฉากตัวอย่าง</span><span class="business-coverage-badge">4MP*</span></div>
-                        <div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">จุดรับส่งสินค้า</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="จุดรับส่งสินค้า: จำแนก · ≤21.5 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="21.5"><span style="width:20%"></span></div></div><div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">แนวชั้นวาง</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="แนวชั้นวาง: สังเกต · ≤42.7 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="42.7"><span style="width:39%"></span></div></div><div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">แนวรั้ว</span><span class="business-coverage-target">ตรวจพบ · ≤107.5 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="แนวรั้ว: ตรวจพบ · ≤107.5 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="107.5"><span style="width:98%"></span></div></div>
-                        <div class="business-coverage-scale"><span>แถบแสดงความกว้าง</span><span>0–110 ม.</span></div>
+                    <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 4 นาที</span></span><h3>คลังสินค้า: พื้นที่กว้างและจุดรับส่งของ</h3><p>พิจารณาระยะมองเห็น สภาพแสง และสภาพแวดล้อมของพื้นที่ติดตั้งทั้งในและนอกอาคาร</p><div class="business-coverage-mini" aria-label="มุมเลนส์และพื้นที่ภาพของ warehouse">
+                        <div class="business-coverage-heading"><span><i class="fa-solid fa-video" aria-hidden="true"></i> มุมมองและพื้นที่ภาพ</span><span class="business-coverage-badge">4MP*</span></div>
+                        <div class="business-fov-graphic"><svg viewBox="0 0 520 190" role="img" aria-label="มุมเลนส์ ระยะกล้อง และขนาดภาพที่ปลายทาง" preserveAspectRatio="xMidYMid meet">
+<path d="M95 94L399 31L399 159Z" fill="#9bd96a" opacity=".24"/>
+<path d="M96 94L399 31M96 94L399 159" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="7 6"/>
+<path d="M96 94L399 31L399 159Z" fill="#8ed14e" opacity=".12"/>
+<rect x="398" y="31" width="96" height="128" rx="2" fill="#8ed14e" stroke="#53ad36" stroke-width="2"/>
+<path d="M398 73H494M398 116H494" stroke="#fff" stroke-width="2" opacity=".9"/>
+<path d="M417 31v128M450 31v128" stroke="#4a9f37" stroke-width="1" stroke-dasharray="3 4" opacity=".65"/>
+<text x="408" y="58" font-size="10" font-weight="700" fill="#2e6a25">Z1</text><text x="434" y="101" font-size="10" font-weight="700" fill="#2e6a25">Z2</text><text x="463" y="144" font-size="10" font-weight="700" fill="#2e6a25">Z3</text>
+<rect x="17" y="72" width="64" height="45" fill="#fff" stroke="#1577bd" stroke-width="3"/><rect x="81" y="83" width="14" height="23" fill="#fff" stroke="#1577bd" stroke-width="3"/><text x="26" y="100" font-size="12" font-weight="700" fill="#1577bd">CAM</text>
+<path d="M111 94h269" stroke="#d21f27" stroke-width="3"/><path d="M380 94l-13-7v14z" fill="#d21f27"/><text x="201" y="85" font-size="12" font-weight="700" fill="#c91f27">ระยะ D</text>
+<path d="M130 77a40 40 0 0 1 0 34" fill="none" stroke="#27a9e8" stroke-width="2.5"/><path d="M130 77l-2 8 7-3M130 111l-2-8 7 3" fill="#27a9e8"/><text x="129" y="64" font-size="11" font-weight="700" fill="#167cb9">มุมเลนส์ θ</text>
+<path d="M400 20h92" stroke="#167cb9" stroke-width="2"/><path d="M400 20l8-5v10zM492 20l-8-5v10z" fill="#167cb9"/><text x="416" y="14" font-size="10" font-weight="700" fill="#167cb9">กว้างภาพ W</text>
+<path d="M507 34v121" stroke="#167cb9" stroke-width="2"/><path d="M507 34l-5 8h10zM507 155l-5-8h10z" fill="#167cb9"/><text x="515" y="100" font-size="9" font-weight="700" fill="#167cb9" transform="rotate(90 515 100)">สูงภาพ H</text>
+<text x="402" y="177" font-size="9" font-weight="600" fill="#526176">พื้นที่ภาพปลายทาง</text>
+</svg></div>
+                        <div class="business-fov-dimensions"><span><strong>θ</strong> มุมเลนส์</span><span><strong>D</strong> ระยะ</span><span><strong>W × H</strong> ขนาดภาพ</span></div>
+                        <div class="business-coverage-zones"><div class="business-coverage-zone-row"><span class="business-coverage-zone">จุดรับส่งสินค้า</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">แนวชั้นวาง</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">แนวรั้ว</span><span class="business-coverage-target">ตรวจพบ · ≤107.5 ม.</span></div></div>
                     </div><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
                 </article>
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('office')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('office')}">
                     <span class="news-art"><img src="./assets/business-office.png" alt="กล้องวงจรปิดในสำนักงาน" loading="lazy"><span class="news-art-label">สำนักงาน · อาคาร</span></span>
-                    <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>สำนักงาน: โถงต้อนรับและทางเดิน</h3><p>ออกแบบตำแหน่งติดตั้งตามพื้นที่ใช้งานจริง เลี่ยงมุมอับ และคำนึงถึงความเป็นส่วนตัว</p><div class="business-coverage-mini" aria-label="ตัวอย่างความกว้างฉากตามโซน">
-                        <div class="business-coverage-heading"><span><i class="fa-solid fa-camera" aria-hidden="true"></i> ความกว้างฉากตัวอย่าง</span><span class="business-coverage-badge">4MP*</span></div>
-                        <div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">ประตู/ต้อนรับ</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="ประตู/ต้อนรับ: จำแนก · ≤21.5 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="21.5"><span style="width:20%"></span></div></div><div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">ทางเดิน</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="ทางเดิน: สังเกต · ≤42.7 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="42.7"><span style="width:39%"></span></div></div><div class="business-coverage-row"><div class="business-coverage-row-head"><span class="business-coverage-zone">พื้นที่ส่วนกลาง</span><span class="business-coverage-target">ตรวจพบ · ≤107.5 ม.</span></div><div class="business-coverage-track" role="meter" aria-label="พื้นที่ส่วนกลาง: ตรวจพบ · ≤107.5 ม." aria-valuemin="0" aria-valuemax="110" aria-valuenow="107.5"><span style="width:98%"></span></div></div>
-                        <div class="business-coverage-scale"><span>แถบแสดงความกว้าง</span><span>0–110 ม.</span></div>
+                    <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>สำนักงาน: โถงต้อนรับและทางเดิน</h3><p>ออกแบบตำแหน่งติดตั้งตามพื้นที่ใช้งานจริง เลี่ยงมุมอับ และคำนึงถึงความเป็นส่วนตัว</p><div class="business-coverage-mini" aria-label="มุมเลนส์และพื้นที่ภาพของ office">
+                        <div class="business-coverage-heading"><span><i class="fa-solid fa-video" aria-hidden="true"></i> มุมมองและพื้นที่ภาพ</span><span class="business-coverage-badge">4MP*</span></div>
+                        <div class="business-fov-graphic"><svg viewBox="0 0 520 190" role="img" aria-label="มุมเลนส์ ระยะกล้อง และขนาดภาพที่ปลายทาง" preserveAspectRatio="xMidYMid meet">
+<path d="M95 94L399 31L399 159Z" fill="#9bd96a" opacity=".24"/>
+<path d="M96 94L399 31M96 94L399 159" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="7 6"/>
+<path d="M96 94L399 31L399 159Z" fill="#8ed14e" opacity=".12"/>
+<rect x="398" y="31" width="96" height="128" rx="2" fill="#8ed14e" stroke="#53ad36" stroke-width="2"/>
+<path d="M398 73H494M398 116H494" stroke="#fff" stroke-width="2" opacity=".9"/>
+<path d="M417 31v128M450 31v128" stroke="#4a9f37" stroke-width="1" stroke-dasharray="3 4" opacity=".65"/>
+<text x="408" y="58" font-size="10" font-weight="700" fill="#2e6a25">Z1</text><text x="434" y="101" font-size="10" font-weight="700" fill="#2e6a25">Z2</text><text x="463" y="144" font-size="10" font-weight="700" fill="#2e6a25">Z3</text>
+<rect x="17" y="72" width="64" height="45" fill="#fff" stroke="#1577bd" stroke-width="3"/><rect x="81" y="83" width="14" height="23" fill="#fff" stroke="#1577bd" stroke-width="3"/><text x="26" y="100" font-size="12" font-weight="700" fill="#1577bd">CAM</text>
+<path d="M111 94h269" stroke="#d21f27" stroke-width="3"/><path d="M380 94l-13-7v14z" fill="#d21f27"/><text x="201" y="85" font-size="12" font-weight="700" fill="#c91f27">ระยะ D</text>
+<path d="M130 77a40 40 0 0 1 0 34" fill="none" stroke="#27a9e8" stroke-width="2.5"/><path d="M130 77l-2 8 7-3M130 111l-2-8 7 3" fill="#27a9e8"/><text x="129" y="64" font-size="11" font-weight="700" fill="#167cb9">มุมเลนส์ θ</text>
+<path d="M400 20h92" stroke="#167cb9" stroke-width="2"/><path d="M400 20l8-5v10zM492 20l-8-5v10z" fill="#167cb9"/><text x="416" y="14" font-size="10" font-weight="700" fill="#167cb9">กว้างภาพ W</text>
+<path d="M507 34v121" stroke="#167cb9" stroke-width="2"/><path d="M507 34l-5 8h10zM507 155l-5-8h10z" fill="#167cb9"/><text x="515" y="100" font-size="9" font-weight="700" fill="#167cb9" transform="rotate(90 515 100)">สูงภาพ H</text>
+<text x="402" y="177" font-size="9" font-weight="600" fill="#526176">พื้นที่ภาพปลายทาง</text>
+</svg></div>
+                        <div class="business-fov-dimensions"><span><strong>θ</strong> มุมเลนส์</span><span><strong>D</strong> ระยะ</span><span><strong>W × H</strong> ขนาดภาพ</span></div>
+                        <div class="business-coverage-zones"><div class="business-coverage-zone-row"><span class="business-coverage-zone">ประตู/ต้อนรับ</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">ทางเดิน</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">พื้นที่ส่วนกลาง</span><span class="business-coverage-target">ตรวจพบ · ≤107.5 ม.</span></div></div>
                     </div><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
                 </article>
             </div>
@@ -432,7 +492,7 @@
                 return (card.getAttribute('onclick') || '').indexOf("openBusinessGuide('" + key + "')") !== -1;
             });
             const coveragePanel = guideCard ? guideCard.querySelector('.business-coverage-mini') : null;
-            const coverageSection = coveragePanel ? '<section class="news-coverage-modal"><h3><i class="fa-solid fa-ruler-combined" aria-hidden="true"></i> ความกว้างภาพที่แนะนำในแต่ละโซน</h3><div class="business-coverage-mini">' + coveragePanel.innerHTML + '</div><p class="news-coverage-modal-note">ตัวเลขเป็นความกว้างฉากตัวอย่างจากกล้อง 4MP ไม่ใช่ระยะติดตั้งตายตัว ควรยืนยันจากรุ่นเลนส์ ระยะติดตั้ง มุมกล้อง และแสงจริง <a href="https://whitepapers.axis.com/en-us/pixel-density-based-on-iec-62676-4-2014" target="_blank" rel="noopener noreferrer">อ่านหลักการ DORI</a></p></section>' : '';
+            const coverageSection = coveragePanel ? '<section class="news-coverage-modal"><h3><i class="fa-solid fa-ruler-combined" aria-hidden="true"></i> แผนมุมมองกล้องและความกว้างแต่ละโซน</h3><div class="business-coverage-mini">' + coveragePanel.innerHTML + '</div><p class="news-coverage-modal-note">ตัวเลขเป็นความกว้างฉากตัวอย่างจากกล้อง 4MP ไม่ใช่ระยะติดตั้งตายตัว ควรยืนยันจากรุ่นเลนส์ ระยะติดตั้ง มุมกล้อง และแสงจริง <a href="https://whitepapers.axis.com/en-us/pixel-density-based-on-iec-62676-4-2014" target="_blank" rel="noopener noreferrer">อ่านหลักการ DORI</a></p></section>' : '';
             document.getElementById('businessGuideBody').innerHTML = '<p>' + guideEscape(data.intro) + '</p>' + coverageSection + '<section class="news-guide-block"><h3><i class="fa-solid fa-video" style="color:#c91f27"></i> รูปแบบกล้องที่ควรพิจารณา</h3><ul>' + cameraItems + '</ul></section><section class="news-guide-block"><h3><i class="fa-solid fa-sliders" style="color:#c91f27"></i> คุณสมบัติและจุดตรวจสอบ</h3><ul>' + featureItems + '</ul></section><p class="news-disclaimer">คำแนะนำเป็นแนวทางเริ่มต้น ควรทดลองภาพจากมุมติดตั้งจริงและตรวจระบบบันทึกภาพเดิมก่อนเลือกซื้อ</p><div class="news-source-links">' + sourceLinks + '</div>';
             document.getElementById('businessGuideOverlay').hidden = false;
             document.body.style.overflow = 'hidden';
