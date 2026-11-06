@@ -41,8 +41,8 @@
         .business-coverage-heading{display:flex;align-items:center;justify-content:space-between;gap:.3rem;margin-bottom:.45rem;color:#475569;font-size:.65rem;font-weight:700}
         .business-coverage-heading i{color:#c91f27;margin-right:.25rem}
         .business-coverage-badge{padding:.15rem .35rem;border-radius:99px;background:#fff0f0;color:#a51d24;font-size:.58rem;white-space:nowrap}
-        .business-fov-graphic{height:140px;display:grid;place-items:center;overflow:hidden;border:1px solid #edf0f5;border-radius:10px;background:linear-gradient(180deg,#fff,#f8fafc)}
-        .business-fov-graphic img{display:block;width:100%;height:100%;object-fit:contain}
+        .business-fov-graphic{height:auto;min-height:0;aspect-ratio:3/2;display:grid;place-items:center;overflow:hidden;border:1px solid #edf0f5;border-radius:10px;background:#fff}
+        .business-fov-graphic img{display:block;width:100%;height:100%;object-fit:contain!important;object-position:center}
         .business-fov-dimensions{display:flex;justify-content:space-between;gap:.35rem;margin:.4rem 0;color:#738198;font-size:.58rem}
         .business-fov-dimensions strong{color:#2563a8;font-weight:600}
         .business-coverage-zones{display:grid;gap:.28rem}
@@ -66,14 +66,14 @@
         .news-coverage-modal .business-coverage-mini{padding:1rem;border-radius:14px}
         .news-coverage-modal .business-coverage-heading{font-size:.8rem;margin-bottom:.65rem}
         .news-coverage-modal .business-coverage-badge{font-size:.68rem;padding:.2rem .5rem}
-        .news-coverage-modal .business-fov-graphic{height:205px}
+        .news-coverage-modal .business-fov-graphic{height:auto;max-height:250px;aspect-ratio:3/2}
         .news-coverage-modal .business-fov-dimensions{font-size:.72rem;margin:.65rem 0}
         .news-coverage-modal .business-coverage-zones{grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem}
         .news-coverage-modal .business-coverage-zone-row{display:block;padding:.55rem;border:1px solid #e8edf3;border-radius:10px;background:#fff}
         .news-coverage-modal .business-coverage-zone{display:block;margin-bottom:.2rem;font-size:.78rem}
         .news-coverage-modal .business-coverage-target{font-size:.7rem}
         .news-coverage-modal-note{margin:.45rem 0 0;color:#748197;font-size:.72rem;line-height:1.55}
-        @media(max-width:560px){.news-coverage-modal .business-fov-graphic{height:150px}.news-coverage-modal .business-coverage-zones{grid-template-columns:1fr}.news-coverage-modal .business-coverage-zone-row{display:flex;justify-content:space-between;align-items:center;gap:.4rem}.news-coverage-modal .business-coverage-zone{margin:0}}
+        @media(max-width:560px){.news-coverage-modal .business-fov-graphic{height:auto;max-height:185px;aspect-ratio:3/2}.news-coverage-modal .business-coverage-zones{grid-template-columns:1fr}.news-coverage-modal .business-coverage-zone-row{display:flex;justify-content:space-between;align-items:center;gap:.4rem}.news-coverage-modal .business-coverage-zone{margin:0}}
         .news-guide-block{padding:1rem;margin:.8rem 0;border:1px solid #edf0f5;border-radius:14px;background:#fff}
         .news-guide-block h3{font-size:.95rem;margin:0 0 .55rem;color:#172033}
         .news-guide-block ul{margin:0;padding-left:1.2rem;color:#526176;line-height:1.75;font-size:.88rem}
@@ -272,7 +272,7 @@
                     <span class="news-art"><img src="./assets/business-restaurant.png" alt="กล้องวงจรปิดภายในร้านอาหาร" loading="lazy"><span class="news-art-label">ร้านอาหาร · คาเฟ่</span></span>
                     <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านอาหาร: ภาพชัดในแสงน้อยและจุดบริการ</h3><p>เริ่มจากทางเข้า จุดชำระเงิน และพื้นที่ปฏิบัติงาน เลือกคุณสมบัติภาพให้เหมาะกับแสงของแต่ละจุด</p><div class="business-coverage-mini" aria-label="มุมเลนส์และพื้นที่ภาพของ restaurant">
                         <div class="business-coverage-heading"><span><i class="fa-solid fa-video" aria-hidden="true"></i> ผังพื้นที่และมุมกล้อง</span><span class="business-coverage-badge">4MP*</span></div>
-                        <div class="business-fov-graphic"><img src="assets/tatip-restaurant.jpg" alt="ผังร้านอาหารและพื้นที่กล้องครอบคลุม" loading="lazy" decoding="async" width="1536" height="1024"></div>
+                        <div class="business-fov-graphic"><img src="assets/tatip-restaurant.jpg" alt="ผังร้านอาหารและพื้นที่กล้องครอบคลุม" loading="lazy" decoding="async" width="360" height="240"></div>
                         <div class="business-fov-dimensions"><span><strong>θ</strong> มุมเลนส์</span><span><strong>D</strong> ระยะ</span><span><strong>W × H</strong> ขนาดภาพ</span></div>
                         <div class="business-coverage-zones"><div class="business-coverage-zone-row"><span class="business-coverage-zone">ทางเข้า</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">จุดชำระเงิน</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">พื้นที่บริการ</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div></div>
                     </div><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
@@ -281,7 +281,7 @@
                     <span class="news-art"><img src="./assets/business-retail.png" alt="กล้องวงจรปิดในร้านค้าปลีก" loading="lazy"><span class="news-art-label">ร้านค้าปลีก</span></span>
                     <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>ร้านค้า: ทางเข้า เคาน์เตอร์ และทางเดิน</h3><p>วางแผนมุมมองให้ครอบคลุมจุดเข้าออกและจุดบริการ พร้อมรับมือแสงย้อนจากหน้าร้าน</p><div class="business-coverage-mini" aria-label="มุมเลนส์และพื้นที่ภาพของ retail">
                         <div class="business-coverage-heading"><span><i class="fa-solid fa-video" aria-hidden="true"></i> มุมมองและพื้นที่ภาพ</span><span class="business-coverage-badge">4MP*</span></div>
-                        <div class="business-fov-graphic"><img src="assets/tatip-retail.jpg" alt="ผังร้านค้าปลีกและพื้นที่กล้องครอบคลุม" loading="lazy" decoding="async" width="1536" height="1024"></div>
+                        <div class="business-fov-graphic"><img src="assets/tatip-retail.jpg" alt="ผังร้านค้าปลีกและพื้นที่กล้องครอบคลุม" loading="lazy" decoding="async" width="360" height="240"></div>
                         <div class="business-fov-dimensions"><span><strong>θ</strong> มุมเลนส์</span><span><strong>D</strong> ระยะ</span><span><strong>W × H</strong> ขนาดภาพ</span></div>
                         <div class="business-coverage-zones"><div class="business-coverage-zone-row"><span class="business-coverage-zone">ทางเข้า</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">เคาน์เตอร์</span><span class="business-coverage-target">ระบุตัว · ≤10.8 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">แนวชั้นวาง</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div></div>
                     </div><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
@@ -290,7 +290,7 @@
                     <span class="news-art"><img src="./assets/business-warehouse.png" alt="กล้องวงจรปิดในคลังสินค้า" loading="lazy"><span class="news-art-label">คลังสินค้า · โรงงาน</span></span>
                     <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 4 นาที</span></span><h3>คลังสินค้า: พื้นที่กว้างและจุดรับส่งของ</h3><p>พิจารณาระยะมองเห็น สภาพแสง และสภาพแวดล้อมของพื้นที่ติดตั้งทั้งในและนอกอาคาร</p><div class="business-coverage-mini" aria-label="มุมเลนส์และพื้นที่ภาพของ warehouse">
                         <div class="business-coverage-heading"><span><i class="fa-solid fa-video" aria-hidden="true"></i> มุมมองและพื้นที่ภาพ</span><span class="business-coverage-badge">4MP*</span></div>
-                        <div class="business-fov-graphic"><img src="assets/tatip-warehouse.jpg" alt="ผังคลังสินค้าและพื้นที่กล้องครอบคลุม" loading="lazy" decoding="async" width="1536" height="1024"></div>
+                        <div class="business-fov-graphic"><img src="assets/tatip-warehouse.jpg" alt="ผังคลังสินค้าและพื้นที่กล้องครอบคลุม" loading="lazy" decoding="async" width="360" height="240"></div>
                         <div class="business-fov-dimensions"><span><strong>θ</strong> มุมเลนส์</span><span><strong>D</strong> ระยะ</span><span><strong>W × H</strong> ขนาดภาพ</span></div>
                         <div class="business-coverage-zones"><div class="business-coverage-zone-row"><span class="business-coverage-zone">จุดรับส่งสินค้า</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">แนวชั้นวาง</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">แนวรั้ว</span><span class="business-coverage-target">ตรวจพบ · ≤107.5 ม.</span></div></div>
                     </div><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
@@ -299,7 +299,7 @@
                     <span class="news-art"><img src="./assets/business-office.png" alt="กล้องวงจรปิดในสำนักงาน" loading="lazy"><span class="news-art-label">สำนักงาน · อาคาร</span></span>
                     <div class="news-content"><span class="news-meta"><span class="news-type">เลือกกล้องตามธุรกิจ</span><span>อ่าน 3 นาที</span></span><h3>สำนักงาน: โถงต้อนรับและทางเดิน</h3><p>ออกแบบตำแหน่งติดตั้งตามพื้นที่ใช้งานจริง เลี่ยงมุมอับ และคำนึงถึงความเป็นส่วนตัว</p><div class="business-coverage-mini" aria-label="มุมเลนส์และพื้นที่ภาพของ office">
                         <div class="business-coverage-heading"><span><i class="fa-solid fa-video" aria-hidden="true"></i> มุมมองและพื้นที่ภาพ</span><span class="business-coverage-badge">4MP*</span></div>
-                        <div class="business-fov-graphic"><img src="assets/tatip-office.jpg" alt="ผังสำนักงานและพื้นที่กล้องครอบคลุม" loading="lazy" decoding="async" width="1536" height="1024"></div>
+                        <div class="business-fov-graphic"><img src="assets/tatip-office.jpg" alt="ผังสำนักงานและพื้นที่กล้องครอบคลุม" loading="lazy" decoding="async" width="360" height="240"></div>
                         <div class="business-fov-dimensions"><span><strong>θ</strong> มุมเลนส์</span><span><strong>D</strong> ระยะ</span><span><strong>W × H</strong> ขนาดภาพ</span></div>
                         <div class="business-coverage-zones"><div class="business-coverage-zone-row"><span class="business-coverage-zone">ประตู/ต้อนรับ</span><span class="business-coverage-target">จำแนก · ≤21.5 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">ทางเดิน</span><span class="business-coverage-target">สังเกต · ≤42.7 ม.</span></div><div class="business-coverage-zone-row"><span class="business-coverage-zone">พื้นที่ส่วนกลาง</span><span class="business-coverage-target">ตรวจพบ · ≤107.5 ม.</span></div></div>
                     </div><span class="news-read">อ่านแนวทาง <i class="fa-solid fa-arrow-right"></i></span></div>
