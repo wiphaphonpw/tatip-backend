@@ -75,8 +75,14 @@
         .article-steps li{display:grid;grid-template-columns:30px 1fr;gap:.7rem;align-items:start;padding:.7rem .8rem;border:1px solid #edf0f5;border-radius:12px;background:#fff;line-height:1.65}
         .step-no{width:28px;height:28px;border-radius:9px;background:#fdecec;color:#c81e1e;display:grid;place-items:center;font-weight:700}
         .article-tip{padding:.8rem 1rem;border-left:4px solid #e3a72f;background:#fff8e8;border-radius:8px;color:#70551a;line-height:1.65;font-size:.88rem}
-        .article-actions{display:flex;justify-content:flex-end;margin-top:1rem}
+        .article-actions{display:flex;justify-content:flex-end;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
         .article-ask{display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1rem;border-radius:11px;background:#c81e1e;color:#fff;text-decoration:none;font-weight:600}
+        .article-contact{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.7rem 1rem;border:1px solid #efb7b9;border-radius:11px;background:#fff8f8;color:#b91c24;text-decoration:none;font-weight:600}
+        .article-contact:hover{background:#fdecec}
+        .article-video{margin:1rem 0;padding:1rem;border:1px solid #e5eaf1;border-radius:16px;background:#fbfcfe}
+        .article-video h3{margin:0 0 .65rem;color:#172033;font-size:1rem}
+        .article-video video{display:block;width:100%;max-height:420px;aspect-ratio:16/9;object-fit:contain;border-radius:12px;background:#111827}
+        @media(max-width:600px){.article-actions{flex-direction:column}.article-ask,.article-contact{justify-content:center}}
         .article-disclaimer{color:#7b8798;font-size:.77rem;margin:.6rem 0 0}
         @media(max-width:600px){.article-head{padding:.9rem 1rem}.article-body{padding:1rem}.article-head h2{font-size:1rem}.faq-card{min-height:0}}
 
@@ -338,6 +344,7 @@
                     'ใช้ Heatmap หาตำแหน่งที่มีความหนาแน่นหรือเหตุการณ์มาก ตรวจสอบภาพจากกล้องและบริบทก่อนสรุปสาเหตุ'
                 ],
                 visual: 'dashboard',
+                video: { src: './assets/videos/Heatmap.mp4', title: 'อ่าน Dashboard และ Heatmap' },
                 tip: 'สีเข้มหรือค่าที่สูงบน Heatmap บอกจุดที่ควรตรวจสอบต่อ ไม่ได้ยืนยันว่าเกิดปัญหาเสมอไป'
             },
             'ptz-control': {
@@ -374,6 +381,7 @@
                     'หากยังไม่มีข้อมูล ให้บันทึกชื่อสาขา เวลา และภาพหน้าจอ แล้วแจ้งผู้ดูแล'
                 ],
                 visual: 'service-analysis',
+                video: { src: './assets/videos/ROI%20.mp4', title: 'ตั้งค่าพื้นที่ ROI' },
                 tip: 'ตำแหน่ง ROI และการติดตั้งไมโครโฟนขึ้นอยู่กับอุปกรณ์และการจัดวางของแต่ละสาขา'
             },
             'branch-date': {
@@ -442,10 +450,11 @@
             const steps = guide?.steps || [];
             const stepHtml = steps.map((step, index) => '<li><span class="step-no">' + (index + 1) + '</span><span>' + escapeArticle(step) + '</span></li>').join('');
             const visual = guide ? infographic(guide.visual) : '';
+            const relatedVideo = guide?.video ? '<section class="article-video" aria-label="คลิปสอนที่เกี่ยวข้อง"><h3><i class="fa-solid fa-circle-play" style="color:#c81e1e"></i> คลิปสอนที่เกี่ยวข้อง: ' + escapeArticle(guide.video.title) + '</h3><video controls playsinline preload="metadata" title="' + escapeArticle(guide.video.title) + '"><source src="' + escapeArticle(guide.video.src) + '" type="video/mp4">เบราว์เซอร์นี้ไม่รองรับการเล่นวิดีโอ</video></section>' : '';
             const tip = guide?.tip ? '<div class="article-tip"><strong><i class="fa-solid fa-lightbulb"></i> ข้อควรรู้</strong><br>' + escapeArticle(guide.tip) + '</div>' : '';
             const stepsSection = guide ? '<h3 style="font-size:1rem;margin:1rem 0 .6rem">วิธีตรวจสอบ</h3><ol class="article-steps">' + stepHtml + '</ol>' : '';
             const referenceNote = reference ? '<p class="article-disclaimer">' + escapeArticle(reference) + '</p>' : '';
-            document.getElementById('articleBody').innerHTML = '<p class="article-intro">' + escapeArticle(intro) + '</p>' + visual + stepsSection + referenceNote + tip + '<div class="article-actions"><a class="article-ask" href="chat.html?q=' + encodeURIComponent(title) + '"><i class="fa-solid fa-comments"></i> ถาม TATIP AI เพิ่มเติม</a></div>';
+            document.getElementById('articleBody').innerHTML = '<p class="article-intro">' + escapeArticle(intro) + '</p>' + visual + relatedVideo + stepsSection + referenceNote + tip + '<div class="article-actions"><a class="article-ask" href="chat.html?q=' + encodeURIComponent(title) + '"><i class="fa-solid fa-comments"></i> ถาม TATIP AI เพิ่มเติม</a><a class="article-contact" href="contact.html"><i class="fa-solid fa-headset"></i> ยังแก้ไม่ได้? ติดต่อเจ้าหน้าที่</a></div>';
             articleDialog.showModal();
         }
         function closeFaqArticle() { articleDialog.close(); }
