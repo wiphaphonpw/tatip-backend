@@ -11,6 +11,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
+from urllib.parse import quote
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Literal
 from pydantic import BaseModel, Field
@@ -605,6 +606,16 @@ async def upload_knowledge_file(
 
 
 # Public contact form supports both signed-in users and visitors.
+def inline_content_disposition(filename: str) -> str:
+    """Build an RFC 5987 Content-Disposition header safe for Unicode filenames."""
+    ascii_fallback = "".join(
+        character for character in filename
+        if 32 <= ord(character) <= 126 and character not in {'"', "\\"}
+    ) or "attachment"
+    encoded_filename = quote(filename, safe="")
+    return f'inline; filename="{ascii_fallback}"; filename*=UTF-8\'\'{encoded_filename}'
+
+
 def support_media_bucket():
     if not SUPPORT_MEDIA_BUCKET:
         raise HTTPException(status_code=503, detail="ยังไม่ได้ตั้งค่า Cloud Storage สำหรับไฟล์แนบ")
@@ -844,7 +855,7 @@ def get_support_case_attachment(
             content=content,
             media_type=content_type,
             headers={
-                "Content-Disposition": f'inline; filename="{filename}"',
+                "Content-Disposition": inline_content_disposition(filename),
                 "X-Content-Type-Options": "nosniff",
                 "Cache-Control": "private, no-store",
             },
@@ -1155,7 +1166,7 @@ def get_customer_case_attachment(case_id: str, attachment_id: str,
         content = support_media_bucket().blob(item["OBJECT_NAME"]).download_as_bytes()
         filename = "".join(c for c in str(item.get("FILE_NAME", "attachment")) if c.isalnum() or c in "._-")[:100] or "attachment"
         return Response(content=content, media_type=media_type, headers={
-            "Content-Disposition": f'inline; filename="{filename}"',
+            "Content-Disposition": inline_content_disposition(filename),
             "X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"})
     except HTTPException:
         raise
