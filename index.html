@@ -132,6 +132,7 @@
         <div class="sidebar-nav-scroll">
             <div class="sidebar-section-label">เมนูหลัก</div>
             <a href="index.html" class="sidebar-link active"><i class="fa-solid fa-house"></i><span>หน้าหลัก</span></a>
+            <a href="camera_planner.html" class="sidebar-link"><i class="fa-solid fa-video"></i><span>วางแผนติดตั้งกล้อง</span></a>
             <a href="chat.html" class="sidebar-link"><i class="fa-solid fa-comments"></i><span>แชท AI</span></a>
             <a href="customer_dashboard.html" class="sidebar-link"><i class="fa-solid fa-chart-pie"></i><span>ภาพรวมของฉัน</span></a>
             <a href="history.html" class="sidebar-link"><i class="fa-solid fa-clock-rotate-left"></i><span>ประวัติการสนทนา</span></a>
@@ -308,6 +309,7 @@
                     <h2 id="businessNewsHeading">เลือกกล้องให้เหมาะกับพื้นที่ของคุณ</h2>
                     <p>แนวคิดเริ่มต้นสำหรับร้านอาหาร ร้านค้า คลังสินค้า และสำนักงาน</p>
                 </div>
+                <a href="camera_planner.html" class="btn-saas btn-saas-primary"><i class="fa-solid fa-compass-drafting"></i> คำนวณและวางแผนผังกล้อง 2D/3D</a>
             </div>
             <div class="news-grid">
                 <article class="news-card" role="button" tabindex="0" onclick="openBusinessGuide('restaurant')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBusinessGuide('restaurant')}">
@@ -455,7 +457,8 @@
             });
             const coveragePanel = guideCard ? guideCard.querySelector('.business-coverage-mini') : null;
             const coverageSection = coveragePanel ? '<section class="news-coverage-modal"><h3><i class="fa-solid fa-ruler-combined" aria-hidden="true"></i> ผังร้านและพื้นที่ที่กล้องครอบคลุม</h3><div class="business-coverage-mini">' + coveragePanel.innerHTML + '</div><p class="news-coverage-modal-note">ตัวเลขเป็นความกว้างฉากตัวอย่างจากกล้อง 4MP ไม่ใช่ระยะติดตั้งตายตัว ควรยืนยันจากรุ่นเลนส์ ระยะติดตั้ง มุมกล้อง และแสงจริง <a href="https://whitepapers.axis.com/en-us/pixel-density-based-on-iec-62676-4-2014" target="_blank" rel="noopener noreferrer">อ่านหลักการ DORI</a></p></section>' : '';
-            document.getElementById('businessGuideBody').innerHTML = '<p>' + guideEscape(data.intro) + '</p>' + coverageSection + '<section class="news-guide-block"><h3><i class="fa-solid fa-video" style="color:#c91f27"></i> รูปแบบกล้องที่ควรพิจารณา</h3><ul>' + cameraItems + '</ul></section><section class="news-guide-block"><h3><i class="fa-solid fa-sliders" style="color:#c91f27"></i> คุณสมบัติและจุดตรวจสอบ</h3><ul>' + featureItems + '</ul></section><p class="news-disclaimer">คำแนะนำเป็นแนวทางเริ่มต้น ควรทดลองภาพจากมุมติดตั้งจริงและตรวจระบบบันทึกภาพเดิมก่อนเลือกซื้อ</p><div class="news-source-links">' + sourceLinks + '</div>';
+            const plannerCta = '<div style="margin:14px 0 6px;padding:12px 14px;border-radius:12px;background:#FEF2F2;border:1px solid #FECACA;display:flex;align-items:center;justify-content:space-between;gap:12px;"><div><strong style="color:#991B1B;display:block;font-size:0.88rem;">ต้องการคำนวณจำนวนและจุดติดกล้องสำหรับพื้นที่ของคุณ?</strong><span style="color:#7F1D1D;font-size:0.78rem;">จำลองผังร้าน 2D/3D และตรวจสอบจุดอับสายตาได้ทันที</span></div><a href="camera_planner.html?business=' + encodeURIComponent(key) + '" class="btn-saas btn-saas-primary" style="flex:none;"><i class="fa-solid fa-compass-drafting"></i> เปิดแผนผังกล้อง</a></div>';
+            document.getElementById('businessGuideBody').innerHTML = '<p>' + guideEscape(data.intro) + '</p>' + plannerCta + coverageSection + '<section class="news-guide-block"><h3><i class="fa-solid fa-video" style="color:#c91f27"></i> รูปแบบกล้องที่ควรพิจารณา</h3><ul>' + cameraItems + '</ul></section><section class="news-guide-block"><h3><i class="fa-solid fa-sliders" style="color:#c91f27"></i> คุณสมบัติและจุดตรวจสอบ</h3><ul>' + featureItems + '</ul></section><p class="news-disclaimer">คำแนะนำเป็นแนวทางเริ่มต้น ควรทดลองภาพจากมุมติดตั้งจริงและตรวจระบบบันทึกภาพเดิมก่อนเลือกซื้อ</p><div class="news-source-links">' + sourceLinks + '</div>';
             document.getElementById('businessGuideOverlay').hidden = false;
             document.body.style.overflow = 'hidden';
             document.querySelector('#businessGuideOverlay .news-close').focus();

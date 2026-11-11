@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแนะนำและวางแผนติดตั้งกล้อง AI - TATIP AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css?v=20261111-desktop1">
+    <style>
+        .planner-config-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow-card);
+        }
+        .planner-config-grid {
+            display: grid;
+            grid-template-columns: 1.25fr 0.7fr 0.7fr 0.7fr 0.65fr 0.75fr 0.9fr;
+            gap: 12px;
+            align-items: end;
+        }
+        .planner-config-grid .form-group { margin-bottom: 0; }
+        .planner-config-grid label { font-size: 0.78rem; margin-bottom: 4px; color: #334155; }
+        .planner-config-grid input,
+        .planner-config-grid select { padding: 8px 10px; font-size: 0.85rem; border-radius: 9px; height: 38px; }
+
+        .planner-chips-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #F1F5F9;
+        }
+        .planner-check-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .planner-check-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: 99px;
+            border: 1px solid var(--border-color);
+            background: #F8FAFC;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--ink-2);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .planner-check-pill:has(input:checked) {
+            background: #FEF2F2;
+            border-color: #FCA5A5;
+            color: #B91C1C;
+            font-weight: 600;
+        }
+        .planner-check-pill input { accent-color: #C81E1E; width: auto; margin: 0; cursor: pointer; }
+
+        .planner-studio-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 365px;
+            gap: 18px;
+            align-items: start;
+            margin-bottom: 20px;
+        }
+        .planner-canvas-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px 18px;
+            box-shadow: var(--shadow-card);
+            min-width: 0;
+        }
+        .planner-canvas-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #F1F5F9;
+        }
+        .planner-canvas-stage {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 14px;
+            padding: 12px;
+            min-height: 440px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .planner-legend-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .planner-inspector-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 0;
+        }
+        .planner-inspector-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: var(--shadow-card);
+        }
+        .planner-inspector-card h3 {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .planner-summary-kpis {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .planner-kpi {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        .planner-kpi span { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; display: block; }
+        .planner-kpi strong { font-size: 1.25rem; color: var(--ink); display: block; margin-top: 5px; line-height: 1.25; }
+    </style>
+</head>
+<body>
+    <!-- UNIFIED DESKTOP SIDEBAR -->
+    <nav class="app-sidebar" aria-label="เมนูหลัก">
+        <a href="index.html" class="sidebar-brand">
+            <span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span>
+            <div class="sidebar-brand-text">
+                <div class="sidebar-brand-title">TATIP AI <span class="version-badge">v10.0 RAG</span></div>
+                <span class="sidebar-brand-sub">ระบบสนับสนุนบริการลูกค้า</span>
+            </div>
+        </a>
+        <div class="sidebar-nav-scroll">
+            <div class="sidebar-section-label">เมนูหลัก</div>
+            <a href="index.html" class="sidebar-link"><i class="fa-solid fa-house"></i><span>หน้าหลัก</span></a>
+            <a href="camera_planner.html" class="sidebar-link active"><i class="fa-solid fa-video"></i><span>วางแผนติดตั้งกล้อง</span></a>
+            <a href="chat.html" class="sidebar-link"><i class="fa-solid fa-comments"></i><span>แชท AI</span></a>
+            <a href="customer_dashboard.html" class="sidebar-link"><i class="fa-solid fa-chart-pie"></i><span>ภาพรวมของฉัน</span></a>
+            <a href="history.html" class="sidebar-link"><i class="fa-solid fa-clock-rotate-left"></i><span>ประวัติการสนทนา</span></a>
+            <a href="faq.html" class="sidebar-link"><i class="fa-solid fa-circle-question"></i><span>คำถามที่พบบ่อย</span></a>
+            <a href="contact.html" class="sidebar-link"><i class="fa-solid fa-headset"></i><span>ติดต่อเจ้าหน้าที่</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <button type="button" onclick="window.logoutUser ? window.logoutUser() : (localStorage.removeItem('currentUser'), location.replace('login.html'))" class="btn-sidebar-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+    </nav>
+
+    <header class="top-navbar">
+        <div class="nav-container">
+            <div class="header-context">
+                <div class="header-page-title"><i class="fa-solid fa-video text-red"></i> ระบบแนะนำและวางแผนติดตั้งกล้องอัจฉริยะ</div>
+                <span class="header-page-sub">คำนวณจำนวนกล้อง วางตำแหน่ง 2D/3D และตรวจสอบจุดอับสายตาเบื้องต้น</span>
+            </div>
+            <div class="header-actions">
+                <select id="savedLayoutsSelect" onchange="CameraPlanner.loadSavedLayout(this.value)" style="height:38px;padding:0 12px;border:1px solid var(--border-color);border-radius:9px;font-size:0.82rem;max-width:240px;background:#fff;">
+                    <option value="">-- โหลดแผนผังที่บันทึกไว้ --</option>
+                </select>
+                <button type="button" onclick="CameraPlanner.deleteCurrentSavedLayout()" class="btn-saas btn-saas-secondary" title="ลบแผนผังที่เลือก">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <button type="button" id="btnSaveLayout" onclick="CameraPlanner.saveLayoutToCloud()" class="btn-saas btn-saas-primary">
+                    <i class="fa-solid fa-floppy-disk"></i> บันทึกแผนผัง
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+            <div>
+                <h2 style="font-size:1.3rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:9px;">
+                    <i class="fa-solid fa-compass-drafting text-red"></i> ออกแบบผังกล้องและวิเคราะห์พื้นที่ (Camera Placement Planner)
+                </h2>
+                <p id="plannerSaveStatus" style="font-size:0.82rem;color:var(--text-muted);margin-top:2px;">กรอกขนาดพื้นที่และโซนที่ต้องการใช้งาน เพื่อคำนวณจำนวนและจุดติดตั้งกล้องเบื้องต้น</p>
+            </div>
+            <a href="chat.html" class="btn-saas btn-saas-secondary"><i class="fa-solid fa-comments"></i> ปรึกษา TATIP AI</a>
+        </div>
+
+        <!-- 1. Space & Business Configuration Panel -->
+        <section class="planner-config-card" aria-label="ตั้งค่าพื้นที่และธุรกิจ">
+            <div class="planner-config-grid">
+                <div class="form-group">
+                    <label for="layoutNameInput">ชื่อแผนผัง / สาขา</label>
+                    <input type="text" id="layoutNameInput" value="แผนผังติดตั้งกล้อง TATIP AI" placeholder="เช่น สาขาสยามสแควร์">
+                </div>
+                <div class="form-group">
+                    <label for="businessTypeSelect">ประเภทธุรกิจ</label>
+                    <select id="businessTypeSelect" onchange="CameraPlanner.onBusinessTypeChange(this.value)">
+                        <option value="restaurant">ร้านอาหาร</option>
+                        <option value="cafe">ร้านกาแฟ / คาเฟ่</option>
+                        <option value="retail">ร้านค้าปลีก</option>
+                        <option value="warehouse">คลังสินค้า / โรงงาน</option>
+                        <option value="office">สำนักงาน / อาคาร</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="spaceWidthInput">ความกว้าง (เมตร)</label>
+                    <input type="number" id="spaceWidthInput" min="3" max="100" step="0.5" value="10">
+                </div>
+                <div class="form-group">
+                    <label for="spaceLengthInput">ความยาว (เมตร)</label>
+                    <input type="number" id="spaceLengthInput" min="3" max="100" step="0.5" value="14">
+                </div>
+                <div class="form-group">
+                    <label for="ceilingHeightInput">สูง (ม./ไม่ระบุได้)</label>
+                    <input type="number" id="ceilingHeightInput" min="1.8" max="20" step="0.1" placeholder="รอยืนยัน">
+                </div>
+                <div class="form-group">
+                    <label for="floorCountInput">จำนวนชั้น</label>
+                    <input type="number" id="floorCountInput" min="1" max="5" value="1">
+                </div>
+                <div class="form-group">
+                    <label for="entranceCountInput">จำนวนทางเข้า &amp; ด้าน</label>
+                    <div style="display:flex;gap:6px;">
+                        <input type="number" id="entranceCountInput" min="1" max="4" value="1" style="width:58px;">
+                        <select id="entranceSideSelect" style="flex:1;">
+                            <option value="front">ด้านหน้า</option>
+                            <option value="left">ด้านซ้าย</option>
+                            <option value="right">ด้านขวา</option>
+                            <option value="back">ด้านหลัง</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="planner-chips-row">
+                <div class="planner-check-group">
+                    <span style="font-size:0.8rem;font-weight:700;color:#475569;margin-right:4px;">โซนภายในร้าน:</span>
+                    <label class="planner-check-pill"><input type="checkbox" id="zoneToggle_entrance" checked> ทางเข้า-ออก</label>
+                    <label class="planner-check-pill"><input type="checkbox" id="zoneToggle_cashier" checked> เคาน์เตอร์/ชำระเงิน</label>
+                    <label class="planner-check-pill"><input type="checkbox" id="zoneToggle_service" checked> พื้นที่ให้บริการ</label>
+                    <label class="planner-check-pill"><input type="checkbox" id="zoneToggle_seating" checked> พื้นที่ลูกค้า/ชั้นวาง</label>
+                    <label class="planner-check-pill"><input type="checkbox" id="zoneToggle_kitchen" checked> ครัว/หลังร้าน/สต็อก</label>
+                </div>
+
+                <div class="planner-check-group">
+                    <span style="font-size:0.8rem;font-weight:700;color:#475569;margin-right:4px;">AI Analytics:</span>
+                    <label class="planner-check-pill"><input type="checkbox" name="analyticsFocus" value="people_counting" checked> นับคนเข้า-ออก</label>
+                    <label class="planner-check-pill"><input type="checkbox" name="analyticsFocus" value="cashier_monitoring" checked> ตรวจจุดบริการ</label>
+                    <label class="planner-check-pill"><input type="checkbox" name="analyticsFocus" value="heatmap" checked> Heatmap</label>
+                    <label class="planner-check-pill"><input type="checkbox" name="analyticsFocus" value="workflow" checked> ขั้นตอนงาน</label>
+                    <label class="planner-check-pill"><input type="checkbox" name="analyticsFocus" value="service_audio"> วิเคราะห์เสียง (1 ตัว/สาขา)</label>
+                </div>
+
+                <button type="button" onclick="CameraPlanner.recalculate()" class="btn-saas btn-saas-primary" style="margin-left:auto;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> วิเคราะห์และคำนวณกล้องใหม่
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. Main 2-Column Interactive Studio (Floor Plan + Inspector) -->
+        <section class="planner-studio-grid">
+            <!-- Left: 2D/3D Floor Plan Canvas & Reasoning -->
+            <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+                <div class="planner-canvas-card">
+                    <div class="planner-canvas-toolbar">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <div class="admin-tabs-bar" style="margin:0;padding:4px;">
+                                <button type="button" id="btnView2D" class="admin-tab-btn active" style="padding:6px 14px;font-size:0.82rem;" onclick="CameraPlanner.setViewMode('2d')"><i class="fa-solid fa-map"></i> 2D Floor Plan</button>
+                                <button type="button" id="btnView3D" class="admin-tab-btn" style="padding:6px 14px;font-size:0.82rem;" onclick="CameraPlanner.setViewMode('3d')"><i class="fa-solid fa-cube"></i> 3D View</button>
+                            </div>
+                            <div id="floorSelectorGroup" style="display:flex;gap:4px;"></div>
+                        </div>
+
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <label style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;cursor:pointer;">
+                                <input type="checkbox" checked onchange="CameraPlanner.toggleOverlay('blindSpots', this.checked)" style="accent-color:#C81E1E;"> แสดงจุดอับสายตา
+                            </label>
+                            <label style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;cursor:pointer;">
+                                <input type="checkbox" onchange="CameraPlanner.toggleOverlay('overlaps', this.checked)" style="accent-color:#2563EB;"> พื้นที่ซ้อนทับ
+                            </label>
+                            <button type="button" onclick="CameraPlanner.addCustomCamera()" class="btn-saas btn-saas-secondary" style="height:34px;padding:0 12px;font-size:0.8rem;">
+                                <i class="fa-solid fa-plus text-red"></i> เพิ่มกล้อง
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="plannerCanvasContainer" class="planner-canvas-stage"></div>
+
+                    <div class="planner-legend-bar">
+                        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+                            <span><i class="fa-solid fa-circle text-red"></i> ตำแหน่งกล้อง &amp; มุมมอง FOV</span>
+                            <span><span style="display:inline-block;width:11px;height:11px;background:rgba(239,68,68,0.25);border:1px solid #EF4444;vertical-align:middle;border-radius:2px;"></span> จุดอับสายตาเบื้องต้น</span>
+                            <span><span style="display:inline-block;width:11px;height:11px;background:rgba(37,99,235,0.2);border:1px solid #3B82F6;vertical-align:middle;border-radius:2px;"></span> พื้นที่กล้องซ้อนทับ</span>
+                        </div>
+                        <span style="font-weight:500;color:#475569;"><i class="fa-solid fa-hand-pointer text-red"></i> ลากตัวกล้องเพื่อย้าย · ลากจุดวงกลมขาวเพื่อหมุนทิศทาง</span>
+                    </div>
+                </div>
+
+                <!-- Rationale & Engineering Notes -->
+                <div class="planner-inspector-card" style="background:#FFFDFD;border-color:#FECACA;">
+                    <h3><i class="fa-solid fa-lightbulb text-red"></i> เหตุผลประกอบการแนะนำจำนวนและตำแหน่งกล้อง</h3>
+                    <div id="recommendationReasoning"></div>
+                </div>
+            </div>
+
+            <!-- Right: Camera Detail Panel + Blind Spot Detection -->
+            <aside class="planner-inspector-stack">
+                <div class="planner-inspector-card">
+                    <h3><i class="fa-solid fa-sliders text-red"></i> รายละเอียดกล้อง (Camera Detail)</h3>
+                    <div id="cameraDetailContent"></div>
+                </div>
+
+                <div class="planner-inspector-card">
+                    <h3><i class="fa-solid fa-eye-slash text-red"></i> ตรวจสอบจุดอับ &amp; Coverage</h3>
+                    <div id="blindSpotPanel"></div>
+                </div>
+            </aside>
+        </section>
+
+        <!-- 3. Camera Summary Dashboard -->
+        <section aria-label="สรุปแผนผังการติดตั้งกล้อง">
+            <div class="planner-summary-kpis">
+                <div class="planner-kpi"><span>จำนวนกล้องทั้งหมด</span><strong id="sumTotalCams" style="color:var(--red);">—</strong></div>
+                <div class="planner-kpi"><span>โซนที่ครอบคลุมดี</span><strong id="sumCoveredZones" style="color:#0E9F6E;">—</strong></div>
+                <div class="planner-kpi"><span>โซนที่ยังต้องตรวจสอบ</span><strong id="sumPendingZones" style="color:#D97706;">—</strong></div>
+                <div class="planner-kpi"><span>ความละเอียดที่แนะนำ</span><strong id="sumResolution" style="font-size:0.95rem;">—</strong></div>
+                <div class="planner-kpi"><span>AI Analytics ที่รองรับ</span><strong id="sumAnalyticsCount">—</strong></div>
+            </div>
+
+            <div class="saas-panel">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                    <h3 style="font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:8px;">
+                        <i class="fa-solid fa-list-check text-red"></i> รายการกล้องทั้งหมดในแผนผัง
+                    </h3>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">คลิกที่แถวเพื่อเลือกดูและปรับมุมกล้องบนแผนผัง</span>
+                </div>
+                <div class="saas-table-responsive">
+                    <table class="saas-table">
+                        <thead>
+                            <tr>
+                                <th>Camera ID</th>
+                                <th>ชื่อกล้อง</th>
+                                <th>โซนติดตั้ง</th>
+                                <th>พิกัดบนแผนผัง</th>
+                                <th>ทิศทาง / เลนส์</th>
+                                <th>ความละเอียด</th>
+                                <th>AI Analytics</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryCameraTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="./script.js"></script>
+    <script src="./camera_planner.js?v=20261111-1"></script>
+</body>
+</html>
+

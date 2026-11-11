@@ -226,6 +226,55 @@ class GenericDocumentRequest(BaseModel):
     data: Dict[str, Any]
 
 
+class CameraZoneItem(BaseModel):
+    zone_id: str = Field(min_length=1, max_length=60)
+    name: str = Field(min_length=1, max_length=120)
+    category: str = Field(default="general", max_length=40)
+    floor: int = Field(default=1, ge=1, le=10)
+    x_m: float = Field(ge=0.0, le=200.0)
+    y_m: float = Field(ge=0.0, le=200.0)
+    width_m: float = Field(gt=0.0, le=200.0)
+    length_m: float = Field(gt=0.0, le=200.0)
+    active: bool = True
+
+
+class CameraPlacementItem(BaseModel):
+    camera_id: str = Field(min_length=1, max_length=40)
+    name: str = Field(min_length=1, max_length=120)
+    floor: int = Field(default=1, ge=1, le=10)
+    zone_id: str = Field(default="", max_length=60)
+    zone_name: str = Field(default="", max_length=120)
+    x_m: float = Field(ge=0.0, le=200.0)
+    y_m: float = Field(ge=0.0, le=200.0)
+    direction_deg: float = Field(default=90.0, ge=0.0, le=360.0)
+    fov_deg: float = Field(default=90.0, ge=20.0, le=180.0)
+    range_m: float = Field(default=10.0, ge=1.0, le=80.0)
+    camera_type: str = Field(default="standard_4mp", max_length=60)
+    resolution: str = Field(default="4MP (2688x1520)", max_length=80)
+    lens_label: str = Field(default="3.6mm · FOV 88°", max_length=80)
+    detection_distance: str = Field(default="ประมาณ 8–12 ม.", max_length=80)
+    analytics: list[str] = Field(default_factory=list)
+    notes: str = Field(default="", max_length=1000)
+    is_custom: bool = False
+
+
+class CameraLayoutSaveRequest(BaseModel):
+    layout_id: str | None = Field(default=None, max_length=80)
+    name: str = Field(min_length=1, max_length=140)
+    business_type: str = Field(min_length=1, max_length=40)
+    width_m: float = Field(ge=2.0, le=200.0)
+    length_m: float = Field(ge=2.0, le=200.0)
+    ceiling_height_m: float | None = Field(default=None, ge=1.8, le=30.0)
+    floors: int = Field(default=1, ge=1, le=10)
+    entrance_count: int = Field(default=1, ge=1, le=6)
+    entrance_side: str = Field(default="front", max_length=20)
+    analytics_focus: list[str] = Field(default_factory=list)
+    zones: list[CameraZoneItem] = Field(default_factory=list)
+    cameras: list[CameraPlacementItem] = Field(default_factory=list)
+    coverage_summary: Dict[str, Any] = Field(default_factory=dict)
+    notes: str = Field(default="", max_length=2000)
+
+
 # ==========================================
 # Helper Functions สำหรับประมวลผล RAG
 # ==========================================
@@ -489,6 +538,167 @@ def get_all_users(current_user: Dict[str, Any] = Depends(require_admin_or_manage
         logging.exception("Failed to list users")
         raise HTTPException(status_code=500, detail="ไม่สามารถโหลดรายชื่อผู้ใช้ได้") from e
 
+# ==========================================
+# API ระบบวางแผนและบันทึกตำแหน่งกล้อง (Camera Layouts)
+# ==========================================
+def serialize_camera_layout(doc_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    created_at = data.get("CREATED_AT")
+    updated_at = data.get("UPDATED_AT")
+    return {
+        "layout_id": data.get("LAYOUT_ID") or doc_id,
+        "name": data.get("NAME", "แผนผังติดตั้งกล้อง"),
+        "business_type": data.get("BUSINESS_TYPE", "restaurant"),
+        "width_m": data.get("WIDTH_M", 10.0),
+        "length_m": data.get("LENGTH_M", 12.0),
+        "ceiling_height_m": data.get("CEILING_HEIGHT_M"),
+        "floors": data.get("FLOORS", 1),
+        "entrance_count": data.get("ENTRANCE_COUNT", 1),
+        "entrance_side": data.get("ENTRANCE_SIDE", "front"),
+        "analytics_focus": data.get("ANALYTICS_FOCUS") or [],
+        "zones": data.get("ZONES") or [],
+        "cameras": data.get("CAMERAS") or [],
+        "coverage_summary": data.get("COVERAGE_SUMMARY") or {},
+        "notes": data.get("NOTES", ""),
+        "user_id": data.get("USER_ID", ""),
+        "tenant_id": data.get("TENANT_ID", ""),
+        "created_at": created_at.isoformat() if hasattr(created_at, "isoformat") else created_at,
+        "updated_at": updated_at.isoformat() if hasattr(updated_at, "isoformat") else updated_at,
+    }
+
+
+def can_access_camera_layout(data: Dict[str, Any], current_user: Dict[str, Any]) -> bool:
+    role = current_user.get("ROLE")
+    if role == "admin":
+        return True
+    if role == "branch_manager":
+        return data.get("TENANT_ID") == current_user.get("TENANT_ID")
+    return data.get("USER_ID") == current_user.get("USER_ID")
+
+
+@app.get("/api/camera-layouts")
+def list_camera_layouts(current_user: Dict[str, Any] = Depends(require_current_user)):
+    try:
+        ref = db.collection("camera_layouts")
+        role = current_user.get("ROLE")
+        if role == "branch_manager":
+            ref = ref.where("TENANT_ID", "==", current_user.get("TENANT_ID"))
+        elif role != "admin":
+            ref = ref.where("USER_ID", "==", current_user.get("USER_ID"))
+
+        items = [
+            serialize_camera_layout(doc.id, doc.to_dict() or {})
+            for doc in ref.stream()
+        ]
+        items.sort(key=lambda item: item.get("updated_at") or item.get("created_at") or "", reverse=True)
+        return {"status": "success", "data": items}
+    except Exception as error:
+        logging.exception("Failed to list camera layouts")
+        raise HTTPException(status_code=500, detail="ไม่สามารถโหลดรายการแผนผังกล้องได้") from error
+
+
+@app.get("/api/camera-layouts/{layout_id}")
+def get_camera_layout(
+    layout_id: str,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
+    try:
+        snapshot = db.collection("camera_layouts").document(layout_id).get()
+        if not snapshot.exists:
+            raise HTTPException(status_code=404, detail="ไม่พบแผนผังกล้องที่ต้องการ")
+        data = snapshot.to_dict() or {}
+        if not can_access_camera_layout(data, current_user):
+            raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์เข้าถึงแผนผังกล้องนี้")
+        return {"status": "success", "data": serialize_camera_layout(snapshot.id, data)}
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to get camera layout")
+        raise HTTPException(status_code=500, detail="ไม่สามารถโหลดแผนผังกล้องได้") from error
+
+
+@app.post("/api/camera-layouts")
+def save_camera_layout(
+    request: CameraLayoutSaveRequest,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
+    try:
+        now = datetime.now(timezone.utc)
+        requested_id = (request.layout_id or "").strip()
+        is_update = False
+        created_at = now
+
+        if requested_id:
+            if not all(ch.isalnum() or ch in "-_" for ch in requested_id):
+                raise HTTPException(status_code=400, detail="รหัสแผนผังไม่ถูกต้อง")
+            existing = db.collection("camera_layouts").document(requested_id).get()
+            if existing.exists:
+                existing_data = existing.to_dict() or {}
+                if not can_access_camera_layout(existing_data, current_user):
+                    raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์แก้ไขแผนผังกล้องนี้")
+                is_update = True
+                created_at = existing_data.get("CREATED_AT") or now
+            layout_id = requested_id
+        else:
+            layout_id = f"LAY-{secrets.token_hex(4).upper()}"
+
+        payload = {
+            "LAYOUT_ID": layout_id,
+            "NAME": request.name.strip(),
+            "BUSINESS_TYPE": request.business_type.strip(),
+            "WIDTH_M": round(request.width_m, 2),
+            "LENGTH_M": round(request.length_m, 2),
+            "CEILING_HEIGHT_M": round(request.ceiling_height_m, 2) if request.ceiling_height_m is not None else None,
+            "FLOORS": request.floors,
+            "ENTRANCE_COUNT": request.entrance_count,
+            "ENTRANCE_SIDE": request.entrance_side.strip(),
+            "ANALYTICS_FOCUS": request.analytics_focus,
+            "ZONES": [z.model_dump() for z in request.zones],
+            "CAMERAS": [c.model_dump() for c in request.cameras],
+            "COVERAGE_SUMMARY": request.coverage_summary,
+            "NOTES": request.notes.strip(),
+            "USER_ID": current_user["USER_ID"],
+            "TENANT_ID": current_user.get("TENANT_ID") or "default_tenant",
+            "CREATED_AT": created_at,
+            "UPDATED_AT": now,
+        }
+
+        db.collection("camera_layouts").document(layout_id).set(payload, merge=True)
+        return {
+            "status": "success",
+            "layout_id": layout_id,
+            "updated": is_update,
+            "message": "บันทึกแผนผังการติดตั้งกล้องเรียบร้อยแล้ว",
+            "data": serialize_camera_layout(layout_id, payload),
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to save camera layout")
+        raise HTTPException(status_code=500, detail="ไม่สามารถบันทึกแผนผังกล้องได้") from error
+
+
+@app.delete("/api/camera-layouts/{layout_id}")
+def delete_camera_layout(
+    layout_id: str,
+    current_user: Dict[str, Any] = Depends(require_current_user),
+):
+    try:
+        doc_ref = db.collection("camera_layouts").document(layout_id)
+        snapshot = doc_ref.get()
+        if not snapshot.exists:
+            raise HTTPException(status_code=404, detail="ไม่พบแผนผังกล้องที่ต้องการลบ")
+        data = snapshot.to_dict() or {}
+        if not can_access_camera_layout(data, current_user):
+            raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ลบแผนผังกล้องนี้")
+        doc_ref.delete()
+        return {"status": "success", "message": "ลบแผนผังการติดตั้งกล้องสำเร็จแล้ว"}
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to delete camera layout")
+        raise HTTPException(status_code=500, detail="ไม่สามารถลบแผนผังกล้องได้") from error
+
+
 # API ดึงข้อมูลทุก Collection แบบไดนามิก
 @app.get("/api/admin/collection/{collection_name}")
 def get_collection_data(
@@ -503,7 +713,8 @@ def get_collection_data(
             "messages", 
             "support_cases", 
             "tenants", 
-            "troubleshooting_state"
+            "troubleshooting_state",
+            "camera_layouts",
         ]
         
         if collection_name not in allowed_collections:
@@ -1638,7 +1849,8 @@ def add_document_to_collection(
             "messages", 
             "support_cases", 
             "tenants", 
-            "troubleshooting_state"
+            "troubleshooting_state",
+            "camera_layouts",
         ]
         
         if request.collection_name not in allowed_collections:

@@ -158,6 +158,68 @@ class TestRagPipelineLogic(unittest.TestCase):
         self.assertEqual(last_payload.get("reply"), "ระบบ TATIP ใช้ AI วิเคราะห์ภาพครับ")
 
 
+class TestCameraLayoutsApi(unittest.TestCase):
+    """Offline unit tests for Camera Placement Layout API & Schema."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.main = _load_main_offline()
+
+    def test_camera_layout_schema_and_access_control(self):
+        """Verify CameraLayoutSaveRequest schema and role-based ownership access."""
+        req = self.main.CameraLayoutSaveRequest(
+            name="สาขาสยาม",
+            business_type="restaurant",
+            width_m=10.0,
+            length_m=14.0,
+            floors=1,
+            cameras=[
+                self.main.CameraPlacementItem(
+                    camera_id="CAM-01",
+                    name="Entrance",
+                    x_m=5.0,
+                    y_m=12.0,
+                    direction_deg=90.0,
+                    fov_deg=78.0,
+                    range_m=10.0,
+                )
+            ],
+        )
+        self.assertEqual(req.name, "สาขาสยาม")
+        self.assertEqual(len(req.cameras), 1)
+
+        layout_doc = {"USER_ID": "u1", "TENANT_ID": "t1"}
+        self.assertTrue(self.main.can_access_camera_layout(layout_doc, {"USER_ID": "u1", "TENANT_ID": "t1", "ROLE": "customer"}))
+        self.assertFalse(self.main.can_access_camera_layout(layout_doc, {"USER_ID": "u2", "TENANT_ID": "t1", "ROLE": "customer"}))
+        self.assertTrue(self.main.can_access_camera_layout(layout_doc, {"USER_ID": "mgr1", "TENANT_ID": "t1", "ROLE": "branch_manager"}))
+        self.assertTrue(self.main.can_access_camera_layout(layout_doc, {"USER_ID": "adm1", "TENANT_ID": "t99", "ROLE": "admin"}))
+
+    def test_save_and_serialize_camera_layout(self):
+        """Verify saving a camera layout writes to Firestore camera_layouts and returns serialized payload."""
+        mock_db = MagicMock()
+        mock_doc_ref = MagicMock()
+        mock_db.collection.return_value.document.return_value = mock_doc_ref
+
+        req = self.main.CameraLayoutSaveRequest(
+            name="Cafe 8x10",
+            business_type="cafe",
+            width_m=8.0,
+            length_m=10.0,
+            floors=1,
+        )
+        current_user = {"USER_ID": "user_01", "TENANT_ID": "TENANT_01", "ROLE": "customer"}
+
+        with patch.object(self.main, "db", mock_db):
+            res = self.main.save_camera_layout(req, current_user)
+
+        self.assertEqual(res["status"], "success")
+        self.assertTrue(res["layout_id"].startswith("LAY-"))
+        self.assertEqual(res["data"]["name"], "Cafe 8x10")
+        self.assertEqual(res["data"]["tenant_id"], "TENANT_01")
+        mock_db.collection.assert_called_with("camera_layouts")
+        mock_doc_ref.set.assert_called_once()
+
+
 class TestRagLiveBenchmark:
     """Live Benchmark Evaluation against Cloud Run Production API."""
 
