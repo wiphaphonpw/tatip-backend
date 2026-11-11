@@ -220,6 +220,96 @@ class TestCameraLayoutsApi(unittest.TestCase):
         mock_doc_ref.set.assert_called_once()
 
 
+class TestSupportCaseStatusDashboardApi(unittest.TestCase):
+    """Offline unit tests for Support Case status updates and Dashboard summary."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.main = _load_main_offline()
+
+    def test_update_support_case_status_and_admin_note(self):
+        """Verify PATCH status updates Firestore, handles legacy CASE_UPDATES, and sets RESOLVED_AT."""
+        mock_db = MagicMock()
+        mock_case_ref = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {
+            "USER_ID": "guest",
+            "TENANT_ID": "T1",
+            "STATUS": "OPEN",
+            "CASE_UPDATES": "legacy-corrupted-non-list",
+        }
+        mock_case_ref.get.return_value = mock_snapshot
+        mock_db.collection.return_value.document.return_value = mock_case_ref
+
+        req = self.main.UpdateSupportCaseStatusRequest(status="resolved", admin_note="ตรวจสอบแล้ว")
+        admin_user = {"USER_ID": "adm1", "TENANT_ID": "SYS", "ROLE": "admin"}
+
+        with patch.object(self.main, "db", mock_db):
+            res = self.main.update_support_case_status("CASE-01", req, admin_user)
+
+        self.assertEqual(res["status"], "success")
+        self.assertEqual(res["new_status"], "resolved")
+        self.assertEqual(res["admin_note"], "ตรวจสอบแล้ว")
+        mock_case_ref.update.assert_called_once()
+        update_payload = mock_case_ref.update.call_args[0][0]
+        self.assertEqual(update_payload["STATUS"], "resolved")
+        self.assertEqual(update_payload["ADMIN_NOTE"], "ตรวจสอบแล้ว")
+        self.assertIn("RESOLVED_AT", update_payload)
+        self.assertIsInstance(update_payload["CASE_UPDATES"], list)
+        self.assertEqual(update_payload["CASE_UPDATES"][0]["STATUS"], "resolved")
+
+    def test_update_support_case_branch_manager_isolation(self):
+        """Verify branch_manager cannot update a case belonging to a different tenant."""
+        mock_db = MagicMock()
+        mock_case_ref = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {"TENANT_ID": "T2", "STATUS": "open"}
+        mock_case_ref.get.return_value = mock_snapshot
+        mock_db.collection.return_value.document.return_value = mock_case_ref
+
+        req = self.main.UpdateSupportCaseStatusRequest(status="in_progress")
+        mgr_user = {"USER_ID": "mgr1", "TENANT_ID": "T1", "ROLE": "branch_manager"}
+
+        with patch.object(self.main, "db", mock_db):
+            with self.assertRaises(self.main.HTTPException) as ctx:
+                self.main.update_support_case_status("CASE-99", req, mgr_user)
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_dashboard_summary_returns_all_cases_and_admin_note(self):
+        """Verify dashboard summary returns full cases list alongside recent_cases[:12]."""
+        fake_docs = []
+        for idx in range(14):
+            doc = MagicMock()
+            doc.id = f"CASE-{idx:02d}"
+            doc.to_dict.return_value = {
+                "USER_ID": f"u{idx}",
+                "TENANT_ID": "T1",
+                "BRANCH": "สาขาหลัก",
+                "ISSUE": f"ปัญหา {idx}",
+                "STATUS": "OPEN" if idx == 0 else "in_progress",
+                "ADMIN_NOTE": f"โน้ต {idx}" if idx == 0 else "",
+            }
+            fake_docs.append(doc)
+
+        mock_db = MagicMock()
+        mock_db.collection.return_value.stream.return_value = fake_docs
+        admin_user = {"USER_ID": "adm1", "TENANT_ID": "SYS", "ROLE": "admin"}
+
+        with patch.object(self.main, "db", mock_db):
+            res = self.main.get_admin_dashboard_summary(admin_user)
+
+        self.assertEqual(res["status"], "success")
+        self.assertEqual(res["summary"]["total"], 14)
+        self.assertEqual(res["summary"]["open"], 1)
+        self.assertEqual(len(res["recent_cases"]), 12)
+        self.assertEqual(len(res["cases"]), 14)
+        case_00 = next(c for c in res["cases"] if c["case_id"] == "CASE-00")
+        self.assertEqual(case_00["status"], "open")
+        self.assertEqual(case_00["admin_note"], "โน้ต 0")
+
+
 class TestRagLiveBenchmark:
     """Live Benchmark Evaluation against Cloud Run Production API."""
 

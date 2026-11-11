@@ -102,6 +102,10 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid #f1f5f9; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         th { background-color: #fff7f7; color: #7f1d1d; font-weight: 600; }
+        td.case-status-cell { max-width: none; overflow: visible; text-overflow: clip; }
+        .case-status-control { display: inline-flex; align-items: center; gap: 8px; }
+        .case-status-control select { width: auto; min-width: 148px; padding: 6px 10px; font-size: 0.82rem; }
+        .case-status-control .btn-save-status { width: auto; padding: 6px 12px; font-size: 0.82rem; white-space: nowrap; flex: 0 0 auto; }
         tr:last-child td { border-bottom: 0; }
         tr:hover td { background-color: #fffafa; }
         .badge { padding: 4px 10px; border-radius: 99px; font-size: 0.74rem; font-weight: 600; }
@@ -500,11 +504,12 @@
 
                     if (canUpdateCases) {
                         const caseId = String(item._document_id || '');
-                        const currentStatus = String(item.STATUS || 'open');
+                        const normalized = String(item.STATUS || 'open').trim().toLowerCase();
+                        const currentStatus = statusLabels[normalized] ? normalized : 'open';
                         const options = Object.entries(statusLabels)
                             .map(([value, label]) => `<option value="${value}" ${value === currentStatus ? 'selected' : ''}>${label}</option>`)
                             .join('');
-                        rowHtml += `<td><select data-case-id="${escapeAdminHtml(caseId)}" data-saved-status="${escapeAdminHtml(currentStatus)}" aria-label="สถานะเคส">${options}</select> <button type="button" class="btn-primary" style="padding:.35rem .6rem" onclick="updateSupportCaseStatusFromRow(this)">บันทึก</button></td>`;
+                        rowHtml += `<td class="case-status-cell"><div class="case-status-control"><select data-case-id="${escapeAdminHtml(caseId)}" data-saved-status="${escapeAdminHtml(currentStatus)}" aria-label="สถานะเคส">${options}</select><button type="button" class="btn-primary btn-save-status" onclick="updateSupportCaseStatusFromRow(this)">บันทึก</button></div></td>`;
                     }
                     tbody.insertAdjacentHTML('beforeend', `<tr>${rowHtml}</tr>`);
                 });
@@ -522,15 +527,9 @@
     async function updateSupportCaseStatusFromRow(button) {
         const select = button?.parentElement?.querySelector('select[data-case-id]');
         if (!select) return;
-        const currentUser = getCurrentAdmin();
         const caseId = select.dataset.caseId;
         const previousStatus = select.dataset.savedStatus || select.value;
         const status = select.value;
-
-        if (status === previousStatus) {
-            alert('สถานะเคสยังไม่มีการเปลี่ยนแปลง');
-            return;
-        }
 
         select.disabled = true;
         button.disabled = true;
@@ -540,12 +539,17 @@
                 headers: getAdminAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ status })
             });
+            if (response.status === 401) {
+                logoutAdmin();
+                return;
+            }
             const result = await response.json().catch(() => ({}));
             if (!response.ok || result.status !== 'success') {
                 throw new Error(result.detail || 'อัปเดตสถานะเคสไม่สำเร็จ');
             }
             select.dataset.savedStatus = status;
             alert(`อัปเดตสถานะเคส ${caseId} เป็น “${select.options[select.selectedIndex].text}” แล้ว`);
+            await fetchCollectionData();
         } catch (error) {
             select.value = previousStatus;
             alert(error.message || 'อัปเดตสถานะเคสไม่สำเร็จ');

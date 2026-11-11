@@ -1170,7 +1170,9 @@ def get_admin_dashboard_summary(
             if 1 <= rating <= 5:
                 rating_sum += rating
                 rating_count += 1
-        status = str(data.get("STATUS", "open")).lower()
+        status = str(data.get("STATUS") or "open").strip().lower()
+        if status not in status_counts:
+            status = "open"
         status_counts[status] = status_counts.get(status, 0) + 1
         if str(data.get("PRIORITY", "")).upper() in {"P1", "URGENT", "HIGH"}:
             urgent_count += 1
@@ -1196,17 +1198,24 @@ def get_admin_dashboard_summary(
             attachments = []
         attachment_count += len(attachments)
         created = case_date(data.get("CREATE_DATE") or data.get("CREATED_AT"))
+        updated = case_date(data.get("UPDATED_AT") or data.get("CREATE_DATE") or data.get("CREATED_AT"))
         if created and (today - timedelta(days=6)) <= created.date() <= today:
             key = created.date().isoformat()
             daily_counts[key] = daily_counts.get(key, 0) + 1
         recent.append({
             "case_id": case_id,
+            "user_id": str(data.get("USER_ID", "")),
             "issue": issue,
             "status": status,
             "priority": str(data.get("PRIORITY", "P2")),
             "tenant_id": str(data.get("TENANT_ID", "")),
             "branch": str(data.get("BRANCH", "")),
+            "camera_name": str(data.get("CAMERA_NAME", "")),
+            "admin_note": str(data.get("ADMIN_NOTE", "")),
+            "contact_name": str(data.get("CONTACT_NAME", "")),
+            "contact_phone": str(data.get("CONTACT_PHONE", "")),
             "created_at": created.isoformat() if created else None,
+            "updated_at": updated.isoformat() if updated else None,
             "attachments": [{
                 "attachment_id": item.get("ATTACHMENT_ID"),
                 "file_name": item.get("FILE_NAME", "ไฟล์แนบ"),
@@ -1231,6 +1240,7 @@ def get_admin_dashboard_summary(
         "categories": [{"name": key, "count": value} for key, value in sorted(category_counts.items(), key=lambda pair: pair[1], reverse=True)],
         "last_7_days": [{"date": key, "count": value} for key, value in daily_counts.items()],
         "recent_cases": recent[:12],
+        "cases": recent,
     }
 
 
@@ -1666,9 +1676,13 @@ def get_admin_support_case_detail(
             "user_id": str(data.get("USER_ID") or ""),
             "tenant_id": str(data.get("TENANT_ID") or ""),
             "issue": str(data.get("ISSUE") or data.get("CONTENT") or ""),
-            "status": str(data.get("STATUS") or "open").lower(),
+            "status": str(data.get("STATUS") or "open").strip().lower(),
+            "priority": str(data.get("PRIORITY") or "P2"),
             "branch": str(data.get("BRANCH") or ""),
             "camera_name": str(data.get("CAMERA_NAME") or ""),
+            "admin_note": str(data.get("ADMIN_NOTE") or ""),
+            "contact_name": str(data.get("CONTACT_NAME") or ""),
+            "contact_phone": str(data.get("CONTACT_PHONE") or ""),
             "created_at": staff_case_iso(data.get("CREATE_DATE") or data.get("CREATED_AT")),
             "updated_at": staff_case_iso(data.get("UPDATED_AT") or data.get("CREATE_DATE")),
             "customer_feedback": ({
@@ -1707,14 +1721,21 @@ def reply_to_support_case(
     if str(data.get("STATUS") or "open").lower() == "closed":
         raise HTTPException(status_code=409, detail="เคสปิดแล้ว ไม่สามารถตอบกลับได้")
     now = datetime.now(timezone.utc)
+    reply_event = {
+        "EVENT_ID": secrets.token_hex(8),
+        "EVENT_TYPE": "message",
+        "SENDER": "support",
+        "MESSAGE": message,
+        "CREATE_DATE": now,
+    }
+    existing_updates = data.get("CASE_UPDATES")
+    case_updates_value = (
+        [reply_event]
+        if existing_updates is not None and not isinstance(existing_updates, list)
+        else firestore.ArrayUnion([reply_event])
+    )
     case_ref.update({
-        "CASE_UPDATES": firestore.ArrayUnion([{
-            "EVENT_ID": secrets.token_hex(8),
-            "EVENT_TYPE": "message",
-            "SENDER": "support",
-            "MESSAGE": message,
-            "CREATE_DATE": now,
-        }]),
+        "CASE_UPDATES": case_updates_value,
         "UPDATED_AT": now,
         "LAST_SUPPORT_MESSAGE_AT": now,
         "UPDATED_BY": current_user["USER_ID"],
@@ -1760,7 +1781,7 @@ def update_support_case_status(
         if current_user["ROLE"] == "branch_manager" and case_data.get("TENANT_ID") != current_user.get("TENANT_ID"):
             raise HTTPException(status_code=403, detail="จัดการได้เฉพาะเคสใน Tenant ของตนเอง")
 
-        previous_status = case_data.get("STATUS")
+        previous_status = str(case_data.get("STATUS") or "open").strip().lower()
         now = datetime.now(timezone.utc)
         updates = {
             "STATUS": request.status,
@@ -1781,14 +1802,19 @@ def update_support_case_status(
                 "resolved": "เจ้าหน้าที่แจ้งว่าแก้ไขแล้ว",
                 "closed": "เคสถูกปิดแล้ว",
             }
-            updates["CASE_UPDATES"] = firestore.ArrayUnion([{
+            status_event = {
                 "EVENT_ID": secrets.token_hex(8),
                 "EVENT_TYPE": "status",
                 "SENDER": "support",
                 "STATUS": request.status,
                 "MESSAGE": status_labels[request.status],
                 "CREATE_DATE": now,
-            }])
+            }
+            existing_updates = case_data.get("CASE_UPDATES")
+            if existing_updates is not None and not isinstance(existing_updates, list):
+                updates["CASE_UPDATES"] = [status_event]
+            else:
+                updates["CASE_UPDATES"] = firestore.ArrayUnion([status_event])
         case_ref.update(updates)
         line_notification = "unchanged"
         if previous_status != request.status:
@@ -1797,6 +1823,8 @@ def update_support_case_status(
             "status": "success",
             "case_id": case_id,
             "new_status": request.status,
+            "admin_note": updates.get("ADMIN_NOTE", str(case_data.get("ADMIN_NOTE") or "")),
+            "updated_at": now.isoformat(),
             "line_notification": line_notification,
         }
     except HTTPException:

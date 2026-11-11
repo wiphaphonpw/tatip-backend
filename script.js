@@ -677,11 +677,12 @@ async function fetchCollectionData() {
 
                 if (canUpdateCases) {
                     const caseId = String(item._document_id || '');
-                    const currentStatus = String(item.STATUS || 'open');
+                    const normalized = String(item.STATUS || 'open').trim().toLowerCase();
+                    const currentStatus = statusLabels[normalized] ? normalized : 'open';
                     const statusOptions = Object.entries(statusLabels)
                         .map(([value, label]) => `<option value="${value}" ${currentStatus === value ? 'selected' : ''}>${label}</option>`)
                         .join('');
-                    rowHtml += `<td><select data-case-id="${escapeCollectionCell(caseId)}" aria-label="สถานะเคส">${statusOptions}</select> <button type="button" class="btn-primary" style="padding:.35rem .6rem" onclick="updateSupportCaseStatusFromRow(this)">บันทึก</button></td>`;
+                    rowHtml += `<td class="case-status-cell"><div class="case-status-control"><select data-case-id="${escapeCollectionCell(caseId)}" data-saved-status="${escapeCollectionCell(currentStatus)}" aria-label="สถานะเคส">${statusOptions}</select><button type="button" class="btn-primary btn-save-status" style="width:auto;padding:.35rem .65rem;white-space:nowrap" onclick="updateSupportCaseStatusFromRow(this)">บันทึก</button></div></td>`;
                 }
                 tbody.insertAdjacentHTML('beforeend', `<tr>${rowHtml}</tr>`);
             });
