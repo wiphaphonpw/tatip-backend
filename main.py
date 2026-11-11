@@ -9,6 +9,7 @@ import json
 import secrets
 import logging
 import os
+import re
 import tempfile
 from pathlib import Path
 from urllib.parse import quote
@@ -187,6 +188,7 @@ class LoginRequest(BaseModel):
 
 class CustomerSupportCaseRequest(BaseModel):
     issue: str = Field(min_length=5, max_length=3000)
+    category: str = Field(default="", max_length=80)
     camera_name: str = Field(default="", max_length=120)
     conversation_id: str | None = None
 
@@ -204,6 +206,7 @@ class SupportSettingsRequest(BaseModel):
 class UpdateSupportCaseStatusRequest(BaseModel):
     status: Literal["open", "in_progress", "resolved", "closed"]
     admin_note: str | None = Field(default=None, max_length=2000)
+    category: str | None = Field(default=None, max_length=80)
 
 class PublicContactCaseRequest(BaseModel):
     full_name: str = Field(min_length=1, max_length=120)
@@ -1027,13 +1030,25 @@ def support_media_bucket():
 
 
 async def store_support_attachments(case_id: str, files: list[UploadFile]) -> list[Dict[str, Any]]:
-    if len(files) > SUPPORT_FILE_LIMIT:
+    valid_uploads: list[UploadFile] = []
+    for upload in files or []:
+        filename = (upload.filename or "").strip()
+        if not filename:
+            probe = await upload.read(1)
+            if not probe:
+                continue
+            await upload.seek(0)
+        valid_uploads.append(upload)
+
+    if not valid_uploads:
+        return []
+    if len(valid_uploads) > SUPPORT_FILE_LIMIT:
         raise HTTPException(status_code=400, detail=f"แนบไฟล์ได้ไม่เกิน {SUPPORT_FILE_LIMIT} ไฟล์")
 
-    bucket = support_media_bucket() if files else None
+    bucket = support_media_bucket()
     attachments = []
     total_bytes = 0
-    for upload in files:
+    for upload in valid_uploads:
         content_type = (upload.content_type or "").lower().split(";", 1)[0].strip()
         if content_type not in SUPPORT_ALLOWED_MIME_TYPES:
             raise HTTPException(status_code=400, detail="รองรับเฉพาะ JPG, PNG, WEBP, MP4 และ WEBM")
@@ -1062,12 +1077,104 @@ async def store_support_attachments(case_id: str, files: list[UploadFile]) -> li
     return attachments
 
 
+SUPPORT_CATEGORY_ALIASES = {
+    "cctv": "กล้อง / CCTV",
+    "camera": "กล้อง / CCTV",
+    "กล้อง": "กล้อง / CCTV",
+    "กล้อง / cctv": "กล้อง / CCTV",
+    "roi": "การตี ROI / พื้นที่วิเคราะห์",
+    "การตี roi": "การตี ROI / พื้นที่วิเคราะห์",
+    "การตี roi / พื้นที่วิเคราะห์": "การตี ROI / พื้นที่วิเคราะห์",
+    "auth": "การเข้าสู่ระบบ / บัญชีผู้ใช้",
+    "login": "การเข้าสู่ระบบ / บัญชีผู้ใช้",
+    "บัญชีผู้ใช้": "การเข้าสู่ระบบ / บัญชีผู้ใช้",
+    "การเข้าสู่ระบบ": "การเข้าสู่ระบบ / บัญชีผู้ใช้",
+    "การเข้าสู่ระบบ / บัญชีผู้ใช้": "การเข้าสู่ระบบ / บัญชีผู้ใช้",
+    "dashboard": "Dashboard และรายงาน",
+    "dashboard และรายงาน": "Dashboard และรายงาน",
+    "alerts": "การแจ้งเตือน (LINE / ระบบ)",
+    "การแจ้งเตือน": "การแจ้งเตือน (LINE / ระบบ)",
+    "การแจ้งเตือน (line / ระบบ)": "การแจ้งเตือน (LINE / ระบบ)",
+    "network": "เครือข่าย / อินเทอร์เน็ต",
+    "เครือข่าย": "เครือข่าย / อินเทอร์เน็ต",
+    "เครือข่าย / อินเทอร์เน็ต": "เครือข่าย / อินเทอร์เน็ต",
+    "ai_chat": "แชท AI / คู่มือระบบ",
+    "แชท ai": "แชท AI / คู่มือระบบ",
+    "แชท ai / คู่มือระบบ": "แชท AI / คู่มือระบบ",
+    "unrelated": "เรื่องที่ไม่เกี่ยวข้อง",
+    "off_topic": "เรื่องที่ไม่เกี่ยวข้อง",
+    "เรื่องที่ไม่เกี่ยวข้อง": "เรื่องที่ไม่เกี่ยวข้อง",
+    "ไม่เกี่ยวข้อง": "เรื่องที่ไม่เกี่ยวข้อง",
+}
+
+LEGACY_UNCLASSIFIED_CATEGORY_LABELS = {
+    "",
+    "auto",
+    "all",
+    "อื่น ๆ",
+    "อื่นๆ",
+    "other",
+    "others",
+    "ทั่วไป",
+    "general",
+    "ไม่ระบุ",
+}
+
+
+SUPPORT_ISSUE_CLASSIFICATION_RULES = (
+    (
+        "การตี ROI / พื้นที่วิเคราะห์",
+        re.compile(r"(?<![a-z])roi(?![a-z])|ตี\s*roi|ตีกรอบ|วาดกรอบ|ขีดเส้น|กำหนดจุด|กำหนดพื้นที่|พื้นที่วิเคราะห์|พื้นที่ตรวจจับ|polygon|โซนตรวจจับ|เขตพื้นที่|นับคนเข้าออก|(?<![a-z])zone(?![a-z])"),
+    ),
+    (
+        "การแจ้งเตือน (LINE / ระบบ)",
+        re.compile(r"แจ้งเตือน|แจ้งเหตุ|ส่งข้อความเข้าไลน์|ทางไลน์|ผ่านไลน์|เข้าไลน์|บัญชีไลน์|เชื่อม\s*line|เชื่อมบัญชี\s*line|ไลน์\s*oa|(?<![ฟน])ไลน์|(?<![a-z])(?:line|notification|notify|alert|push)(?![a-z])"),
+    ),
+    (
+        "การเข้าสู่ระบบ / บัญชีผู้ใช้",
+        re.compile(r"เข้าสู่ระบบ|เข้าระบบ|ล็อกอิน|ล็อคอิน|เข้าใช้งานไม่ได้|เข้าไม่ได้|(?<![a-z])(?:login|logout|password|username|account|session|token)(?![a-z])|ออกจากระบบ|รหัสผ่าน|ลืมรหัส|เปลี่ยนรหัส|บัญชี|สร้างบัญชี|เพิ่มผู้ใช้|เปิดสิทธิ์|สิทธิ์|เซสชัน|(?<!\d)(?:401|403)(?!\d)|ไม่พบผู้ใช้"),
+    ),
+    (
+        "Dashboard และรายงาน",
+        re.compile(r"(?<![a-z])(?:dashboard|heatmap)(?![a-z])|แดชบอร์ด|ฮีทแมพ|รายงาน|สถิติ|กราฟ|สรุปผล|สรุปยอด|ตัวเลขไม่ขึ้น"),
+    ),
+    (
+        "เครือข่าย / อินเทอร์เน็ต",
+        re.compile(r"(?<![a-z])(?:internet|network|wifi|wi-fi|bandwidth|firewall|lan|poe)(?![a-z])|อินเทอร์เน็ต|เครือข่าย|พอร์ต\s*554|เน็ตหลุด|สัญญาณหลุด|เชื่อมต่อไม่ได้|หลุดบ่อย|เน็ต"),
+    ),
+    (
+        "กล้อง / CCTV",
+        re.compile(r"กล้อง|(?<![a-z])(?:cctv|camera|cam\d*|ip\s*address|rtsp|ptz|nvr|dvr|onvif|offline|black\s*screen)(?![a-z])|ภาพดับ|จอดำ|จอมืด|ไม่มีภาพ|ภาพไม่ขึ้น|ภาพค้าง|ภาพมัว|ดูภาพ|ดูย้อนหลัง|ออฟไลน์|ออนไลน์|เลนส์|ติดกล้อง|ติดตั้งกล้อง|วางกล้อง|จุดติดกล้อง|มุมกล้อง|ไมโครโฟน|ไมค์|เสียง"),
+    ),
+    (
+        "แชท AI / คู่มือระบบ",
+        re.compile(r"แชท|(?<![a-z])(?:chat|rag|tatip\s*ai|bot)(?![a-z])|คู่มือ|ถาม\s*ai|บอท|ตอบผิด|ไม่ตอบ|ประวัติการสนทนา"),
+    ),
+)
+
+
+def classify_support_issue_category(explicit_category: str | None, issue_text: str = "") -> str:
+    raw = explicit_category.strip() if isinstance(explicit_category, str) else ""
+    if raw and raw.lower() not in LEGACY_UNCLASSIFIED_CATEGORY_LABELS:
+        mapped = SUPPORT_CATEGORY_ALIASES.get(raw.lower())
+        if mapped:
+            return mapped
+        return raw[:80]
+
+    text = str(issue_text or "").lower()
+    for category_name, pattern in SUPPORT_ISSUE_CLASSIFICATION_RULES:
+        if pattern.search(text):
+            return category_name
+    return "เรื่องที่ไม่เกี่ยวข้อง"
+
+
 # Public contact form supports both signed-in users and visitors.
 @app.post("/api/contact-cases", status_code=201)
 async def submit_public_contact_case(
     full_name: str = Form(..., min_length=1, max_length=120),
     phone: str = Form(..., min_length=8, max_length=30),
     issue: str = Form(..., min_length=5, max_length=3000),
+    category: str = Form(default="", max_length=80),
     website: str = Form(default="", max_length=200),
     attachments: list[UploadFile] = File(default=[]),
     current_user: Dict[str, Any] | None = Depends(get_optional_current_user),
@@ -1078,6 +1185,7 @@ async def submit_public_contact_case(
     full_name = full_name.strip()
     phone = phone.strip()
     issue = issue.strip()
+    resolved_category = classify_support_issue_category(category, issue)
     phone_digits = "".join(character for character in phone if character.isdigit())
     if not full_name or len(phone_digits) < 8 or len(issue) < 5:
         raise HTTPException(status_code=400, detail="กรุณาตรวจสอบชื่อ เบอร์โทรศัพท์ และรายละเอียดปัญหา")
@@ -1105,6 +1213,7 @@ async def submit_public_contact_case(
             "CAMERA_NAME": "N/A",
             "CAMERA_STATUS": "unknown",
             "ISSUE": issue,
+            "ISSUE_TYPE": resolved_category,
             "PRIORITY": "P2",
             "STATUS": "open",
             "SOURCE": "contact_form",
@@ -1117,6 +1226,7 @@ async def submit_public_contact_case(
         return {
             "status": "success",
             "case_id": case_id,
+            "category": resolved_category,
             "message": "ส่งข้อความให้เจ้าหน้าที่แล้ว",
             "linked_to_account": bool(current_user),
             "attachment_count": len(stored_attachments),
@@ -1177,21 +1287,7 @@ def get_admin_dashboard_summary(
         if str(data.get("PRIORITY", "")).upper() in {"P1", "URGENT", "HIGH"}:
             urgent_count += 1
         issue = str(data.get("ISSUE") or data.get("CONTENT") or "")
-        category = str(data.get("ISSUE_TYPE") or data.get("CATEGORY") or "").strip()
-        if not category:
-            issue_lower = issue.lower()
-            if any(word in issue_lower for word in ("กล้อง", "cctv", "camera", "ip address")):
-                category = "กล้อง / CCTV"
-            elif any(word in issue_lower for word in ("แจ้งเตือน", "line", "notification", "อีเมล")):
-                category = "การแจ้งเตือน"
-            elif any(word in issue_lower for word in ("dashboard", "รายงาน", "heatmap")):
-                category = "Dashboard"
-            elif any(word in issue_lower for word in ("บัญชี", "รหัสผ่าน", "user", "login")):
-                category = "บัญชีผู้ใช้"
-            elif any(word in issue_lower for word in ("internet", "network", "อินเทอร์เน็ต", "เครือข่าย")):
-                category = "เครือข่าย"
-            else:
-                category = "อื่น ๆ"
+        category = classify_support_issue_category(data.get("ISSUE_TYPE") or data.get("CATEGORY"), issue)
         category_counts[category] = category_counts.get(category, 0) + 1
         attachments = data.get("ATTACHMENTS") or []
         if not isinstance(attachments, list):
@@ -1206,6 +1302,7 @@ def get_admin_dashboard_summary(
             "case_id": case_id,
             "user_id": str(data.get("USER_ID", "")),
             "issue": issue,
+            "category": category,
             "status": status,
             "priority": str(data.get("PRIORITY", "P2")),
             "tenant_id": str(data.get("TENANT_ID", "")),
@@ -1302,6 +1399,7 @@ def submit_customer_support_case(
         now = datetime.now(timezone.utc)
         case_id = f"CASE-{now.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3).upper()}"
         conversation_id = (request.conversation_id or user_id).strip()
+        resolved_category = classify_support_issue_category(request.category, issue)
         case_data = {
             "CASE_ID": case_id,
             "USER_ID": user_id,
@@ -1311,6 +1409,7 @@ def submit_customer_support_case(
             "CAMERA_NAME": request.camera_name.strip(),
             "CAMERA_STATUS": "unknown",
             "ISSUE": issue,
+            "ISSUE_TYPE": resolved_category,
             "PRIORITY": "P2",
             "STATUS": "open",
             "COMPLETED_STEPS": [],
@@ -1321,6 +1420,7 @@ def submit_customer_support_case(
         return {
             "status": "success",
             "case_id": case_id,
+            "category": resolved_category,
             "message": "ส่งเรื่องให้เจ้าหน้าที่สำเร็จ",
         }
     except HTTPException:
@@ -1365,8 +1465,11 @@ def get_customer_dashboard_summary(current_user: Dict[str, Any] = Depends(requir
             file_count += len(files)
             created = iso(data.get("CREATE_DATE") or data.get("CREATED_AT"))
             updated = iso(data.get("UPDATED_AT") or data.get("CREATE_DATE") or data.get("CREATED_AT"))
+            issue_text = str(data.get("ISSUE") or data.get("CONTENT") or "")
+            category = classify_support_issue_category(data.get("ISSUE_TYPE") or data.get("CATEGORY"), issue_text)
             recent.append({
-                "case_id": doc.id, "issue": str(data.get("ISSUE") or data.get("CONTENT") or ""),
+                "case_id": doc.id, "issue": issue_text,
+                "category": category,
                 "status": status, "priority": str(data.get("PRIORITY") or "P2"),
                 "camera_name": str(data.get("CAMERA_NAME") or ""),
                 "branch": str(data.get("BRANCH") or user_data.get("BRANCH_NAME") or ""),
@@ -1452,11 +1555,14 @@ def get_customer_support_case_detail(
         "content_type": str(item.get("CONTENT_TYPE") or ""),
     } for item in (data.get("ATTACHMENTS") or [])
       if isinstance(item, dict) and item.get("ATTACHMENT_ID")]
+    issue_text = str(data.get("ISSUE") or data.get("CONTENT") or "")
+    category = classify_support_issue_category(data.get("ISSUE_TYPE") or data.get("CATEGORY"), issue_text)
     return {
         "status": "success",
         "case": {
             "case_id": case_snapshot.id,
-            "issue": str(data.get("ISSUE") or data.get("CONTENT") or ""),
+            "issue": issue_text,
+            "category": category,
             "status": status,
             "priority": str(data.get("PRIORITY") or "P2"),
             "branch": str(data.get("BRANCH") or ""),
@@ -1669,13 +1775,16 @@ def get_admin_support_case_detail(
             value = value.to_datetime()
         return value.isoformat() if hasattr(value, "isoformat") else None
 
+    issue_text = str(data.get("ISSUE") or data.get("CONTENT") or "")
+    category = classify_support_issue_category(data.get("ISSUE_TYPE") or data.get("CATEGORY"), issue_text)
     return {
         "status": "success",
         "case": {
             "case_id": case_snapshot.id,
             "user_id": str(data.get("USER_ID") or ""),
             "tenant_id": str(data.get("TENANT_ID") or ""),
-            "issue": str(data.get("ISSUE") or data.get("CONTENT") or ""),
+            "issue": issue_text,
+            "category": category,
             "status": str(data.get("STATUS") or "open").strip().lower(),
             "priority": str(data.get("PRIORITY") or "P2"),
             "branch": str(data.get("BRANCH") or ""),
@@ -1790,6 +1899,8 @@ def update_support_case_status(
         }
         if request.admin_note is not None:
             updates["ADMIN_NOTE"] = request.admin_note.strip()
+        if request.category is not None and request.category.strip():
+            updates["ISSUE_TYPE"] = classify_support_issue_category(request.category, str(case_data.get("ISSUE") or ""))
         if request.status in {"resolved", "closed"}:
             updates["RESOLVED_AT"] = now
         else:
@@ -1819,10 +1930,15 @@ def update_support_case_status(
         line_notification = "unchanged"
         if previous_status != request.status:
             line_notification = notify_support_case_status(case_data, case_id, request.status)
+        final_category = updates.get("ISSUE_TYPE") or classify_support_issue_category(
+            case_data.get("ISSUE_TYPE") or case_data.get("CATEGORY"),
+            str(case_data.get("ISSUE") or ""),
+        )
         return {
             "status": "success",
             "case_id": case_id,
             "new_status": request.status,
+            "category": final_category,
             "admin_note": updates.get("ADMIN_NOTE", str(case_data.get("ADMIN_NOTE") or "")),
             "updated_at": now.isoformat(),
             "line_notification": line_notification,

@@ -116,6 +116,20 @@
             </div>
             <form onsubmit="submitSupportTicket(event)">
                 <div class="form-group">
+                    <label for="supportCategory">ประเภทปัญหา</label>
+                    <select id="supportCategory">
+                        <option value="auto" selected>วิเคราะห์อัตโนมัติจากข้อความที่ส่ง</option>
+                        <option value="กล้อง / CCTV">กล้อง / CCTV (ภาพดับ, ไม่มีภาพ, IP / RTSP)</option>
+                        <option value="การตี ROI / พื้นที่วิเคราะห์">การตี ROI / พื้นที่วิเคราะห์ (วาดกรอบ, โซนตรวจจับ)</option>
+                        <option value="การเข้าสู่ระบบ / บัญชีผู้ใช้">การเข้าสู่ระบบ / บัญชีผู้ใช้ (ล็อกอิน, รหัสผ่าน, สิทธิ์)</option>
+                        <option value="Dashboard และรายงาน">Dashboard และรายงาน (Heatmap, กราฟ, สรุปยอด)</option>
+                        <option value="การแจ้งเตือน (LINE / ระบบ)">การแจ้งเตือน (LINE / ระบบ)</option>
+                        <option value="เครือข่าย / อินเทอร์เน็ต">เครือข่าย / อินเทอร์เน็ต (Bandwidth, Firewall, พอร์ต 554)</option>
+                        <option value="แชท AI / คู่มือระบบ">แชท AI / คู่มือระบบ</option>
+                        <option value="เรื่องที่ไม่เกี่ยวข้อง">เรื่องที่ไม่เกี่ยวข้อง</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="supportIssue">รายละเอียดปัญหา <span class="req">*</span></label>
                     <textarea id="supportIssue" rows="4" maxlength="3000" placeholder="อธิบายปัญหาที่ต้องการให้เจ้าหน้าที่ช่วยเหลือ" required></textarea>
                     <small>ระบบจะผูกเคสกับบัญชีและ Tenant ที่คุณเข้าสู่ระบบโดยอัตโนมัติ</small>

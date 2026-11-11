@@ -106,6 +106,21 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="contactCategory">ประเภทปัญหา</label>
+                        <select id="contactCategory" name="category">
+                            <option value="auto" selected>วิเคราะห์อัตโนมัติจากข้อความที่ส่ง</option>
+                            <option value="กล้อง / CCTV">กล้อง / CCTV (ภาพดับ, ไม่มีภาพ, IP / RTSP)</option>
+                            <option value="การตี ROI / พื้นที่วิเคราะห์">การตี ROI / พื้นที่วิเคราะห์ (วาดกรอบ, โซนตรวจจับ)</option>
+                            <option value="การเข้าสู่ระบบ / บัญชีผู้ใช้">การเข้าสู่ระบบ / บัญชีผู้ใช้ (ล็อกอิน, รหัสผ่าน, สิทธิ์)</option>
+                            <option value="Dashboard และรายงาน">Dashboard และรายงาน (Heatmap, กราฟ, สรุปยอด)</option>
+                            <option value="การแจ้งเตือน (LINE / ระบบ)">การแจ้งเตือน (LINE / ระบบ)</option>
+                            <option value="เครือข่าย / อินเทอร์เน็ต">เครือข่าย / อินเทอร์เน็ต (Bandwidth, Firewall, พอร์ต 554)</option>
+                            <option value="แชท AI / คู่มือระบบ">แชท AI / คู่มือระบบ</option>
+                            <option value="เรื่องที่ไม่เกี่ยวข้อง">เรื่องที่ไม่เกี่ยวข้อง</option>
+                        </select>
+                        <small id="contactCategoryPreview" style="display:block;margin-top:4px;color:#475569;">ระบบจะตรวจจับประเภทจากรายละเอียดปัญหาให้อัตโนมัติ หรือเลือกเองได้</small>
+                    </div>
+                    <div class="form-group">
                         <label for="contactIssue">รายละเอียดปัญหา <span class="req">*</span></label>
                         <textarea id="contactIssue" name="issue" rows="5" maxlength="3000" placeholder="อธิบายอาการที่พบ ชื่อสาขา หรือชื่อกล้อง เพื่อให้เจ้าหน้าที่ช่วยเหลือได้รวดเร็วยิ่งขึ้น" required></textarea>
                     </div>
@@ -139,6 +154,20 @@
                 <div class="form-group">
                     <label for="ticketPhone">เบอร์โทรศัพท์ <span class="req">*</span></label>
                     <input id="ticketPhone" name="phone" type="tel" maxlength="30" autocomplete="tel" required>
+                </div>
+                <div class="form-group">
+                    <label for="ticketCategory">ประเภทปัญหา</label>
+                    <select id="ticketCategory" name="category">
+                        <option value="auto" selected>วิเคราะห์อัตโนมัติจากข้อความที่ส่ง</option>
+                        <option value="กล้อง / CCTV">กล้อง / CCTV (ภาพดับ, ไม่มีภาพ, IP / RTSP)</option>
+                        <option value="การตี ROI / พื้นที่วิเคราะห์">การตี ROI / พื้นที่วิเคราะห์ (วาดกรอบ, โซนตรวจจับ)</option>
+                        <option value="การเข้าสู่ระบบ / บัญชีผู้ใช้">การเข้าสู่ระบบ / บัญชีผู้ใช้ (ล็อกอิน, รหัสผ่าน, สิทธิ์)</option>
+                        <option value="Dashboard และรายงาน">Dashboard และรายงาน (Heatmap, กราฟ, สรุปยอด)</option>
+                        <option value="การแจ้งเตือน (LINE / ระบบ)">การแจ้งเตือน (LINE / ระบบ)</option>
+                        <option value="เครือข่าย / อินเทอร์เน็ต">เครือข่าย / อินเทอร์เน็ต (Bandwidth, Firewall, พอร์ต 554)</option>
+                        <option value="แชท AI / คู่มือระบบ">แชท AI / คู่มือระบบ</option>
+                        <option value="เรื่องที่ไม่เกี่ยวข้อง">เรื่องที่ไม่เกี่ยวข้อง</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="ticketIssue">รายละเอียดปัญหา <span class="req">*</span></label>
@@ -257,7 +286,13 @@
         }
 
         async function sendPublicContactCase(form, statusElement, submitButton) {
-            const formData = new FormData(form);
+            const formData = new FormData();
+            for (const [key, value] of new FormData(form).entries()) {
+                if (value instanceof File && !value.name && value.size === 0) {
+                    continue;
+                }
+                formData.append(key, value);
+            }
             const currentUser = getContactSession();
             const headers = {};
             if (currentUser.access_token) headers.Authorization = `Bearer ${currentUser.access_token}`;
@@ -277,7 +312,7 @@
                 }
 
                 statusElement.textContent = result.case_id
-                    ? `ส่งข้อความแล้ว รหัสเคส: ${result.case_id}${result.attachment_count ? ` (แนบ ${result.attachment_count} ไฟล์)` : ''} · เวลาตอบกลับโดยประมาณ: ${result.support_info?.response_time || 'ตามเวลาทำการ'}`
+                    ? `ส่งข้อความแล้ว รหัสเคส: ${result.case_id}${result.category ? ` · ประเภท: ${result.category}` : ''}${result.attachment_count ? ` (แนบ ${result.attachment_count} ไฟล์)` : ''} · เวลาตอบกลับโดยประมาณ: ${result.support_info?.response_time || 'ตามเวลาทำการ'}`
                     : result.message || 'ส่งข้อความให้เจ้าหน้าที่แล้ว';
                 statusElement.style.color = '#15803d';
                 form.reset();
@@ -308,6 +343,36 @@
             const form = event.currentTarget;
             sendPublicContactCase(form, document.getElementById('ticketFormStatus'), form.querySelector('[type="submit"]'));
         }
+        function detectCategoryFromIssue(text) {
+            const t = String(text || '').toLowerCase();
+            if (/(?:^|[^a-z])roi(?:$|[^a-z])|ตี\s*roi|ตีกรอบ|วาดกรอบ|ขีดเส้น|กำหนดจุด|กำหนดพื้นที่|พื้นที่วิเคราะห์|พื้นที่ตรวจจับ|polygon|โซนตรวจจับ|เขตพื้นที่|นับคนเข้าออก|(?:^|[^a-z])zone(?:$|[^a-z])/.test(t)) return 'การตี ROI / พื้นที่วิเคราะห์';
+            if (/แจ้งเตือน|แจ้งเหตุ|ส่งข้อความเข้าไลน์|ทางไลน์|ผ่านไลน์|เข้าไลน์|บัญชีไลน์|เชื่อม\s*line|เชื่อมบัญชี\s*line|ไลน์\s*oa|(?:^|[^ฟน])ไลน์|(?:^|[^a-z])(?:line|notification|notify|alert|push)(?:$|[^a-z])/.test(t)) return 'การแจ้งเตือน (LINE / ระบบ)';
+            if (/เข้าสู่ระบบ|เข้าระบบ|ล็อกอิน|ล็อคอิน|เข้าใช้งานไม่ได้|เข้าไม่ได้|(?:^|[^a-z])(?:login|logout|password|username|account|session|token)(?:$|[^a-z])|ออกจากระบบ|รหัสผ่าน|ลืมรหัส|เปลี่ยนรหัส|บัญชี|สร้างบัญชี|เพิ่มผู้ใช้|เปิดสิทธิ์|สิทธิ์|เซสชัน|(?:^|[^\d])(?:401|403)(?:$|[^\d])|ไม่พบผู้ใช้/.test(t)) return 'การเข้าสู่ระบบ / บัญชีผู้ใช้';
+            if (/(?:^|[^a-z])(?:dashboard|heatmap)(?:$|[^a-z])|แดชบอร์ด|ฮีทแมพ|รายงาน|สถิติ|กราฟ|สรุปผล|สรุปยอด|ตัวเลขไม่ขึ้น/.test(t)) return 'Dashboard และรายงาน';
+            if (/(?:^|[^a-z])(?:internet|network|wifi|wi-fi|bandwidth|firewall|lan|poe)(?:$|[^a-z])|อินเทอร์เน็ต|เครือข่าย|พอร์ต\s*554|เน็ตหลุด|สัญญาณหลุด|เชื่อมต่อไม่ได้|หลุดบ่อย|เน็ต/.test(t)) return 'เครือข่าย / อินเทอร์เน็ต';
+            if (/กล้อง|(?:^|[^a-z])(?:cctv|camera|cam\d*|ip\s*address|rtsp|ptz|nvr|dvr|onvif|offline|black\s*screen)(?:$|[^a-z])|ภาพดับ|จอดำ|จอมืด|ไม่มีภาพ|ภาพไม่ขึ้น|ภาพค้าง|ภาพมัว|ดูภาพ|ดูย้อนหลัง|ออฟไลน์|ออนไลน์|เลนส์|ติดกล้อง|ติดตั้งกล้อง|วางกล้อง|จุดติดกล้อง|มุมกล้อง|ไมโครโฟน|ไมค์|เสียง/.test(t)) return 'กล้อง / CCTV';
+            if (/แชท|(?:^|[^a-z])(?:chat|rag|tatip\s*ai|bot)(?:$|[^a-z])|คู่มือ|ถาม\s*ai|บอท|ตอบผิด|ไม่ตอบ|ประวัติการสนทนา/.test(t)) return 'แชท AI / คู่มือระบบ';
+            return 'เรื่องที่ไม่เกี่ยวข้อง';
+        }
+
+        function updateContactCategoryPreview() {
+            const select = document.getElementById('contactCategory');
+            const issueInput = document.getElementById('contactIssue');
+            const preview = document.getElementById('contactCategoryPreview');
+            if (!select || !issueInput || !preview) return;
+            if (select.value !== 'auto') {
+                preview.textContent = `เลือกประเภทเอง: ${select.value}`;
+                return;
+            }
+            const text = issueInput.value.trim();
+            preview.textContent = text
+                ? `ตรวจพบอัตโนมัติจากข้อความ: ${detectCategoryFromIssue(text)}`
+                : 'ระบบจะตรวจจับประเภทจากรายละเอียดปัญหาให้อัตโนมัติ หรือเลือกเองได้';
+        }
+
+        document.getElementById('contactIssue')?.addEventListener('input', updateContactCategoryPreview);
+        document.getElementById('contactCategory')?.addEventListener('change', updateContactCategoryPreview);
+
         loadSupportInfo();
         loadLineLinkStatus();
     </script>

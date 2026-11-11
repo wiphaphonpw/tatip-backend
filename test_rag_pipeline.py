@@ -309,6 +309,71 @@ class TestSupportCaseStatusDashboardApi(unittest.TestCase):
         self.assertEqual(case_00["status"], "open")
         self.assertEqual(case_00["admin_note"], "โน้ต 0")
 
+    def test_public_contact_case_ignores_empty_file_placeholder(self):
+        """Verify submitting a public contact case without choosing a file ignores empty browser placeholder."""
+        import io
+        from starlette.datastructures import Headers, UploadFile
+
+        placeholder = UploadFile(
+            filename="",
+            file=io.BytesIO(b""),
+            headers=Headers({"content-type": "application/octet-stream"}),
+        )
+        mock_db = MagicMock()
+        mock_doc_ref = MagicMock()
+        mock_db.collection.return_value.document.return_value = mock_doc_ref
+
+        with patch.object(self.main, "db", mock_db):
+            res = asyncio.run(
+                self.main.submit_public_contact_case(
+                    full_name="สมชาย ใจดี",
+                    phone="0812345678",
+                    issue="กล้องชั้น 1 ออฟไลน์ครับ",
+                    category="",
+                    website="",
+                    attachments=[placeholder],
+                    current_user=None,
+                )
+            )
+
+        self.assertEqual(res["status"], "success")
+        self.assertEqual(res["attachment_count"], 0)
+        self.assertEqual(res["category"], "กล้อง / CCTV")
+        mock_doc_ref.set.assert_called_once()
+
+    def test_issue_category_classification_and_update(self):
+        """Verify clear category separation for CCTV, ROI, Auth/Login, and Unrelated issues."""
+        cls_fn = self.main.classify_support_issue_category
+        self.assertEqual(cls_fn("", "กล้องชั้น 1 ออฟไลน์ ไม่มีภาพ"), "กล้อง / CCTV")
+        self.assertEqual(cls_fn("", "สอนตี ROI กล้องหน้าเคาน์เตอร์หน่อย"), "การตี ROI / พื้นที่วิเคราะห์")
+        self.assertEqual(cls_fn("", "เข้าสู่ระบบไม่ได้ ลืมรหัสผ่าน"), "การเข้าสู่ระบบ / บัญชีผู้ใช้")
+        self.assertEqual(cls_fn("", "ถามสูตรทำข้าวผัดหน่อยครับ"), "เรื่องที่ไม่เกี่ยวข้อง")
+        self.assertEqual(cls_fn("เรื่องที่ไม่เกี่ยวข้อง", "กล้องดับ"), "เรื่องที่ไม่เกี่ยวข้อง")
+        self.assertEqual(cls_fn("roi", "อะไรก็ได้"), "การตี ROI / พื้นที่วิเคราะห์")
+        self.assertEqual(cls_fn("อื่น ๆ", "อยากถามวิธีวาดกรอบพื้นที่ตรงเคาน์เตอร์"), "การตี ROI / พื้นที่วิเคราะห์")
+        self.assertEqual(cls_fn("อื่นๆ", "เข้าระบบไม่ได้เลยครับ"), "การเข้าสู่ระบบ / บัญชีผู้ใช้")
+        self.assertEqual(cls_fn("auto", "กล้องชั้น 2 ภาพไม่ขึ้น"), "กล้อง / CCTV")
+        self.assertEqual(cls_fn("auto", "camera offline"), "กล้อง / CCTV")
+        self.assertEqual(cls_fn("auto", "android ดูภาพไม่ได้"), "กล้อง / CCTV")
+        self.assertEqual(cls_fn("auto", "เชื่อมบัญชี line ไม่ได้"), "การแจ้งเตือน (LINE / ระบบ)")
+        self.assertEqual(cls_fn("auto", "วันนี้ฝนตกไหม"), "เรื่องที่ไม่เกี่ยวข้อง")
+
+        mock_db = MagicMock()
+        mock_case_ref = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {"TENANT_ID": "T1", "STATUS": "open", "ISSUE": "ทดสอบส่งผิด"}
+        mock_case_ref.get.return_value = mock_snapshot
+        mock_db.collection.return_value.document.return_value = mock_case_ref
+
+        req = self.main.UpdateSupportCaseStatusRequest(status="closed", category="เรื่องที่ไม่เกี่ยวข้อง")
+        admin_user = {"USER_ID": "adm1", "TENANT_ID": "SYS", "ROLE": "admin"}
+        with patch.object(self.main, "db", mock_db):
+            res = self.main.update_support_case_status("CASE-CAT", req, admin_user)
+
+        self.assertEqual(res["category"], "เรื่องที่ไม่เกี่ยวข้อง")
+        self.assertEqual(mock_case_ref.update.call_args[0][0]["ISSUE_TYPE"], "เรื่องที่ไม่เกี่ยวข้อง")
+
 
 class TestRagLiveBenchmark:
     """Live Benchmark Evaluation against Cloud Run Production API."""

@@ -96,6 +96,7 @@ async function submitSupportTicket(event) {
     event.preventDefault();
     const form = event.currentTarget;
     const issue = form.querySelector('textarea')?.value.trim() || '';
+    const category = form.querySelector('#supportCategory')?.value || '';
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
     if (!currentUser.access_token || !currentUser.user_id) {
@@ -123,6 +124,7 @@ async function submitSupportTicket(event) {
             },
             body: JSON.stringify({
                 issue,
+                category,
                 conversation_id: currentUser.user_id
             })
         });
@@ -133,7 +135,7 @@ async function submitSupportTicket(event) {
 
         closeSupportModal();
         form.reset();
-        alert(`ส่งเรื่องให้เจ้าหน้าที่สำเร็จ เลขที่เคส ${result.case_id}`);
+        alert(`ส่งเรื่องให้เจ้าหน้าที่สำเร็จ เลขที่เคส ${result.case_id}${result.category ? ` (ประเภท: ${result.category})` : ''}`);
     } catch (error) {
         alert(error.message || 'ส่งเรื่องไม่สำเร็จ กรุณาลองใหม่');
     } finally {

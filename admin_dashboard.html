@@ -71,12 +71,23 @@
 .case-count-pill{font-size:0.78rem;font-weight:600;padding:2px 9px;border-radius:99px;background:#fff1f1;color:var(--red-dark)}
 .modal-status-box{margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#f8fafc}
 .modal-status-box h4{margin:0 0 10px;font-size:0.9rem;color:var(--ink);display:flex;align-items:center;gap:7px}
-.modal-status-row{display:grid;grid-template-columns:210px minmax(0,1fr) auto;gap:10px;align-items:start}
+.modal-status-row{display:grid;grid-template-columns:165px 220px minmax(0,1fr) auto;gap:10px;align-items:start}
 .modal-status-row select,.modal-status-row input{font:13.5px 'Prompt',sans-serif;border:1px solid var(--line);border-radius:9px;height:38px;padding:0 11px;background:#fff;color:var(--ink);width:100%;box-sizing:border-box}
 .modal-status-feedback{font-size:0.82rem;margin-top:8px;min-height:18px;color:var(--green)}
 .modal-status-feedback.error{color:var(--red-dark)}
 .badge{font-size:0.74rem;padding:3px 10px;border-radius:20px;background:#f0f3f8;color:#556174;font-weight:600}
 .badge.open{background:#fff5df;color:#a46705}.badge.in_progress{background:#eaf2ff;color:#315caa}.badge.resolved,.badge.closed{background:#e7f7ed;color:#187447}
+.badge.cat-cctv{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.badge.cat-roi{background:#f3e8ff;color:#6d28d9;border:1px solid #ddd6fe}
+.badge.cat-auth{background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd}
+.badge.cat-dashboard{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
+.badge.cat-alerts{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+.badge.cat-network{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.badge.cat-ai{background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd}
+.badge.cat-unrelated{background:#f1f5f9;color:#475569;border:1px dashed #cbd5e1}
+.cat-btn{display:block;width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:10px;padding:5px 7px;cursor:pointer;font:inherit;transition:background .15s,border-color .15s}
+.cat-btn:hover{background:#fff8f8;border-color:#f5d0d2}
+.cat-btn.active{background:#fff1f2;border-color:#fca5a5}
 .media-btn{font:600 12.5px 'Prompt',sans-serif;border:1px solid #f2c4c6;border-radius:9px;background:#fff7f7;color:var(--red-dark);padding:7px 11px;cursor:pointer}
 .empty{text-align:center;color:var(--muted);padding:30px;font-size:0.9rem}
 .footer{text-align:center;color:#94a0b2;font-size:0.8rem;margin-top:22px}
@@ -178,13 +189,13 @@
  <div class="panel"><h3><i class="fa-solid fa-chart-pie" style="color:var(--red)"></i> สัดส่วนสถานะเคส</h3><div class="status-layout"><div class="status-donut" id="statusDonut" role="img" aria-label="สัดส่วนสถานะเคส"><div class="status-donut-center"><strong id="statusChartTotal">—</strong><span>เคสทั้งหมด</span></div></div><div class="status-legend" id="statusLegend"></div></div></div>
 </section>
 <section class="panel case-section">
-  <div class="case-toolbar"><h3><i class="fa-solid fa-ticket" style="color:var(--red)"></i> รายการเคสทั้งหมด <span id="caseCountBadge" class="case-count-pill">0 เคส</span></h3><div class="filters"><input id="searchCases" placeholder="ค้นหารหัส รายละเอียด สาขา หรือผู้ติดต่อ" oninput="renderCases()"><select id="statusFilter" onchange="renderCases()"><option value="">ทุกสถานะ</option><option value="open">รอดำเนินการ</option><option value="in_progress">กำลังดำเนินการ</option><option value="resolved">แก้ไขแล้ว</option><option value="closed">ปิดเคส</option></select></div></div>
+  <div class="case-toolbar"><h3><i class="fa-solid fa-ticket" style="color:var(--red)"></i> รายการเคสทั้งหมด <span id="caseCountBadge" class="case-count-pill">0 เคส</span></h3><div class="filters"><input id="searchCases" placeholder="ค้นหารหัส รายละเอียด หมวด สาขา หรือผู้ติดต่อ" oninput="renderCases()"><select id="categoryFilter" onchange="renderCases()" aria-label="กรองตามประเภทปัญหา"><option value="">ทุกประเภทปัญหา</option><option value="กล้อง / CCTV">กล้อง / CCTV</option><option value="การตี ROI / พื้นที่วิเคราะห์">การตี ROI / พื้นที่วิเคราะห์</option><option value="การเข้าสู่ระบบ / บัญชีผู้ใช้">การเข้าสู่ระบบ / บัญชีผู้ใช้</option><option value="Dashboard และรายงาน">Dashboard และรายงาน</option><option value="การแจ้งเตือน (LINE / ระบบ)">การแจ้งเตือน (LINE / ระบบ)</option><option value="เครือข่าย / อินเทอร์เน็ต">เครือข่าย / อินเทอร์เน็ต</option><option value="แชท AI / คู่มือระบบ">แชท AI / คู่มือระบบ</option><option value="เรื่องที่ไม่เกี่ยวข้อง">เรื่องที่ไม่เกี่ยวข้อง</option></select><select id="statusFilter" onchange="renderCases()"><option value="">ทุกสถานะ</option><option value="open">รอดำเนินการ</option><option value="in_progress">กำลังดำเนินการ</option><option value="resolved">แก้ไขแล้ว</option><option value="closed">ปิดเคส</option></select></div></div>
   <div class="case-list" id="caseList"><div class="loading">กำลังโหลดเคส…</div></div>
 </section>
 <div class="footer">ข้อมูลตามสิทธิ์บัญชีผู้ดูแลหรือผู้จัดการสาขาที่เข้าสู่ระบบ</div>
 </div>
 <div class="modal" id="mediaModal" onclick="if(event.target===this)closeMedia()"><div class="modal-box"><div class="modal-head"><h3 id="mediaTitle">ไฟล์แนบ</h3><button class="modal-close" onclick="closeMedia()" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button></div><div id="mediaBody" class="loading">กำลังเปิดไฟล์…</div></div></div>
-<div class="modal" id="caseDetailModal" onclick="if(event.target===this)closeCaseDetail()"><div class="modal-box"><div class="modal-head"><h3 id="caseDetailTitle">ดูแลเคส</h3><button class="modal-close" onclick="closeCaseDetail()" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button></div><div id="caseDetailBody" class="loading">กำลังโหลดรายละเอียด…</div><form id="caseStatusForm" class="modal-status-box" hidden onsubmit="saveModalCaseStatus(event)"><h4><i class="fa-solid fa-sliders" style="color:var(--red)"></i> เปลี่ยนสถานะเคส &amp; บันทึกเจ้าหน้าที่</h4><div class="modal-status-row"><select id="modalCaseStatus" aria-label="สถานะเคส"><option value="open">รอดำเนินการ</option><option value="in_progress">กำลังดำเนินการ</option><option value="resolved">แก้ไขแล้ว</option><option value="closed">ปิดเคส</option></select><input id="modalAdminNote" type="text" maxlength="2000" placeholder="หมายเหตุภายในสำหรับเจ้าหน้าที่ (ไม่บังคับ)"><button id="modalStatusSaveButton" class="btn red" type="submit"><i class="fa-solid fa-floppy-disk"></i> อัปเดตสถานะ</button></div><div id="modalStatusFeedback" class="modal-status-feedback" aria-live="polite"></div></form><form id="staffReplyForm" class="reply-form" onsubmit="sendStaffReply(event)"><label for="staffReplyMessage">ตอบกลับลูกค้า</label><textarea id="staffReplyMessage" maxlength="3000" placeholder="พิมพ์คำแนะนำหรือขอข้อมูลเพิ่มเติม…"></textarea><div class="reply-actions"><span id="replyFeedback" class="reply-feedback" aria-live="polite"></span><button id="staffReplyButton" class="btn red" type="submit"><i class="fa-solid fa-paper-plane"></i> ส่งข้อความ</button></div></form></div></div>
+<div class="modal" id="caseDetailModal" onclick="if(event.target===this)closeCaseDetail()"><div class="modal-box"><div class="modal-head"><h3 id="caseDetailTitle">ดูแลเคส</h3><button class="modal-close" onclick="closeCaseDetail()" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button></div><div id="caseDetailBody" class="loading">กำลังโหลดรายละเอียด…</div><form id="caseStatusForm" class="modal-status-box" hidden onsubmit="saveModalCaseStatus(event)"><h4><i class="fa-solid fa-sliders" style="color:var(--red)"></i> เปลี่ยนสถานะ / จัดหมวดหมู่เคส &amp; บันทึกเจ้าหน้าที่</h4><div class="modal-status-row"><select id="modalCaseStatus" aria-label="สถานะเคส"><option value="open">รอดำเนินการ</option><option value="in_progress">กำลังดำเนินการ</option><option value="resolved">แก้ไขแล้ว</option><option value="closed">ปิดเคส</option></select><select id="modalCaseCategory" aria-label="ประเภทปัญหา"><option value="กล้อง / CCTV">กล้อง / CCTV</option><option value="การตี ROI / พื้นที่วิเคราะห์">การตี ROI / พื้นที่วิเคราะห์</option><option value="การเข้าสู่ระบบ / บัญชีผู้ใช้">การเข้าสู่ระบบ / บัญชีผู้ใช้</option><option value="Dashboard และรายงาน">Dashboard และรายงาน</option><option value="การแจ้งเตือน (LINE / ระบบ)">การแจ้งเตือน (LINE / ระบบ)</option><option value="เครือข่าย / อินเทอร์เน็ต">เครือข่าย / อินเทอร์เน็ต</option><option value="แชท AI / คู่มือระบบ">แชท AI / คู่มือระบบ</option><option value="เรื่องที่ไม่เกี่ยวข้อง">เรื่องที่ไม่เกี่ยวข้อง</option></select><input id="modalAdminNote" type="text" maxlength="2000" placeholder="หมายเหตุภายในสำหรับเจ้าหน้าที่ (ไม่บังคับ)"><button id="modalStatusSaveButton" class="btn red" type="submit"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button></div><div id="modalStatusFeedback" class="modal-status-feedback" aria-live="polite"></div></form><form id="staffReplyForm" class="reply-form" onsubmit="sendStaffReply(event)"><label for="staffReplyMessage">ตอบกลับลูกค้า</label><textarea id="staffReplyMessage" maxlength="3000" placeholder="พิมพ์คำแนะนำหรือขอข้อมูลเพิ่มเติม…"></textarea><div class="reply-actions"><span id="replyFeedback" class="reply-feedback" aria-live="polite"></span><button id="staffReplyButton" class="btn red" type="submit"><i class="fa-solid fa-paper-plane"></i> ส่งข้อความ</button></div></form></div></div>
 <script>
 const API_URL='https://tatip-backend-417035159214.us-central1.run.app';
 const CASE_STATUS_OPTIONS=[
@@ -193,13 +204,46 @@ const CASE_STATUS_OPTIONS=[
  ['resolved','แก้ไขแล้ว'],
  ['closed','ปิดเคส']
 ];
-let currentUser={};let recentCases=[];let mediaUrl='';let currentCaseDetailId='';let inlineToastByCase={};
+let currentUser={};let recentCases=[];let lastCategoryStats=[];let mediaUrl='';let currentCaseDetailId='';let inlineToastByCase={};
 function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function authHeaders(){return {Authorization:'Bearer '+currentUser.access_token};}
 function authHeadersWithJson(){return {...authHeaders(),'Content-Type':'application/json'};}
 function logoutDashboard(){localStorage.removeItem('currentUser');location.replace('login.html');}
 function normalizeStatus(status){const s=String(status||'open').trim().toLowerCase();return ({open:'open',in_progress:'in_progress',resolved:'resolved',closed:'closed'})[s]||'open';}
 function statusLabel(status){return ({open:'รอดำเนินการ',in_progress:'กำลังดำเนินการ',resolved:'แก้ไขแล้ว',closed:'ปิดเคส'})[normalizeStatus(status)]||status;}
+function resolveCaseCategory(item){
+ const raw=String((item&&item.category)||'').trim();
+ const lower=raw.toLowerCase();
+ const legacyMap={'บัญชีผู้ใช้':'การเข้าสู่ระบบ / บัญชีผู้ใช้','การแจ้งเตือน':'การแจ้งเตือน (LINE / ระบบ)','dashboard':'Dashboard และรายงาน','เครือข่าย':'เครือข่าย / อินเทอร์เน็ต'};
+ const ignored=new Set(['','auto','all','อื่น ๆ','อื่นๆ','other','others','ทั่วไป','general','ไม่ระบุ']);
+ if(raw&&!ignored.has(lower))return legacyMap[lower]||raw;
+ const t=String((item&&item.issue)||'').toLowerCase();
+ if(/(?:^|[^a-z])roi(?:$|[^a-z])|ตี\s*roi|ตีกรอบ|วาดกรอบ|ขีดเส้น|กำหนดจุด|กำหนดพื้นที่|พื้นที่วิเคราะห์|พื้นที่ตรวจจับ|polygon|โซนตรวจจับ|เขตพื้นที่|นับคนเข้าออก|(?:^|[^a-z])zone(?:$|[^a-z])/.test(t))return 'การตี ROI / พื้นที่วิเคราะห์';
+ if(/แจ้งเตือน|แจ้งเหตุ|ส่งข้อความเข้าไลน์|ทางไลน์|ผ่านไลน์|เข้าไลน์|บัญชีไลน์|เชื่อม\s*line|เชื่อมบัญชี\s*line|ไลน์\s*oa|(?:^|[^ฟน])ไลน์|(?:^|[^a-z])(?:line|notification|notify|alert|push)(?:$|[^a-z])/.test(t))return 'การแจ้งเตือน (LINE / ระบบ)';
+ if(/เข้าสู่ระบบ|เข้าระบบ|ล็อกอิน|ล็อคอิน|เข้าใช้งานไม่ได้|เข้าไม่ได้|(?:^|[^a-z])(?:login|logout|password|username|account|session|token)(?:$|[^a-z])|ออกจากระบบ|รหัสผ่าน|ลืมรหัส|เปลี่ยนรหัส|บัญชี|สร้างบัญชี|เพิ่มผู้ใช้|เปิดสิทธิ์|สิทธิ์|เซสชัน|(?:^|[^\d])(?:401|403)(?:$|[^\d])|ไม่พบผู้ใช้/.test(t))return 'การเข้าสู่ระบบ / บัญชีผู้ใช้';
+ if(/(?:^|[^a-z])(?:dashboard|heatmap)(?:$|[^a-z])|แดชบอร์ด|ฮีทแมพ|รายงาน|สถิติ|กราฟ|สรุปผล|สรุปยอด|ตัวเลขไม่ขึ้น/.test(t))return 'Dashboard และรายงาน';
+ if(/(?:^|[^a-z])(?:internet|network|wifi|wi-fi|bandwidth|firewall|lan|poe)(?:$|[^a-z])|อินเทอร์เน็ต|เครือข่าย|พอร์ต\s*554|เน็ตหลุด|สัญญาณหลุด|เชื่อมต่อไม่ได้|หลุดบ่อย|เน็ต/.test(t))return 'เครือข่าย / อินเทอร์เน็ต';
+ if(/กล้อง|(?:^|[^a-z])(?:cctv|camera|cam\d*|ip\s*address|rtsp|ptz|nvr|dvr|onvif|offline|black\s*screen)(?:$|[^a-z])|ภาพดับ|จอดำ|จอมืด|ไม่มีภาพ|ภาพไม่ขึ้น|ภาพค้าง|ภาพมัว|ดูภาพ|ดูย้อนหลัง|ออฟไลน์|ออนไลน์|เลนส์|ติดกล้อง|ติดตั้งกล้อง|วางกล้อง|จุดติดกล้อง|มุมกล้อง|ไมโครโฟน|ไมค์|เสียง/.test(t))return 'กล้อง / CCTV';
+ if(/แชท|(?:^|[^a-z])(?:chat|rag|tatip\s*ai|bot)(?:$|[^a-z])|คู่มือ|ถาม\s*ai|บอท|ตอบผิด|ไม่ตอบ|ประวัติการสนทนา/.test(t))return 'แชท AI / คู่มือระบบ';
+ return 'เรื่องที่ไม่เกี่ยวข้อง';
+}
+function categoryClass(cat){
+ if(cat.includes('CCTV'))return 'cat-cctv';
+ if(cat.includes('ROI'))return 'cat-roi';
+ if(cat.includes('เข้าสู่ระบบ'))return 'cat-auth';
+ if(cat.includes('Dashboard'))return 'cat-dashboard';
+ if(cat.includes('แจ้งเตือน'))return 'cat-alerts';
+ if(cat.includes('เครือข่าย'))return 'cat-network';
+ if(cat.includes('แชท'))return 'cat-ai';
+ return 'cat-unrelated';
+}
+function filterByCategoryChip(cat){
+ const sel=document.getElementById('categoryFilter');
+ if(!sel)return;
+ sel.value=(sel.value===cat?'':cat);
+ drawCategories(lastCategoryStats);
+ renderCases();
+}
 function lineNotifySuffix(code){if(code==='sent')return ' · แจ้งเตือน LINE แล้ว';if(code==='failed')return ' · ส่งแจ้งเตือน LINE ไม่สำเร็จ';return '';}
 function fmtDate(value){if(!value)return 'ไม่ระบุเวลา';const d=new Date(value);return Number.isNaN(d.getTime())?'ไม่ระบุเวลา':d.toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'});}
 function showNotice(message){const el=document.getElementById('notice');el.textContent=message;el.style.display=message?'block':'none';}
@@ -218,8 +262,13 @@ async function loadDashboard(){
   document.getElementById('statMedia').textContent=summary.attachments??0;
   document.getElementById('statSatisfaction').textContent=summary.satisfaction_average==null?'—':Number(summary.satisfaction_average).toFixed(1)+' ★';
   document.getElementById('statSatisfactionCount').textContent=summary.satisfaction_count?('จาก '+summary.satisfaction_count+' แบบประเมิน'):'ยังไม่มีแบบประเมิน';
-  drawWeek(data.last_7_days||[]);drawCategories(data.categories||[]);drawStatus(data.status_counts||{});
   recentCases=Array.isArray(data.cases)?data.cases:(data.recent_cases||[]);
+  const computedCats={};
+  recentCases.forEach(item=>{const c=resolveCaseCategory(item);computedCats[c]=(computedCats[c]||0)+1;});
+  const categoryStats=recentCases.length
+   ?Object.entries(computedCats).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count)
+   :(data.categories||[]).map(x=>({name:resolveCaseCategory({category:x.name,issue:''}),count:x.count}));
+  drawWeek(data.last_7_days||[]);drawCategories(categoryStats);drawStatus(data.status_counts||{});
   renderCases();
  }catch(error){showNotice(error.message||'เชื่อมต่อ Backend ไม่สำเร็จ');}
 }
@@ -237,9 +286,10 @@ async function saveSupportSettings(){
  catch(error){status.style.color='var(--red)';status.textContent=error.message||'บันทึกไม่สำเร็จ';}
  finally{button.disabled=false;}
 }
-async function patchCaseStatus(caseId,status,adminNote){
+async function patchCaseStatus(caseId,status,adminNote,category){
  const payload={status};
  if(adminNote!==undefined)payload.admin_note=adminNote;
+ if(category!==undefined&&category!=='')payload.category=category;
  const response=await fetch(API_URL+'/api/admin/support-cases/'+encodeURIComponent(caseId),{
   method:'PATCH',
   headers:authHeadersWithJson(),
@@ -259,8 +309,11 @@ function drawWeek(items){
  }).join('');
 }
 function drawCategories(items){
- const root=document.getElementById('categories');const max=Math.max(1,...items.map(x=>Number(x.count)||0));
- root.innerHTML=items.length?items.slice(0,6).map(item=>'<div><div class="cat-head"><span>'+esc(item.name)+'</span><strong>'+Number(item.count||0)+'</strong></div><div class="track"><div class="fill" style="width:'+Math.max(2,Math.round((Number(item.count||0)/max*100)))+'%"></div></div></div>').join(''):'<div class="empty">ยังไม่มีข้อมูลเคส</div>';
+ lastCategoryStats=Array.isArray(items)?items:[];
+ const activeCat=(document.getElementById('categoryFilter')?.value||'');
+ const root=document.getElementById('categories');const max=Math.max(1,...lastCategoryStats.map(x=>Number(x.count)||0));
+ root.innerHTML=lastCategoryStats.length?lastCategoryStats.slice(0,8).map(item=>'<button type="button" class="cat-btn'+(activeCat===item.name?' active':'')+'" data-cat="'+esc(item.name)+'" title="คลิกเพื่อกรองเคสหมวดนี้"><div class="cat-head"><span>'+esc(item.name)+'</span><strong>'+Number(item.count||0)+'</strong></div><div class="track"><div class="fill" style="width:'+Math.max(2,Math.round((Number(item.count||0)/max*100)))+'%"></div></div></button>').join(''):'<div class="empty">ยังไม่มีข้อมูลเคส</div>';
+ root.querySelectorAll('.cat-btn').forEach(btn=>btn.addEventListener('click',()=>filterByCategoryChip(btn.dataset.cat)));
 }
 function drawStatus(counts){
  const items=[
@@ -282,11 +335,13 @@ function drawStatus(counts){
  document.getElementById('statusLegend').innerHTML=items.map(item=>'<div class="status-legend-item"><span class="status-legend-dot" style="background:'+item.color+'"></span><span>'+item.label+'</span><strong>'+item.count+'</strong></div>').join('');
 }
 function renderCases(){
- const term=(document.getElementById('searchCases').value||'').trim().toLowerCase();const status=document.getElementById('statusFilter').value;
+ const term=(document.getElementById('searchCases').value||'').trim().toLowerCase();const status=document.getElementById('statusFilter').value;const catFilter=document.getElementById('categoryFilter')?.value||'';
+ document.querySelectorAll('#categories .cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===catFilter));
  const filtered=recentCases.filter(item=>{
   const st=normalizeStatus(item.status);
-  const hay=String((item.case_id||'')+' '+(item.issue||'')+' '+(item.branch||'')+' '+(item.tenant_id||'')+' '+(item.user_id||'')+' '+(item.contact_name||'')+' '+(item.contact_phone||'')).toLowerCase();
-  return (!status||st===status)&&(!term||hay.includes(term));
+  const cat=resolveCaseCategory(item);
+  const hay=String((item.case_id||'')+' '+cat+' '+(item.issue||'')+' '+(item.branch||'')+' '+(item.tenant_id||'')+' '+(item.user_id||'')+' '+(item.contact_name||'')+' '+(item.contact_phone||'')).toLowerCase();
+  return (!status||st===status)&&(!catFilter||cat===catFilter)&&(!term||hay.includes(term));
  });
  const countBadge=document.getElementById('caseCountBadge');
  if(countBadge)countBadge.textContent=(filtered.length===recentCases.length?(recentCases.length+' เคส'):(filtered.length+' / '+recentCases.length+' เคส'));
@@ -294,6 +349,7 @@ function renderCases(){
  if(!filtered.length){root.innerHTML='<div class="empty">ไม่พบเคสที่ตรงกับเงื่อนไข</div>';return;}
  root.innerHTML=filtered.map(item=>{
   const st=normalizeStatus(item.status);
+  const cat=resolveCaseCategory(item);
   const attachments=item.attachments||[];
   const media=attachments.map((attachment,index)=>'<button class="media-btn" data-case="'+esc(item.case_id)+'" data-attachment="'+esc(attachment.attachment_id)+'" data-name="'+esc(attachment.file_name)+'" data-type="'+esc(attachment.content_type)+'"><i class="fa-regular fa-file-lines"></i> ไฟล์ '+(index+1)+'</button>').join('');
   const statusOptions=CASE_STATUS_OPTIONS.map(([val,label])=>'<option value="'+val+'"'+(st===val?' selected':'')+'>'+label+'</option>').join('');
@@ -301,7 +357,7 @@ function renderCases(){
   const toastHtml=toast?'<div class="case-inline-toast'+(toast.error?' error':'')+'">'+esc(toast.text)+'</div>':'';
   const contactInfo=item.contact_name?('<span><i class="fa-regular fa-user"></i> '+esc(item.contact_name)+(item.contact_phone?' ('+esc(item.contact_phone)+')':'')+'</span>'):'';
   const noteHtml=item.admin_note?'<div class="case-admin-note-tag"><i class="fa-solid fa-note-sticky" style="color:var(--amber)"></i> บันทึกเจ้าหน้าที่: '+esc(item.admin_note)+'</div>':'';
-  return '<article class="case" data-case-card="'+esc(item.case_id)+'"><div><div class="case-title"><span class="case-id">'+esc(item.case_id)+'</span><span class="badge '+esc(st)+'">'+esc(statusLabel(st))+'</span><span class="badge">'+esc(item.priority||'P2')+'</span></div><div class="case-meta"><span><i class="fa-regular fa-clock"></i> '+esc(fmtDate(item.created_at))+'</span><span><i class="fa-solid fa-location-dot"></i> '+esc(item.branch||item.tenant_id||'ไม่ระบุสาขา')+'</span>'+contactInfo+'</div><div class="case-issue">'+esc(item.issue||'ไม่มีรายละเอียด')+'</div>'+noteHtml+toastHtml+'</div><div class="case-actions">'+media+'<div class="case-status-inline"><select class="case-status-select" data-case="'+esc(item.case_id)+'" data-saved-status="'+esc(st)+'" aria-label="เปลี่ยนสถานะเคส '+esc(item.case_id)+'">'+statusOptions+'</select><button type="button" class="case-status-save-btn" data-case="'+esc(item.case_id)+'"><i class="fa-solid fa-check"></i> บันทึกสถานะ</button></div><button class="case-open-btn" data-case="'+esc(item.case_id)+'"><i class="fa-regular fa-comments"></i> ดูเคส / ตอบกลับ</button></div></article>';
+  return '<article class="case" data-case-card="'+esc(item.case_id)+'"><div><div class="case-title"><span class="case-id">'+esc(item.case_id)+'</span><span class="badge '+esc(st)+'">'+esc(statusLabel(st))+'</span><span class="badge '+esc(categoryClass(cat))+'">'+esc(cat)+'</span><span class="badge">'+esc(item.priority||'P2')+'</span></div><div class="case-meta"><span><i class="fa-regular fa-clock"></i> '+esc(fmtDate(item.created_at))+'</span><span><i class="fa-solid fa-location-dot"></i> '+esc(item.branch||item.tenant_id||'ไม่ระบุสาขา')+'</span>'+contactInfo+'</div><div class="case-issue">'+esc(item.issue||'ไม่มีรายละเอียด')+'</div>'+noteHtml+toastHtml+'</div><div class="case-actions">'+media+'<div class="case-status-inline"><select class="case-status-select" data-case="'+esc(item.case_id)+'" data-saved-status="'+esc(st)+'" aria-label="เปลี่ยนสถานะเคส '+esc(item.case_id)+'">'+statusOptions+'</select><button type="button" class="case-status-save-btn" data-case="'+esc(item.case_id)+'"><i class="fa-solid fa-check"></i> บันทึกสถานะ</button></div><button class="case-open-btn" data-case="'+esc(item.case_id)+'"><i class="fa-regular fa-comments"></i> ดูเคส / ตอบกลับ</button></div></article>';
  }).join('');
  root.querySelectorAll('.media-btn').forEach(button=>button.addEventListener('click',()=>openMedia(button.dataset.case,button.dataset.attachment,button.dataset.name,button.dataset.type)));
  root.querySelectorAll('.case-open-btn').forEach(button=>button.addEventListener('click',()=>openCaseDetail(button.dataset.case)));
@@ -345,12 +401,14 @@ async function openCaseDetail(caseId,presetStatusMessage){
   if(response.status===401){logoutDashboard();return;}
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.detail||'โหลดรายละเอียดเคสไม่สำเร็จ');
-  const item=data.case||{},st=normalizeStatus(item.status),events=[{sender:'system',message:'รับแจ้งปัญหาเข้าระบบ',created_at:item.created_at},...(data.events||[])],feedback=item.customer_feedback;
+  const item=data.case||{},st=normalizeStatus(item.status),cat=resolveCaseCategory(item),events=[{sender:'system',message:'รับแจ้งปัญหาเข้าระบบ',created_at:item.created_at},...(data.events||[])],feedback=item.customer_feedback;
   const feedbackHtml=feedback?'<div class="case-detail-issue" style="margin-top:12px;background:#fff8e8;border-color:#efcf82"><strong><i class="fa-solid fa-star" style="color:#d79a00"></i> คะแนนจากลูกค้า: '+esc(feedback.rating)+'/5</strong>'+(feedback.comment?'<p style="margin:6px 0 0">'+esc(feedback.comment)+'</p>':'')+'<div class="case-meta">'+esc(fmtDate(feedback.created_at))+'</div></div>':'';
   const contactMeta=(item.contact_name?'<span>ผู้ติดต่อ: '+esc(item.contact_name)+(item.contact_phone?' ('+esc(item.contact_phone)+')':'')+'</span>':'');
   document.getElementById('caseDetailTitle').textContent='เคส '+(item.case_id||caseId);
-  body.className='';body.innerHTML='<div class="case-title"><span class="badge '+esc(st)+'">'+esc(statusLabel(st))+'</span><span class="badge">'+esc(item.priority||'P2')+'</span><span class="badge">'+esc(item.branch||item.tenant_id||'ไม่ระบุสาขา')+'</span></div><div class="case-detail-meta"><span>ผู้ใช้: '+esc(item.user_id||'—')+'</span>'+contactMeta+'<span>แจ้งเมื่อ '+esc(fmtDate(item.created_at))+'</span>'+(item.camera_name?'<span>กล้อง: '+esc(item.camera_name)+'</span>':'')+'</div><div class="case-detail-issue">'+esc(item.issue||'ไม่มีรายละเอียด')+'</div><h4 style="margin:16px 0 8px">ประวัติการติดต่อ</h4><div class="timeline">'+events.map(event=>{const sender=event.sender==='customer'?'ลูกค้า':event.sender==='system'?'ระบบ':'เจ้าหน้าที่';const cls=event.sender==='customer'?'customer':event.sender==='system'?'system':'support';return '<div class="timeline-item '+cls+'"><span class="timeline-dot"></span><div class="timeline-body"><div class="timeline-meta"><strong>'+sender+'</strong><time>'+esc(fmtDate(event.created_at))+'</time></div><p>'+esc(event.message||statusLabel(event.status))+'</p></div></div>';}).join('')+'</div>'+feedbackHtml;
+  body.className='';body.innerHTML='<div class="case-title"><span class="badge '+esc(st)+'">'+esc(statusLabel(st))+'</span><span class="badge '+esc(categoryClass(cat))+'">'+esc(cat)+'</span><span class="badge">'+esc(item.priority||'P2')+'</span><span class="badge">'+esc(item.branch||item.tenant_id||'ไม่ระบุสาขา')+'</span></div><div class="case-detail-meta"><span>ผู้ใช้: '+esc(item.user_id||'—')+'</span>'+contactMeta+'<span>แจ้งเมื่อ '+esc(fmtDate(item.created_at))+'</span>'+(item.camera_name?'<span>กล้อง: '+esc(item.camera_name)+'</span>':'')+'</div><div class="case-detail-issue">'+esc(item.issue||'ไม่มีรายละเอียด')+'</div><h4 style="margin:16px 0 8px">ประวัติการติดต่อ</h4><div class="timeline">'+events.map(event=>{const sender=event.sender==='customer'?'ลูกค้า':event.sender==='system'?'ระบบ':'เจ้าหน้าที่';const cls=event.sender==='customer'?'customer':event.sender==='system'?'system':'support';return '<div class="timeline-item '+cls+'"><span class="timeline-dot"></span><div class="timeline-body"><div class="timeline-meta"><strong>'+sender+'</strong><time>'+esc(fmtDate(event.created_at))+'</time></div><p>'+esc(event.message||statusLabel(event.status))+'</p></div></div>';}).join('')+'</div>'+feedbackHtml;
   document.getElementById('modalCaseStatus').value=st;
+  const catSel=document.getElementById('modalCaseCategory');
+  if(catSel){if(!Array.from(catSel.options).some(o=>o.value===cat))catSel.add(new Option(cat,cat));catSel.value=cat;}
   document.getElementById('modalAdminNote').value=item.admin_note||'';
   statusForm.hidden=false;
   const closed=st==='closed';document.getElementById('staffReplyMessage').disabled=closed;document.getElementById('staffReplyButton').disabled=closed;document.getElementById('staffReplyButton').style.opacity=closed?'.55':'1';if(closed){document.getElementById('replyFeedback').textContent='เคสปิดแล้ว (สามารถเปลี่ยนสถานะด้านบนเพื่อเปิดเคสใหม่ได้)';}
@@ -358,20 +416,20 @@ async function openCaseDetail(caseId,presetStatusMessage){
 }
 async function saveModalCaseStatus(event){
  event.preventDefault();if(!currentCaseDetailId)return;
- const select=document.getElementById('modalCaseStatus'),noteInput=document.getElementById('modalAdminNote'),button=document.getElementById('modalStatusSaveButton'),feedback=document.getElementById('modalStatusFeedback');
- const nextStatus=select.value,adminNote=noteInput.value.trim();
- select.disabled=true;noteInput.disabled=true;button.disabled=true;
+ const select=document.getElementById('modalCaseStatus'),catSelect=document.getElementById('modalCaseCategory'),noteInput=document.getElementById('modalAdminNote'),button=document.getElementById('modalStatusSaveButton'),feedback=document.getElementById('modalStatusFeedback');
+ const nextStatus=select.value,nextCat=catSelect?catSelect.value:undefined,adminNote=noteInput.value.trim();
+ select.disabled=true;if(catSelect)catSelect.disabled=true;noteInput.disabled=true;button.disabled=true;
  feedback.className='modal-status-feedback';feedback.textContent='กำลังบันทึกสถานะ…';
  try{
-  const result=await patchCaseStatus(currentCaseDetailId,nextStatus,adminNote);
-  const msg='อัปเดตสถานะเป็น “'+statusLabel(nextStatus)+'” แล้ว'+lineNotifySuffix(result.line_notification);
+  const result=await patchCaseStatus(currentCaseDetailId,nextStatus,adminNote,nextCat);
+  const msg='อัปเดตเคสเป็น “'+statusLabel(nextStatus)+'” ('+esc(result.category||nextCat||'')+') แล้ว'+lineNotifySuffix(result.line_notification);
   inlineToastByCase[currentCaseDetailId]={text:msg,error:false};
   await Promise.all([loadDashboard(),openCaseDetail(currentCaseDetailId,msg)]);
  }catch(error){
   feedback.className='modal-status-feedback error';
   feedback.textContent=error.message||'อัปเดตสถานะเคสไม่สำเร็จ';
  }finally{
-  select.disabled=false;noteInput.disabled=false;button.disabled=false;
+  select.disabled=false;if(catSelect)catSelect.disabled=false;noteInput.disabled=false;button.disabled=false;
  }
 }
 async function sendStaffReply(event){
