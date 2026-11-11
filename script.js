@@ -219,28 +219,115 @@ async function submitChatMessage() {
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        const response = await fetch(`${API_URL}/api/chat`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: message })
-        });
-        const data = await response.json();
-        document.getElementById(typingId).remove();
+        const username = getCurrentUsername();
+        const storageKey = `tatip_chat_history_${username}`;
+        const localHistory = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const recentHistory = localHistory.slice(0, 3).reverse().map(item => ({
+            question: item.question || '',
+            answer: item.answer || ''
+        }));
 
-        if (data.status === "success") {
-            const formattedReply = renderChatReply(data.reply);
-            chatBox.innerHTML += `
-                <div class="message-group ai">
-                    <div class="message-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
-                    <div class="message-body">
-                        <div class="message-bubble">${formattedReply}</div>
-                        <div class="message-time">${new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.</div>
-                    </div>
-                </div>`;
-            saveToHistory(message, data.reply);
-            saveChatHistoryToServer(message, data.reply);
-        } else {
-            alert("API Error: " + data.reply);
+        const payloadBody = JSON.stringify({
+            message: message,
+            history: recentHistory
+        });
+
+        // 1. พยายามใช้ Streaming API (/api/chat/stream) ก่อนเพื่อให้แสดงข้อความแบบ Real-time
+        let finalReply = '';
+        let usedStream = false;
+
+        try {
+            const streamResponse = await fetch(`${API_URL}/api/chat/stream`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: payloadBody
+            });
+
+            const contentType = streamResponse.headers.get("content-type") || "";
+            if (streamResponse.ok && contentType.includes("text/event-stream") && streamResponse.body) {
+                usedStream = true;
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
+
+                const bubbleId = "ai-bubble-" + Date.now();
+                const timeStr = new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+                chatBox.innerHTML += `
+                    <div class="message-group ai">
+                        <div class="message-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
+                        <div class="message-body">
+                            <div id="${bubbleId}" class="message-bubble"></div>
+                            <div class="message-time">${timeStr} น.</div>
+                        </div>
+                    </div>`;
+
+                const bubbleEl = document.getElementById(bubbleId);
+                const reader = streamResponse.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = "";
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const events = buffer.split("\n\n");
+                    buffer = events.pop() || "";
+
+                    for (const eventText of events) {
+                        const line = eventText.split("\n").find(l => l.startsWith("data: "));
+                        if (!line) continue;
+                        try {
+                            const parsed = JSON.parse(line.slice(6));
+                            if (parsed.chunk) {
+                                finalReply += parsed.chunk;
+                                bubbleEl.innerHTML = renderChatReply(finalReply);
+                                chatBox.scrollTop = chatBox.scrollHeight;
+                            }
+                            if (parsed.done && parsed.reply) {
+                                finalReply = parsed.reply;
+                                bubbleEl.innerHTML = renderChatReply(finalReply);
+                                chatBox.scrollTop = chatBox.scrollHeight;
+                            }
+                        } catch (_) {
+                            // ข้าม JSON ที่ยังไม่สมบูรณ์
+                        }
+                    }
+                }
+            }
+        } catch (_) {
+            // หาก Streaming Endpoint ยังไม่พร้อมใช้งาน ให้ข้ามไปใช้ Fallback แบบปกติ
+        }
+
+        // 2. Fallback กลับไปใช้ /api/chat แบบปกติ (รองรับเซิร์ฟเวอร์เดิม)
+        if (!usedStream) {
+            const response = await fetch(`${API_URL}/api/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: payloadBody
+            });
+            const data = await response.json();
+            const typingEl = document.getElementById(typingId);
+            if (typingEl) typingEl.remove();
+
+            if (data.status === "success") {
+                finalReply = data.reply;
+                const formattedReply = renderChatReply(finalReply);
+                chatBox.innerHTML += `
+                    <div class="message-group ai">
+                        <div class="message-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
+                        <div class="message-body">
+                            <div class="message-bubble">${formattedReply}</div>
+                            <div class="message-time">${new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.</div>
+                        </div>
+                    </div>`;
+            } else {
+                alert("API Error: " + data.reply);
+                return;
+            }
+        }
+
+        if (finalReply) {
+            saveToHistory(message, finalReply);
+            saveChatHistoryToServer(message, finalReply);
         }
     } catch (error) {
         document.getElementById(typingId).remove();

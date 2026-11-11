@@ -6,7 +6,7 @@
     <title>คำถามที่พบบ่อย - TATIP AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./styles.css?v=20261102-mobile1">
+    <link rel="stylesheet" href="./styles.css?v=20261111-desktop1">
     <style>
         /* สไตล์ปุ่มแท็บ */
         .chip-btn {
@@ -96,29 +96,62 @@
     </style>
 </head>
 <body>
+    <!-- UNIFIED DESKTOP SIDEBAR -->
+    <nav class="app-sidebar" aria-label="เมนูหลัก">
+        <a href="index.html" class="sidebar-brand">
+            <span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span>
+            <div class="sidebar-brand-text">
+                <div class="sidebar-brand-title">TATIP AI <span class="version-badge">v10.0 RAG</span></div>
+                <span class="sidebar-brand-sub">ระบบสนับสนุนบริการลูกค้า</span>
+            </div>
+        </a>
+        <div class="sidebar-nav-scroll">
+            <div class="sidebar-section-label">เมนูหลัก</div>
+            <a href="index.html" class="sidebar-link"><i class="fa-solid fa-house"></i><span>หน้าหลัก</span></a>
+            <a href="chat.html" class="sidebar-link"><i class="fa-solid fa-comments"></i><span>แชท AI</span></a>
+            <a href="customer_dashboard.html" class="sidebar-link"><i class="fa-solid fa-chart-pie"></i><span>ภาพรวมของฉัน</span></a>
+            <a href="history.html" class="sidebar-link"><i class="fa-solid fa-clock-rotate-left"></i><span>ประวัติการสนทนา</span></a>
+            <a href="faq.html" class="sidebar-link active"><i class="fa-solid fa-circle-question"></i><span>คำถามที่พบบ่อย</span></a>
+            <a href="contact.html" class="sidebar-link"><i class="fa-solid fa-headset"></i><span>ติดต่อเจ้าหน้าที่</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <button type="button" onclick="window.logoutUser ? window.logoutUser() : (localStorage.removeItem('currentUser'), location.replace('login.html'))" class="btn-sidebar-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+    </nav>
+
     <header class="top-navbar">
         <div class="nav-container">
-            <a href="index.html" class="brand-logo">
-                <div class="logo-box"><span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span> <span class="logo-text">TATIP AI</span></div>
-            </a>
+            <div class="header-context">
+                <div class="header-page-title"><i class="fa-solid fa-circle-question text-red"></i> คำถามที่พบบ่อย (FAQ)</div>
+                <span class="header-page-sub">คู่มือการแก้ไขปัญหาเบื้องต้นและวิดีโอคำแนะนำทีละขั้น</span>
+            </div>
+            <div class="header-actions">
+                <div class="status-online-pill"><span class="dot"></span><span>RAG: <strong>Online</strong></span></div>
+                <a href="chat.html" class="btn-saas btn-saas-primary"><i class="fa-solid fa-comments"></i> ถาม TATIP AI</a>
+            </div>
         </div>
     </header>
 
-    <main class="main-content" style="padding: 1.5rem 1rem; max-width: 1120px; margin: 0 auto;">
-        <div class="page-title-box" style="margin-bottom: 1.25rem;">
-            <h2 style="font-size: 1.3rem; font-weight: 700; color: #0e1626;"><i class="fa-solid fa-circle-question" style="color: #c81e1e;"></i> คำถามที่พบบ่อย (FAQ)</h2>
-            <p style="font-size: 0.85rem; color: #5b6779;">กดเลือกหมวดหมู่ที่ต้องการด้านล่าง เพื่อดูคำถามและวิธีแก้ไขปัญหา</p>
-        </div>
-        <div class="faq-search">
-            <label class="faq-search-box"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input id="faqSearch" type="search" placeholder="ค้นหาคำถาม เช่น IP กล้อง, ไม่มีภาพ, Heatmap" autocomplete="off" aria-label="ค้นหาบทความ FAQ">
-            </label>
-            <span class="faq-count" id="faqCount" aria-live="polite"></span>
+    <main class="main-content">
+        <div class="page-title-box">
+            <div>
+                <h2><i class="fa-solid fa-circle-question text-red"></i> คลังคำถามที่พบบ่อย (FAQ)</h2>
+                <p>ค้นหาหรือกดเลือกหมวดหมู่เพื่อดูวิธีแก้ไขปัญหาและคู่มือภาพประกอบอย่างละเอียด</p>
+            </div>
+            <span class="faq-count" id="faqCount" aria-live="polite" style="font-weight:600;"></span>
         </div>
 
-        <!-- แท็บกดเปลี่ยนหมวดหมู่ -->
-        <div style="margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.3rem;">
-            <div style="display: flex; gap: 0.5rem; flex-wrap: nowrap;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;">
+            <div class="faq-search" style="margin:0;flex:1;min-width:280px;max-width:460px;">
+                <label class="faq-search-box" style="max-width:100%;"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <input id="faqSearch" type="search" placeholder="ค้นหาคำถาม เช่น IP กล้อง, ไม่มีภาพ, Heatmap" autocomplete="off" aria-label="ค้นหาบทความ FAQ">
+                </label>
+            </div>
+
+            <!-- แท็บกดเปลี่ยนหมวดหมู่ -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="chip-btn active" data-tab="all" onclick="switchFaqTab('all', this)">ทั้งหมด</button>
                 <button class="chip-btn" data-tab="camera" onclick="switchFaqTab('camera', this)"><i class="fa-solid fa-video"></i> กล้อง / การเชื่อมต่อ</button>
                 <button class="chip-btn" data-tab="system" onclick="switchFaqTab('system', this)"><i class="fa-solid fa-desktop"></i> ระบบและการวิเคราะห์</button>
@@ -128,7 +161,7 @@
         </div>
 
         <!-- รายการการ์ดคำถาม -->
-        <div id="faqGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+        <div id="faqGridContainer" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;">
             
             <!-- การ์ดที่ 1: กล้อง -->
             <div class="faq-card" data-cat="camera" data-guide="camera-ip">
@@ -240,30 +273,6 @@
             <div class="article-body" id="articleBody"></div>
         </dialog>
     </main>
-
-    <!-- BOTTOM NAVIGATION BAR -->
-    <nav class="bottom-nav">
-        <a href="index.html" class="bottom-nav-item">
-            <i class="fa-solid fa-house"></i>
-            <span>หน้าหลัก</span>
-        </a>
-        <a href="chat.html" class="bottom-nav-item">
-            <i class="fa-solid fa-comments"></i>
-            <span>แชท AI</span>
-        </a>
-        <a href="history.html" class="bottom-nav-item">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>ประวัติ</span>
-        </a>
-        <a href="faq.html" class="bottom-nav-item active">
-            <i class="fa-solid fa-circle-question"></i>
-            <span>คำถาม</span>
-        </a>
-        <a href="contact.html" class="bottom-nav-item">
-            <i class="fa-solid fa-headset"></i>
-            <span>ติดต่อ</span>
-        </a>
-    </nav>
 
     <!-- สคริปต์สลับแท็บแบบอิสระ ไม่ดึงจากภายนอก -->
     <script>

@@ -6,83 +6,89 @@
     <title>ประวัติการสนทนา - TATIP AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./styles.css?v=20261102-mobile1">
+    <link rel="stylesheet" href="./styles.css?v=20261111-desktop1">
 </head>
 <body>
+    <!-- UNIFIED DESKTOP SIDEBAR -->
+    <nav class="app-sidebar" aria-label="เมนูหลัก">
+        <a href="index.html" class="sidebar-brand">
+            <span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span>
+            <div class="sidebar-brand-text">
+                <div class="sidebar-brand-title">TATIP AI <span class="version-badge">v10.0 RAG</span></div>
+                <span class="sidebar-brand-sub">ระบบสนับสนุนบริการลูกค้า</span>
+            </div>
+        </a>
+        <div class="sidebar-nav-scroll">
+            <div class="sidebar-section-label">เมนูหลัก</div>
+            <a href="index.html" class="sidebar-link"><i class="fa-solid fa-house"></i><span>หน้าหลัก</span></a>
+            <a href="chat.html" class="sidebar-link"><i class="fa-solid fa-comments"></i><span>แชท AI</span></a>
+            <a href="customer_dashboard.html" class="sidebar-link"><i class="fa-solid fa-chart-pie"></i><span>ภาพรวมของฉัน</span></a>
+            <a href="history.html" class="sidebar-link active"><i class="fa-solid fa-clock-rotate-left"></i><span>ประวัติการสนทนา</span></a>
+            <a href="faq.html" class="sidebar-link"><i class="fa-solid fa-circle-question"></i><span>คำถามที่พบบ่อย</span></a>
+            <a href="contact.html" class="sidebar-link"><i class="fa-solid fa-headset"></i><span>ติดต่อเจ้าหน้าที่</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <button type="button" onclick="window.logoutUser ? window.logoutUser() : (localStorage.removeItem('currentUser'), location.replace('login.html'))" class="btn-sidebar-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+    </nav>
+
     <header class="top-navbar">
         <div class="nav-container">
-            <a href="index.html" class="brand-logo">
-                <div class="logo-box"><span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span> <span class="logo-text">TATIP AI</span></div>
-            </a>
-            <button onclick="clearAllHistory()" style="background:none; border:none; color:#DC2626; cursor:pointer; font-size:0.8rem; font-weight:600;"><i class="fa-solid fa-trash-can"></i> ล้างสำเนาในเครื่อง</button>
+            <div class="header-context">
+                <div class="header-page-title"><i class="fa-solid fa-clock-rotate-left text-red"></i> ประวัติการสนทนา</div>
+                <span class="header-page-sub">ตรวจสอบคำถามและคำตอบย้อนหลังจากแชท AI</span>
+            </div>
+            <div class="header-actions">
+                <div class="status-online-pill"><span class="dot"></span><span>RAG: <strong>Online</strong></span></div>
+                <button type="button" onclick="clearAllHistory()" class="btn-saas btn-saas-danger-soft">
+                    <i class="fa-solid fa-trash-can"></i> ล้างสำเนาในเครื่อง
+                </button>
+            </div>
         </div>
     </header>
 
     <main class="main-content">
         <div class="page-title-box">
-            <h2><i class="fa-solid fa-clock-rotate-left text-red"></i> ประวัติการสนทนา</h2>
-        </div>
-
-        <div class="history-controls-bar">
-            <div class="search-box-wrapper">
+            <div>
+                <h2><i class="fa-solid fa-clock-rotate-left text-red"></i> ประวัติการสนทนาทั้งหมด</h2>
+                <p>คลิก "ดูรายละเอียด" บนการ์ดเพื่ออ่านบทสนทนาฉบับเต็ม</p>
+            </div>
+            <div class="search-box-wrapper" style="width:380px;">
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="text" id="historySearch" placeholder="ค้นหาประวัติ..." onkeyup="filterHistory()">
+                <input type="text" id="historySearch" placeholder="ค้นหาประวัติคำถามหรือคำตอบ..." onkeyup="filterHistory()">
             </div>
         </div>
 
         <div id="historyList" class="history-grid-container"></div>
     </main>
 
-    <!-- BOTTOM NAVIGATION BAR -->
-    <nav class="bottom-nav">
-        <a href="index.html" class="bottom-nav-item">
-            <i class="fa-solid fa-house"></i>
-            <span>หน้าหลัก</span>
-        </a>
-        <a href="chat.html" class="bottom-nav-item">
-            <i class="fa-solid fa-comments"></i>
-            <span>แชท AI</span>
-        </a>
-        <a href="history.html" class="bottom-nav-item active">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>ประวัติ</span>
-        </a>
-        <a href="faq.html" class="bottom-nav-item">
-            <i class="fa-solid fa-circle-question"></i>
-            <span>คำถาม</span>
-        </a>
-        <a href="contact.html" class="bottom-nav-item">
-            <i class="fa-solid fa-headset"></i>
-            <span>ติดต่อ</span>
-        </a>
-    </nav>
-
     <div id="transcriptModal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width:680px;">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-file-lines text-red"></i> รายละเอียดประวัติ</h3>
+                <h3><i class="fa-solid fa-file-lines text-red"></i> รายละเอียดประวัติการสนทนา</h3>
                 <button class="btn-close-modal" onclick="closeTranscriptModal()">&times;</button>
             </div>
             <div id="transcriptBody"><p>กำลังโหลด...</p></div>
         </div>
     </div>
+
     <script>
     function clearAllHistory() {
-        // ดึงชื่อ User ปัจจุบัน
         const currentUserStr = localStorage.getItem('currentUser');
         let username = 'guest';
         if (currentUserStr) {
             try { username = JSON.parse(currentUserStr).username || 'guest'; } catch (e) {}
         }
-        
+
         if (confirm(`ล้างสำเนาประวัติในเบราว์เซอร์ของบัญชี [ ${username} ] ใช่หรือไม่? ข้อมูลที่บันทึกใน Firestore จะไม่ถูกลบ`)) {
             localStorage.removeItem(`tatip_chat_history_${username}`);
-            loadHistory(); // โหลดประวัติจาก Firestore อีกครั้ง
+            loadHistory();
         }
     }
-</script>
+    </script>
 
     <script src="./script.js"></script>
 </body>
 </html>
-

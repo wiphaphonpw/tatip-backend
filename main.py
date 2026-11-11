@@ -19,12 +19,16 @@ import vertexai
 from vertexai.preview import rag
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 from google.cloud import firestore, storage
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 
-# 1. กำหนดค่าโปรเจกต์และคลังข้อมูล
-PROJECT_ID = "tatip-ai-rag"
-LOCATION = "asia-southeast1"
-CORPUS_NAME = "projects/tatip-ai-rag/locations/asia-southeast1/ragCorpora/2305843009213693952"
+# 1. กำหนดค่าโปรเจกต์และคลังข้อมูล (รองรับ Environment Variable Override)
+PROJECT_ID = os.getenv("GCP_PROJECT_ID", "tatip-ai-rag").strip()
+LOCATION = os.getenv("GCP_LOCATION", "asia-southeast1").strip()
+CORPUS_NAME = os.getenv(
+    "RAG_CORPUS_NAME",
+    "projects/tatip-ai-rag/locations/asia-southeast1/ragCorpora/2305843009213693952",
+).strip()
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-3.5-flash").strip()
 SUPPORT_MEDIA_BUCKET = os.getenv("SUPPORT_MEDIA_BUCKET", "").strip()
 SUPPORT_FILE_LIMIT = 5
 SUPPORT_FILE_BYTES_LIMIT = 20 * 1024 * 1024
@@ -37,8 +41,16 @@ SUPPORT_INFO_DEFAULTS = {
 }
 
 # 2. เริ่มต้นการเชื่อมต่อ Vertex AI และ Firestore
-vertexai.init(project=PROJECT_ID, location=LOCATION)
-db = firestore.Client(project=PROJECT_ID, database="customers")
+try:
+    vertexai.init(project=PROJECT_ID, location=LOCATION)
+except Exception as _e:
+    logging.warning("Vertex AI initialization warning: %s", str(_e))
+
+try:
+    db = firestore.Client(project=PROJECT_ID, database="customers")
+except Exception as _e:
+    logging.warning("Firestore initialization warning: %s", str(_e))
+    db = None
 
 app = FastAPI()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -142,8 +154,13 @@ def require_admin_or_manager(
 # ==========================================
 # Pydantic Models
 # ==========================================
+class ChatHistoryItem(BaseModel):
+    question: str
+    answer: str
+
 class ChatRequest(BaseModel):
     message: str
+    history: list[ChatHistoryItem] | None = None
 
 class SaveChatHistoryRequest(BaseModel):
     user_id: str = Field(alias="USER_ID")
@@ -210,45 +227,159 @@ class GenericDocumentRequest(BaseModel):
 
 
 # ==========================================
-# Helper Function สำหรับประมวลผล RAG
+# Helper Functions สำหรับประมวลผล RAG
 # ==========================================
-async def get_rag_reply(user_message: str) -> str:
+def prepare_rag_model_and_prompt(
+    user_message: str,
+    history: list[ChatHistoryItem] | None = None,
+) -> tuple[Any, str | None, str | None]:
+    """ค้นหา RAG Context ประกอบ Prompt และเตรียม Model คืนค่า (model, prompt, fallback_reply)"""
+    search_query = user_message.strip()
+    if history and len(search_query) < 40:
+        last_item = history[-1]
+        last_question = getattr(last_item, "question", "") or ""
+        if last_question:
+            search_query = f"{last_question} {search_query}"
+
+    # ใช้ RagRetrievalConfig เพื่อรองรับ SDK ปัจจุบัน พร้อม fallback กรณีใช้พารามิเตอร์เดิม
     try:
-        # ใช้ rag.retrieval_query แทน rag.retrieval
         results = rag.retrieval_query(
             rag_resources=[rag.RagResource(rag_corpus=CORPUS_NAME)],
-            text=user_message,
-            similarity_top_k=3
+            text=search_query,
+            rag_retrieval_config=rag.RagRetrievalConfig(top_k=3),
+        )
+    except (TypeError, AttributeError):
+        results = rag.retrieval_query(
+            rag_resources=[rag.RagResource(rag_corpus=CORPUS_NAME)],
+            text=search_query,
+            similarity_top_k=3,
         )
 
-        context_text = ""
-        if results and hasattr(results, 'contexts') and results.contexts:
-            for context in results.contexts.contexts:
-                if hasattr(context, 'text') and context.text:
-                    context_text += context.text + "\n"
+    context_chunks = []
+    if results and hasattr(results, "contexts") and results.contexts:
+        raw_contexts = getattr(results.contexts, "contexts", []) or []
+        for index, context in enumerate(raw_contexts, 1):
+            chunk_text = getattr(context, "text", "") or ""
+            chunk_text = chunk_text.strip()
+            if chunk_text:
+                source_title = (
+                    getattr(context, "source_display_name", "")
+                    or getattr(context, "source_uri", "")
+                    or f"เอกสารชุดที่ {index}"
+                )
+                context_chunks.append(f"--- แหล่งที่มา: {source_title} ---\n{chunk_text}")
 
-        if not context_text.strip():
-            return "เรื่องนี้ยังไม่มีข้อมูลในคู่มือการใช้งาน รบกวนติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ"
+    context_text = "\n\n".join(context_chunks).strip()
+    if not context_text:
+        return None, None, "เรื่องนี้ยังไม่มีข้อมูลในคู่มือการใช้งาน รบกวนติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ"
 
-        strict_system_instruction = (
-            "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับสนับสนุนการให้บริการลูกค้าของระบบ TATIP "
-            "หน้าที่ของคุณคือตอบคำถามโดยอ้างอิงจาก [ข้อมูลอ้างอิงจากคู่มือ] ที่แนบมาให้เท่านั้น "
-            "ห้ามใช้ความรู้ทั่วไปภายนอก ห้ามแต่งคำตอบขึ้นมาเองเด็ดขาด"
-        )
+    strict_system_instruction = (
+        "คุณคือ TATIP AI ผู้ช่วยอัจฉริยะสำหรับสนับสนุนการให้บริการลูกค้าของระบบ TATIP "
+        "หน้าที่ของคุณคือตอบคำถามโดยอ้างอิงจาก [ข้อมูลอ้างอิงจากคู่มือ] ที่แนบมาให้เท่านั้น "
+        "ห้ามใช้ความรู้ทั่วไปภายนอก ห้ามแต่งคำตอบขึ้นมาเองเด็ดขาด "
+        "หากข้อมูลในคู่มือไม่ครอบคลุม ให้ตอบอย่างสุภาพว่าไม่มีข้อมูลในคู่มือและแนะนำให้ติดต่อทีมงาน Admin"
+    )
 
-        model = GenerativeModel(
-            "gemini-3.5-flash",
-            system_instruction=strict_system_instruction,
-            generation_config=GenerationConfig(temperature=0.0)
-        )
+    history_context = ""
+    if history:
+        turn_lines = []
+        for item in history[-3:]:
+            q = getattr(item, "question", "") or ""
+            a = getattr(item, "answer", "") or ""
+            if q:
+                turn_lines.append(f"ลูกค้า: {q.strip()}")
+            if a:
+                turn_lines.append(f"TATIP AI: {a.strip()}")
+        if turn_lines:
+            history_context = "[บทสนทนาก่อนหน้า]\n" + "\n".join(turn_lines) + "\n\n"
 
-        prompt = f"[ข้อมูลอ้างอิงจากคู่มือ]\n{context_text}\n\n[คำถามของลูกค้า]\n{user_message}"
-        response = model.generate_content(prompt)
-        return response.text
+    model = GenerativeModel(
+        GEMINI_MODEL_NAME,
+        system_instruction=strict_system_instruction,
+        generation_config=GenerationConfig(temperature=0.0),
+    )
+    prompt = f"[ข้อมูลอ้างอิงจากคู่มือ]\n{context_text}\n\n{history_context}[คำถามของลูกค้า]\n{user_message}"
+    return model, prompt, None
+
+
+def extract_safe_candidate_text(response: Any) -> tuple[str, bool]:
+    """ดึงข้อความจาก Candidate อย่างปลอดภัย พร้อมตรวจสอบ Safety Filter คืนค่า (text, is_safety_blocked)"""
+    candidates = getattr(response, "candidates", None) or []
+    if candidates:
+        first_candidate = candidates[0]
+        finish_reason = getattr(first_candidate, "finish_reason", None)
+        if finish_reason and "SAFETY" in str(finish_reason).upper():
+            return "", True
+        try:
+            return (response.text or ""), False
+        except (ValueError, AttributeError):
+            content = getattr(first_candidate, "content", None)
+            parts = getattr(content, "parts", []) or []
+            extracted = [getattr(p, "text", "") for p in parts if getattr(p, "text", "")]
+            return "".join(extracted), False
+    return "", False
+
+
+async def get_rag_reply(user_message: str, history: list[ChatHistoryItem] | None = None) -> str:
+    try:
+        model, prompt, fallback = prepare_rag_model_and_prompt(user_message, history)
+        if fallback:
+            return fallback
+
+        response = await model.generate_content_async(prompt)
+        reply_text, is_safety_blocked = extract_safe_candidate_text(response)
+
+        if is_safety_blocked:
+            return "ขออภัยค่ะ ระบบไม่สามารถประมวลผลคำตอบได้เนื่องจากติดข้อจำกัดด้านความปลอดภัย กรุณาติดต่อทีมงาน (Admin) ค่ะ"
+
+        if not reply_text.strip():
+            return "ขออภัยค่ะ ระบบไม่สามารถประมวลผลคำตอบได้ในขณะนี้ กรุณาติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ"
+
+        return reply_text.strip()
 
     except Exception as e:
-        print(f"RAG Processing Error: {str(e)}")
+        logging.exception("RAG Processing Error: %s", str(e))
         return f"เกิดข้อผิดพลาดในการดึงข้อมูลคู่มือ: {str(e)}"
+
+
+async def stream_rag_reply(user_message: str, history: list[ChatHistoryItem] | None = None):
+    """สร้าง SSE Stream สำหรับทยอยแสดงผลคำตอบจาก Gemini RAG"""
+    try:
+        model, prompt, fallback = prepare_rag_model_and_prompt(user_message, history)
+        if fallback:
+            yield f"data: {json.dumps({'chunk': fallback}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True, 'reply': fallback}, ensure_ascii=False)}\n\n"
+            return
+
+        response_stream = await model.generate_content_async(prompt, stream=True)
+        full_reply = []
+        is_blocked = False
+
+        async for chunk in response_stream:
+            chunk_text, safety_blocked = extract_safe_candidate_text(chunk)
+            if safety_blocked:
+                is_blocked = True
+                break
+            if chunk_text:
+                full_reply.append(chunk_text)
+                yield f"data: {json.dumps({'chunk': chunk_text}, ensure_ascii=False)}\n\n"
+
+        if is_blocked:
+            safety_msg = "ขออภัยค่ะ ระบบไม่สามารถประมวลผลคำตอบได้เนื่องจากติดข้อจำกัดด้านความปลอดภัย กรุณาติดต่อทีมงาน (Admin) ค่ะ"
+            yield f"data: {json.dumps({'chunk': safety_msg, 'done': True, 'reply': safety_msg}, ensure_ascii=False)}\n\n"
+            return
+
+        final_text = "".join(full_reply).strip()
+        if not final_text:
+            final_text = "ขออภัยค่ะ ระบบไม่สามารถประมวลผลคำตอบได้ในขณะนี้ กรุณาติดต่อทีมงาน (Admin) เพื่อสอบถามโดยตรงค่ะ"
+            yield f"data: {json.dumps({'chunk': final_text}, ensure_ascii=False)}\n\n"
+
+        yield f"data: {json.dumps({'done': True, 'reply': final_text}, ensure_ascii=False)}\n\n"
+
+    except Exception as e:
+        logging.exception("RAG Streaming Error: %s", str(e))
+        error_msg = f"เกิดข้อผิดพลาดในการดึงข้อมูลคู่มือ: {str(e)}"
+        yield f"data: {json.dumps({'error': error_msg, 'done': True, 'reply': error_msg}, ensure_ascii=False)}\n\n"
 
 
 # ==========================================
@@ -319,8 +450,22 @@ def update_admin_support_settings(
 # API สำหรับรับคำถามและตอบกลับ (RAG Chat หน้าเว็บ)
 @app.post("/api/chat")
 async def chat_with_tatip(request: ChatRequest):
-    reply_text = await get_rag_reply(request.message)
+    reply_text = await get_rag_reply(request.message, request.history)
     return {"status": "success", "reply": reply_text}
+
+
+# API สำหรับรับคำถามและตอบกลับแบบ Streaming (SSE)
+@app.post("/api/chat/stream")
+async def chat_stream_with_tatip(request: ChatRequest):
+    return StreamingResponse(
+        stream_rag_reply(request.message, request.history),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 # API ดึงรายชื่อผู้ใช้จาก Collection "users"
 @app.get("/api/admin/users")
@@ -561,10 +706,23 @@ async def upload_knowledge_file(
         if total_size == 0:
             raise HTTPException(status_code=400, detail="ไฟล์ว่างเปล่า")
 
+        transformation_config = None
+        try:
+            from vertexai.preview.rag import TransformationConfig, ChunkingConfig
+            transformation_config = TransformationConfig(
+                chunking_config=ChunkingConfig(
+                    chunk_size=1024,
+                    chunk_overlap=200,
+                )
+            )
+        except Exception:
+            logging.warning("TransformationConfig not supported or failed to initialize, using default chunking")
+
         rag_file = rag.upload_file(
             corpus_name=CORPUS_NAME,
             path=temp_path,
             display_name=document_title,
+            transformation_config=transformation_config,
         )
         rag_file_name = getattr(rag_file, "name", "")
         if not rag_file_name:
@@ -603,6 +761,41 @@ async def upload_knowledge_file(
         await file.close()
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+# API ลบเอกสารความรู้ออกจาก Vertex AI RAG Corpus และ Firestore
+@app.delete("/api/admin/knowledge/{rag_file_id}")
+def delete_knowledge_file(
+    rag_file_id: str,
+    current_user: Dict[str, Any] = Depends(require_admin_user),
+):
+    try:
+        doc_ref = db.collection("knowledge_articles").document(rag_file_id)
+        doc_snap = doc_ref.get()
+        if not doc_snap.exists:
+            raise HTTPException(status_code=404, detail="ไม่พบเอกสารนี้ในระบบ")
+
+        doc_data = doc_snap.to_dict() or {}
+        rag_file_name = doc_data.get("RAG_FILE_NAME") or f"{CORPUS_NAME}/ragFiles/{rag_file_id}"
+
+        # 1. ลบไฟล์ออกจาก Vertex AI RAG Corpus (ถ้ามีอยู่)
+        try:
+            rag.delete_file(name=rag_file_name)
+        except Exception as rag_err:
+            logging.warning("Could not delete file from Vertex AI RAG Corpus: %s", str(rag_err))
+
+        # 2. ลบออกจาก Firestore Collection knowledge_articles
+        doc_ref.delete()
+
+        return {
+            "status": "success",
+            "message": f"ลบเอกสาร '{doc_data.get('TITLE') or rag_file_id}' สำเร็จเรียบร้อยแล้ว",
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.exception("Failed to delete knowledge document: %s", str(error))
+        raise HTTPException(status_code=500, detail="ไม่สามารถลบเอกสารความรู้ได้") from error
 
 
 # Public contact form supports both signed-in users and visitors.

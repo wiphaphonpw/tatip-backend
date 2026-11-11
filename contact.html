@@ -6,20 +6,53 @@
     <title>ติดต่อเจ้าหน้าที่ - TATIP AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./styles.css?v=20261102-mobile1">
+    <link rel="stylesheet" href="./styles.css?v=20261111-desktop1">
 </head>
 <body>
+    <!-- UNIFIED DESKTOP SIDEBAR -->
+    <nav class="app-sidebar" aria-label="เมนูหลัก">
+        <a href="index.html" class="sidebar-brand">
+            <span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span>
+            <div class="sidebar-brand-text">
+                <div class="sidebar-brand-title">TATIP AI <span class="version-badge">v10.0 RAG</span></div>
+                <span class="sidebar-brand-sub">ระบบสนับสนุนบริการลูกค้า</span>
+            </div>
+        </a>
+        <div class="sidebar-nav-scroll">
+            <div class="sidebar-section-label">เมนูหลัก</div>
+            <a href="index.html" class="sidebar-link"><i class="fa-solid fa-house"></i><span>หน้าหลัก</span></a>
+            <a href="chat.html" class="sidebar-link"><i class="fa-solid fa-comments"></i><span>แชท AI</span></a>
+            <a href="customer_dashboard.html" class="sidebar-link"><i class="fa-solid fa-chart-pie"></i><span>ภาพรวมของฉัน</span></a>
+            <a href="history.html" class="sidebar-link"><i class="fa-solid fa-clock-rotate-left"></i><span>ประวัติการสนทนา</span></a>
+            <a href="faq.html" class="sidebar-link"><i class="fa-solid fa-circle-question"></i><span>คำถามที่พบบ่อย</span></a>
+            <a href="contact.html" class="sidebar-link active"><i class="fa-solid fa-headset"></i><span>ติดต่อเจ้าหน้าที่</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <button type="button" onclick="window.logoutUser ? window.logoutUser() : (localStorage.removeItem('currentUser'), location.replace('login.html'))" class="btn-sidebar-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+    </nav>
+
     <header class="top-navbar">
         <div class="nav-container">
-            <a href="index.html" class="brand-logo">
-                <div class="logo-box"><span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span> <span class="logo-text">TATIP AI</span></div>
-            </a>
+            <div class="header-context">
+                <div class="header-page-title"><i class="fa-solid fa-headset text-red"></i> ติดต่อเจ้าหน้าที่</div>
+                <span class="header-page-sub">แจ้งปัญหา เปิด Ticket หรือเชื่อมบัญชี LINE เพื่อรับแจ้งเตือน</span>
+            </div>
+            <div class="header-actions">
+                <div class="status-online-pill"><span class="dot"></span><span>RAG: <strong>Online</strong></span></div>
+                <button type="button" onclick="openSupportModal()" class="btn-saas btn-saas-primary"><i class="fa-solid fa-ticket"></i> เปิด Ticket</button>
+            </div>
         </div>
     </header>
 
     <main class="main-content">
         <div class="page-title-box">
-            <h2><i class="fa-solid fa-headset text-red"></i> ติดต่อเจ้าหน้าที่</h2>
+            <div>
+                <h2><i class="fa-solid fa-headset text-red"></i> ช่องทางติดต่อทีมงานสนับสนุน</h2>
+                <p>เลือกติดต่อผ่านโทรศัพท์ เชื่อม LINE แจ้งเตือน หรือกรอกฟอร์มฝากข้อความด้านขวา</p>
+            </div>
         </div>
 
         <div class="contact-grid-layout">
@@ -28,13 +61,14 @@
                     <div class="channel-icon red"><i class="fa-solid fa-ticket"></i></div>
                     <div class="channel-info">
                         <h4>ส่ง Ticket ได้ทุกเวลา</h4>
-                        <button onclick="openSupportModal()" style="background:var(--primary-red); color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.75rem; margin-top:0.3rem;">เปิด Ticket</button>
+                        <p style="font-size:0.82rem;color:var(--text-muted);margin:4px 0 10px;">เปิดเคสพร้อมแนบภาพหรือวิดีโอ เพื่อให้เจ้าหน้าที่ตรวจสอบและติดตามสถานะได้ทันที</p>
+                        <button onclick="openSupportModal()" class="btn-saas btn-saas-primary" style="height:34px;font-size:0.8rem;"><i class="fa-solid fa-plus"></i> เปิด Ticket</button>
                     </div>
                 </div>
                 <div class="channel-card">
                     <div class="channel-icon blue"><i class="fa-solid fa-phone"></i></div>
                     <div class="channel-info">
-                        <h4>ฝ่ายบริการลูกค้า</h4>
+                        <h4>ฝ่ายบริการลูกค้า (สายด่วน)</h4>
                         <div class="phone-num">094-965-9976</div>
                     </div>
                 </div>
@@ -42,35 +76,37 @@
                     <div class="channel-icon" style="background:#e9f8ef;color:#06a755;"><i class="fa-brands fa-line"></i></div>
                     <div class="channel-info">
                         <h4>รับแจ้งเตือนสถานะเคสผ่าน LINE</h4>
-                        <p id="lineLinkStatus" role="status" aria-live="polite" style="margin:.25rem 0;color:#64748b;">กำลังตรวจสอบการเชื่อมต่อ...</p>
-                        <button id="lineLinkButton" type="button" onclick="createLineLinkCode()" style="background:#06a755;color:#fff;border:0;padding:.45rem .75rem;border-radius:6px;margin-top:.3rem;">เชื่อมบัญชี LINE</button>
-                        <p id="lineLinkCode" style="margin:.4rem 0 0;color:#334155;"></p>
+                        <p id="lineLinkStatus" role="status" aria-live="polite" style="margin:4px 0 10px;color:#64748b;font-size:0.84rem;">กำลังตรวจสอบการเชื่อมต่อ...</p>
+                        <button id="lineLinkButton" type="button" onclick="createLineLinkCode()" class="btn-saas" style="height:34px;font-size:0.8rem;background:#06a755;color:#fff;"><i class="fa-brands fa-line"></i> เชื่อมบัญชี LINE</button>
+                        <p id="lineLinkCode" style="margin:8px 0 0;color:#334155;"></p>
                     </div>
                 </div>
                 <div class="channel-card">
                     <div class="channel-icon" style="background:#fff4df;color:#a86b08;"><i class="fa-regular fa-clock"></i></div>
                     <div class="channel-info">
                         <h4>เวลาทำการและการตอบกลับ</h4>
-                        <p id="supportHoursInfo" role="status" aria-live="polite" style="margin:.25rem 0;color:#475569;">กำลังโหลดข้อมูล...</p>
-                        <p id="supportResponseInfo" style="margin:.25rem 0;color:#64748b;"></p>
+                        <p id="supportHoursInfo" role="status" aria-live="polite" style="margin:4px 0;color:#475569;font-size:0.86rem;">กำลังโหลดข้อมูล...</p>
+                        <p id="supportResponseInfo" style="margin:2px 0 0;color:#64748b;font-size:0.82rem;"></p>
                     </div>
                 </div>
             </div>
 
             <div class="contact-form-card">
-                <h3><i class="fa-solid fa-paper-plane text-red"></i> ฝากข้อความ</h3>
+                <h3><i class="fa-solid fa-paper-plane text-red"></i> ฝากข้อความถึงเจ้าหน้าที่</h3>
                 <form id="directContactForm" onsubmit="handleDirectContactSubmit(event)">
-                    <div class="form-group">
-                        <label for="contactName">ชื่อ-นามสกุล <span class="req">*</span></label>
-                        <input id="contactName" name="full_name" type="text" maxlength="120" autocomplete="name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="contactPhone">เบอร์โทรศัพท์ <span class="req">*</span></label>
-                        <input id="contactPhone" name="phone" type="tel" maxlength="30" autocomplete="tel" required>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                        <div class="form-group">
+                            <label for="contactName">ชื่อ-นามสกุล <span class="req">*</span></label>
+                            <input id="contactName" name="full_name" type="text" maxlength="120" autocomplete="name" placeholder="ระบุชื่อผู้ติดต่อ" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactPhone">เบอร์โทรศัพท์ <span class="req">*</span></label>
+                            <input id="contactPhone" name="phone" type="tel" maxlength="30" autocomplete="tel" placeholder="เช่น 08x-xxx-xxxx" required>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="contactIssue">รายละเอียดปัญหา <span class="req">*</span></label>
-                        <textarea id="contactIssue" name="issue" rows="3" maxlength="3000" required></textarea>
+                        <textarea id="contactIssue" name="issue" rows="5" maxlength="3000" placeholder="อธิบายอาการที่พบ ชื่อสาขา หรือชื่อกล้อง เพื่อให้เจ้าหน้าที่ช่วยเหลือได้รวดเร็วยิ่งขึ้น" required></textarea>
                     </div>
                     <div class="form-group">
                         <label for="contactAttachments">รูปภาพหรือวิดีโอประกอบ (ไม่บังคับ)</label>
@@ -81,36 +117,12 @@
                         <label for="contactWebsite">เว็บไซต์</label>
                         <input id="contactWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
                     </div>
-                    <p id="contactFormStatus" role="status" aria-live="polite"></p>
-                    <button type="submit" class="btn-send-contact-form">ส่งข้อความ</button>
+                    <p id="contactFormStatus" role="status" aria-live="polite" style="margin-bottom:12px;font-size:0.86rem;"></p>
+                    <button type="submit" class="btn-send-contact-form"><i class="fa-solid fa-paper-plane"></i> ส่งข้อความ</button>
                 </form>
             </div>
         </div>
     </main>
-
-    <!-- BOTTOM NAVIGATION BAR -->
-    <nav class="bottom-nav">
-        <a href="index.html" class="bottom-nav-item">
-            <i class="fa-solid fa-house"></i>
-            <span>หน้าหลัก</span>
-        </a>
-        <a href="chat.html" class="bottom-nav-item">
-            <i class="fa-solid fa-comments"></i>
-            <span>แชท AI</span>
-        </a>
-        <a href="history.html" class="bottom-nav-item">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>ประวัติ</span>
-        </a>
-        <a href="faq.html" class="bottom-nav-item">
-            <i class="fa-solid fa-circle-question"></i>
-            <span>คำถาม</span>
-        </a>
-        <a href="contact.html" class="bottom-nav-item active">
-            <i class="fa-solid fa-headset"></i>
-            <span>ติดต่อ</span>
-        </a>
-    </nav>
 
     <div id="ticketModal" class="modal-overlay">
         <div class="modal-content">
@@ -129,7 +141,7 @@
                 </div>
                 <div class="form-group">
                     <label for="ticketIssue">รายละเอียดปัญหา <span class="req">*</span></label>
-                    <textarea id="ticketIssue" name="issue" rows="3" maxlength="3000" required></textarea>
+                    <textarea id="ticketIssue" name="issue" rows="4" maxlength="3000" required></textarea>
                 </div>
                 <div class="form-group">
                     <label for="ticketAttachments">รูปภาพหรือวิดีโอประกอบ (ไม่บังคับ)</label>
@@ -140,10 +152,10 @@
                     <label for="ticketWebsite">เว็บไซต์</label>
                     <input id="ticketWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
                 </div>
-                <p id="ticketFormStatus" role="status" aria-live="polite"></p>
-                <div style="display:flex; justify-content:flex-end; gap:0.4rem;">
-                    <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ปิด</button>
-                    <button type="submit" style="background:#C81E1E; color:white; border:none; padding:0.4rem 0.8rem; border-radius:4px;">ส่งเรื่อง</button>
+                <p id="ticketFormStatus" role="status" aria-live="polite" style="margin-bottom:10px;font-size:0.85rem;"></p>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeSupportModal()" class="btn-saas btn-saas-secondary">ปิด</button>
+                    <button type="submit" class="btn-saas btn-saas-primary">ส่งเรื่อง</button>
                 </div>
             </form>
         </div>

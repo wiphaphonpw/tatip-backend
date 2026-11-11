@@ -14,7 +14,7 @@
     <title>หน้าหลัก - TATIP AI Support System</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./styles.css?v=20261102-mobile1">
+    <link rel="stylesheet" href="./styles.css?v=20261111-desktop1">
     <style>
         .business-news{margin:2.2rem 0 2.4rem}
         .business-news-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1rem}
@@ -120,26 +120,47 @@
 
 </head>
 <body>
-<header class="top-navbar">
+    <!-- UNIFIED DESKTOP SIDEBAR -->
+    <nav class="app-sidebar" aria-label="เมนูหลัก">
+        <a href="index.html" class="sidebar-brand">
+            <span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span>
+            <div class="sidebar-brand-text">
+                <div class="sidebar-brand-title">TATIP AI <span class="version-badge">v10.0 RAG</span></div>
+                <span class="sidebar-brand-sub">ระบบสนับสนุนบริการลูกค้า</span>
+            </div>
+        </a>
+        <div class="sidebar-nav-scroll">
+            <div class="sidebar-section-label">เมนูหลัก</div>
+            <a href="index.html" class="sidebar-link active"><i class="fa-solid fa-house"></i><span>หน้าหลัก</span></a>
+            <a href="chat.html" class="sidebar-link"><i class="fa-solid fa-comments"></i><span>แชท AI</span></a>
+            <a href="customer_dashboard.html" class="sidebar-link"><i class="fa-solid fa-chart-pie"></i><span>ภาพรวมของฉัน</span></a>
+            <a href="history.html" class="sidebar-link"><i class="fa-solid fa-clock-rotate-left"></i><span>ประวัติการสนทนา</span></a>
+            <a href="faq.html" class="sidebar-link"><i class="fa-solid fa-circle-question"></i><span>คำถามที่พบบ่อย</span></a>
+            <a href="contact.html" class="sidebar-link"><i class="fa-solid fa-headset"></i><span>ติดต่อเจ้าหน้าที่</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <button type="button" onclick="window.logoutUser()" class="btn-sidebar-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+    </nav>
+
+    <header class="top-navbar">
         <div class="nav-container">
-            <a href="index.html" class="brand-logo">
-                <div class="logo-box">
-                    <span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span>
-                    <span class="logo-text">TATIP AI</span>
-                    <span class="version-badge">v10.0 RAG</span>
-                </div>
-                <div class="brand-subtitle">ระบบสนับสนุนบริการลูกค้า</div>
-            </a>
-            
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="header-context">
+                <div class="header-page-title"><i class="fa-solid fa-house text-red"></i> ศูนย์ช่วยเหลือ TATIP AI</div>
+                <span class="header-page-sub">คู่มือการใช้งาน วิดีโอสอน และผู้ช่วย AI อัจฉริยะ</span>
+            </div>
+            <div class="header-actions">
                 <div class="status-online-pill">
                     <span class="dot"></span>
                     <span>RAG: <strong>Online</strong></span>
                 </div>
-                
-                <!-- ปุ่ม Logout ที่เพิ่มใหม่ -->
-                <button type="button" onclick="window.logoutUser()" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 0.35rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
-    <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+                <button type="button" onclick="openSupportModal()" class="btn-saas btn-saas-primary">
+                    <i class="fa-solid fa-ticket"></i> เปิด Ticket
+                </button>
+                <button type="button" onclick="window.logoutUser()" class="btn-saas btn-saas-danger-soft">
+                    <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
                 </button>
             </div>
         </div>
@@ -278,6 +299,7 @@
         </div>
     </article>
 </div>
+</section>
 
         <section class="business-news" aria-labelledby="businessNewsHeading">
             <div class="business-news-head">
@@ -357,30 +379,6 @@
         </section>
     </main>
 
-    <!-- BOTTOM NAVIGATION BAR (แถบเมนูด้านล่างสำหรับมือถือ) -->
-    <nav class="bottom-nav">
-        <a href="index.html" class="bottom-nav-item active">
-            <i class="fa-solid fa-house"></i>
-            <span>หน้าหลัก</span>
-        </a>
-        <a href="chat.html" class="bottom-nav-item">
-            <i class="fa-solid fa-comments"></i>
-            <span>แชท AI</span>
-        </a>
-        <a href="history.html" class="bottom-nav-item">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>ประวัติ</span>
-        </a>
-        <a href="faq.html" class="bottom-nav-item">
-            <i class="fa-solid fa-circle-question"></i>
-            <span>คำถาม</span>
-        </a>
-        <a href="contact.html" class="bottom-nav-item">
-            <i class="fa-solid fa-headset"></i>
-            <span>ติดต่อ</span>
-        </a>
-    </nav>
-
     <!-- TICKET MODAL -->
     <div id="ticketModal" class="modal-overlay">
         <div class="modal-content">
@@ -389,10 +387,10 @@
                 <button class="btn-close-modal" onclick="closeSupportModal()">&times;</button>
             </div>
             <form onsubmit="submitSupportTicket(event)">
-                <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="3" required></textarea></div>
-                <div style="display:flex; justify-content:flex-end; gap:0.4rem;">
-                    <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ยกเลิก</button>
-                    <button type="submit" style="background:#C81E1E; color:white; border:none; padding:0.4rem 0.8rem; border-radius:4px;">ส่งเรื่อง</button>
+                <div class="form-group"><label>รายละเอียดปัญหา <span class="req">*</span></label><textarea rows="4" required placeholder="อธิบายรายละเอียดปัญหาที่ต้องการให้ทีมงานช่วยเหลือ"></textarea></div>
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+                    <button type="button" onclick="closeSupportModal()" class="btn-saas btn-saas-secondary">ยกเลิก</button>
+                    <button type="submit" class="btn-saas btn-saas-primary">ส่งเรื่อง</button>
                 </div>
             </form>
         </div>

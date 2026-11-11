@@ -6,90 +6,122 @@
     <title>แชท AI ช่วยเหลือ - TATIP AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./styles.css?v=20261104-chatlogo1">
+    <link rel="stylesheet" href="./styles.css?v=20261111-desktop1">
 </head>
 <body>
+    <!-- UNIFIED DESKTOP SIDEBAR -->
+    <nav class="app-sidebar" aria-label="เมนูหลัก">
+        <a href="index.html" class="sidebar-brand">
+            <span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span>
+            <div class="sidebar-brand-text">
+                <div class="sidebar-brand-title">TATIP AI <span class="version-badge">v10.0 RAG</span></div>
+                <span class="sidebar-brand-sub">ระบบสนับสนุนบริการลูกค้า</span>
+            </div>
+        </a>
+        <div class="sidebar-nav-scroll">
+            <div class="sidebar-section-label">เมนูหลัก</div>
+            <a href="index.html" class="sidebar-link"><i class="fa-solid fa-house"></i><span>หน้าหลัก</span></a>
+            <a href="chat.html" class="sidebar-link active"><i class="fa-solid fa-comments"></i><span>แชท AI</span></a>
+            <a href="customer_dashboard.html" class="sidebar-link"><i class="fa-solid fa-chart-pie"></i><span>ภาพรวมของฉัน</span></a>
+            <a href="history.html" class="sidebar-link"><i class="fa-solid fa-clock-rotate-left"></i><span>ประวัติการสนทนา</span></a>
+            <a href="faq.html" class="sidebar-link"><i class="fa-solid fa-circle-question"></i><span>คำถามที่พบบ่อย</span></a>
+            <a href="contact.html" class="sidebar-link"><i class="fa-solid fa-headset"></i><span>ติดต่อเจ้าหน้าที่</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <button type="button" onclick="window.logoutUser ? window.logoutUser() : (localStorage.removeItem('currentUser'), location.replace('login.html'))" class="btn-sidebar-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+    </nav>
+
     <header class="top-navbar">
         <div class="nav-container">
-            <a href="index.html" class="brand-logo">
-                <div class="logo-box"><span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span> <span class="logo-text">TATIP AI</span></div>
-            </a>
-            <button onclick="openSupportModal()" style="background:var(--primary-red); color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.75rem;"><i class="fa-solid fa-plus-circle"></i> Ticket</button>
+            <div class="header-context">
+                <div class="header-page-title"><i class="fa-solid fa-comments text-red"></i> แชท AI ช่วยเหลือ</div>
+                <span class="header-page-sub">สอบถามข้อมูลจากคู่มือ TATIP ด้วย RAG Engine แบบเรียลไทม์</span>
+            </div>
+            <div class="header-actions">
+                <div class="status-online-pill"><span class="dot"></span><span>RAG: <strong>Online</strong></span></div>
+                <button type="button" onclick="openSupportModal()" class="btn-saas btn-saas-primary"><i class="fa-solid fa-plus-circle"></i> เปิด Ticket</button>
+            </div>
         </div>
     </header>
 
-    <main class="main-content">
-        <div class="chat-container-layout">
-            <div class="chat-header">
-                <div class="ai-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
-                <div>
-                    <h3 style="font-size:0.85rem;">TATIP Assistant Bot</h3>
-                    <span class="sub-status"><i class="fa-solid fa-circle" style="font-size:0.5rem;"></i> RAG Online</span>
+    <main class="main-content" style="padding-bottom: 20px;">
+        <div class="chat-workspace-grid">
+            <!-- Main Chat Area -->
+            <div class="chat-container-layout">
+                <div class="chat-header">
+                    <div class="ai-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
+                    <div>
+                        <h3>TATIP Assistant Bot</h3>
+                        <span class="sub-status"><i class="fa-solid fa-circle" style="font-size:0.45rem;"></i> เชื่อมต่อ RAG Knowledge Base พร้อมตอบคำถาม</span>
+                    </div>
+                    <button class="btn-reset-chat" onclick="resetChat()"><i class="fa-solid fa-rotate-right"></i> เริ่มสนทนาใหม่</button>
                 </div>
-                <button class="btn-reset-chat" onclick="resetChat()"><i class="fa-solid fa-rotate-right"></i> รีเซ็ต</button>
-            </div>
 
-            <div id="chatMessages" class="chat-messages-box">
-                <div class="message-group ai">
-                    <div class="message-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
-                    <div class="message-body">
-                        <div class="message-bubble">สวัสดีค่ะ TATIP AI ยินดีให้บริการค่ะ คุณสามารถพิมพ์สอบถามปัญหากล้อง วงจรปิด หรือการใช้งานได้เลยค่ะ</div>
-                        <div class="message-time">เมื่อครู่นี้</div>
+                <div id="chatMessages" class="chat-messages-box">
+                    <div class="message-group ai">
+                        <div class="message-avatar"><span class="logo-mark chat-logo-mark" role="img" aria-label="TATIP AI"><img src="./assets/tatip-logo-source.png" alt=""></span></div>
+                        <div class="message-body">
+                            <div class="message-bubble">สวัสดีค่ะ TATIP AI ยินดีให้บริการค่ะ คุณสามารถพิมพ์สอบถามปัญหากล้องวงจรปิด การตั้งค่า ROI, Dashboard หรือการใช้งานระบบได้เลยค่ะ</div>
+                            <div class="message-time">เมื่อครู่นี้</div>
+                        </div>
                     </div>
                 </div>
+
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" placeholder="พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง..." onkeypress="handleChatKeyPress(event)" autofocus>
+                    <button class="btn-send-chat" onclick="submitChatMessage()"><i class="fa-solid fa-paper-plane"></i> ส่งข้อความ</button>
+                </div>
             </div>
 
-            <div class="quick-replies-wrapper">
-                <button class="qr-btn" onclick="sendChatMessage('กล้องขึ้นออนไลน์แต่ไม่มีภาพ')"><i class="fa-solid fa-video"></i> กล้องไม่มีภาพ</button>
-                <button class="qr-btn" onclick="sendChatMessage('ดู IP Address ของกล้องได้ที่ไหน')"><i class="fa-solid fa-network-wired"></i> ดู IP กล้อง</button>
-            </div>
+            <!-- Right Context & Quick Prompts Panel -->
+            <aside class="chat-side-panel">
+                <div class="chat-panel-card">
+                    <h4><i class="fa-solid fa-bolt text-red"></i> คำถามยอดนิยม</h4>
+                    <div class="quick-replies-vertical">
+                        <button class="qr-btn" onclick="sendChatMessage('กล้องขึ้นออนไลน์แต่ไม่มีภาพ')"><i class="fa-solid fa-video"></i> กล้องขึ้นออนไลน์แต่ไม่มีภาพ</button>
+                        <button class="qr-btn" onclick="sendChatMessage('ดู IP Address ของกล้องได้ที่ไหน')"><i class="fa-solid fa-network-wired"></i> ดู IP Address ของกล้องได้ที่ไหน</button>
+                        <button class="qr-btn" onclick="sendChatMessage('TATIP รองรับกล้องกี่ตัว')"><i class="fa-solid fa-layer-group"></i> TATIP รองรับกล้องกี่ตัว</button>
+                        <button class="qr-btn" onclick="sendChatMessage('วิธีตั้งค่าพื้นที่ ROI')"><i class="fa-solid fa-crop-simple"></i> วิธีตั้งค่าพื้นที่ ROI</button>
+                    </div>
+                </div>
 
-            <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="พิมพ์คำถามของคุณ..." onkeypress="handleChatKeyPress(event)">
-                <button class="btn-send-chat" onclick="submitChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
+                <div class="chat-panel-card">
+                    <h4><i class="fa-solid fa-circle-info text-red"></i> เกี่ยวกับผู้ช่วย AI</h4>
+                    <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6;margin-bottom:10px;">คำตอบทั้งหมดอ้างอิงจากคลังคู่มือการใช้งานจริงของระบบ TATIP และรองรับการถามต่อเนื่องจากบทสนทนาล่าสุด</p>
+                    <div style="font-size:0.78rem;color:#475569;background:#F8FAFC;border:1px solid var(--border-color);border-radius:9px;padding:10px 12px;">
+                        <div><strong>คีย์ลัด:</strong> กด <kbd style="background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:1px 5px;font-size:0.74rem;">Enter</kbd> เพื่อส่งคำถาม</div>
+                    </div>
+                </div>
+
+                <div class="chat-panel-card" style="background:linear-gradient(160deg,#FFF8F8,#FFFFFF);border-color:#FECACA;">
+                    <h4><i class="fa-solid fa-headset text-red"></i> ยังแก้ปัญหาไม่ได้?</h4>
+                    <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.55;margin-bottom:12px;">หากปัญหายังไม่ได้รับการแก้ไข สามารถเปิด Ticket แจ้งเจ้าหน้าที่เพื่อให้ทีมเทคนิคช่วยตรวจสอบโดยตรง</p>
+                    <button type="button" onclick="openSupportModal()" class="btn-saas btn-saas-primary" style="width:100%;">
+                        <i class="fa-solid fa-ticket"></i> เปิด Ticket แจ้งปัญหา
+                    </button>
+                </div>
+            </aside>
         </div>
     </main>
-
-    <!-- BOTTOM NAVIGATION BAR -->
-    <nav class="bottom-nav">
-        <a href="index.html" class="bottom-nav-item">
-            <i class="fa-solid fa-house"></i>
-            <span>หน้าหลัก</span>
-        </a>
-        <a href="chat.html" class="bottom-nav-item active">
-            <i class="fa-solid fa-comments"></i>
-            <span>แชท AI</span>
-        </a>
-        <a href="history.html" class="bottom-nav-item">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>ประวัติ</span>
-        </a>
-        <a href="faq.html" class="bottom-nav-item">
-            <i class="fa-solid fa-circle-question"></i>
-            <span>คำถาม</span>
-        </a>
-        <a href="contact.html" class="bottom-nav-item">
-            <i class="fa-solid fa-headset"></i>
-            <span>ติดต่อ</span>
-        </a>
-    </nav>
 
     <div id="ticketModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-ticket text-red"></i> เปิด Ticket</h3>
+                <h3><i class="fa-solid fa-ticket text-red"></i> เปิด Ticket แจ้งเรื่อง</h3>
                 <button class="btn-close-modal" onclick="closeSupportModal()">&times;</button>
             </div>
             <form onsubmit="submitSupportTicket(event)">
                 <div class="form-group">
                     <label for="supportIssue">รายละเอียดปัญหา <span class="req">*</span></label>
-                    <textarea id="supportIssue" rows="3" maxlength="3000" placeholder="อธิบายปัญหาที่ต้องการให้เจ้าหน้าที่ช่วยเหลือ" required></textarea>
+                    <textarea id="supportIssue" rows="4" maxlength="3000" placeholder="อธิบายปัญหาที่ต้องการให้เจ้าหน้าที่ช่วยเหลือ" required></textarea>
                     <small>ระบบจะผูกเคสกับบัญชีและ Tenant ที่คุณเข้าสู่ระบบโดยอัตโนมัติ</small>
                 </div>
-                <div style="display:flex; justify-content:flex-end; gap:0.4rem;">
-                    <button type="button" onclick="closeSupportModal()" style="border:none; background:#F1F5F9; padding:0.4rem 0.8rem; border-radius:4px;">ยกเลิก</button>
-                    <button type="submit" style="background:#C81E1E; color:white; border:none; padding:0.4rem 0.8rem; border-radius:4px;">ส่งเรื่อง</button>
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+                    <button type="button" onclick="closeSupportModal()" class="btn-saas btn-saas-secondary">ยกเลิก</button>
+                    <button type="submit" class="btn-saas btn-saas-primary">ส่งเรื่อง</button>
                 </div>
             </form>
         </div>

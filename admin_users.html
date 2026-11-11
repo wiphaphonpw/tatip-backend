@@ -6,185 +6,199 @@
     <title>TATIP AI - Admin Master Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css?v=20261111-desktop1">
     <style>
         :root {
-            --primary-color: #d32f2f;
-            --primary-hover: #b71c1c;
-            --bg-color: #f4f6f9;
+            --primary-color: #c91f27;
+            --primary-hover: #a31616;
+            --bg-color: #f4f6fa;
             --card-bg: #ffffff;
-            --text-main: #333333;
-            --text-muted: #666666;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
             --border-color: #e2e8f0;
         }
 
-        body {
-            font-family: 'Prompt', sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            color: var(--text-main);
+        .dashboard-container {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding: 24px 32px 48px;
         }
 
-        .dashboard-container { max-width: 1350px; margin: auto; }
-
-        .admin-header {
-            background: var(--card-bg); padding: 20px 30px; border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex;
-            justify-content: space-between; align-items: center; margin-bottom: 25px;
-        }
-        .admin-header h1 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
         .btn-logout {
-            background-color: #e2e8f0; color: #333; border: none; padding: 8px 15px;
-            border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 500;
+            background-color: #f1f5f9;
+            color: #334155;
+            border: 1px solid var(--border-color);
+            padding: 8px 14px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-family: 'Prompt', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
-        .btn-logout:hover { background-color: #cbd5e1; }
+        .btn-logout:hover { background-color: #e2e8f0; }
 
         .grid-section {
-            display: grid; grid-template-columns: 1fr 2fr; gap: 25px; margin-bottom: 25px;
+            display: grid;
+            grid-template-columns: 380px minmax(0, 1fr);
+            gap: 22px;
+            align-items: start;
         }
-        @media (max-width: 900px) { .grid-section { grid-template-columns: 1fr; } }
 
         .card {
-            background: var(--card-bg); padding: 25px; border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;
+            background: var(--card-bg);
+            padding: 24px 26px;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 22px;
+            min-width: 0;
         }
         .card h3 {
-            margin-top: 0; font-size: 1.1rem; color: var(--primary-color);
-            border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px;
-            display: flex; align-items: center; gap: 10px;
+            margin-top: 0;
+            font-size: 1.08rem;
+            color: #B91C1C;
+            border-bottom: 1px solid #F1F5F9;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem; }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #334155; }
         input, select {
-            width: 100%; padding: 10px; box-sizing: border-box;
-            border: 1px solid var(--border-color); border-radius: 6px;
-            font-family: 'Prompt', sans-serif; font-size: 0.9rem;
+            width: 100%;
+            padding: 9px 12px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: 9px;
+            font-family: 'Prompt', sans-serif;
+            font-size: 0.88rem;
+            background: #fff;
+            color: var(--text-main);
         }
         .btn-primary {
-            background-color: var(--primary-color); color: white; border: none;
-            padding: 12px; width: 100%; border-radius: 6px; cursor: pointer;
-            font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 11px 16px;
+            width: 100%;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Prompt', sans-serif;
+            font-weight: 600;
+            font-size: 0.92rem;
+            box-shadow: 0 5px 14px rgba(201, 31, 39, .16);
         }
         .btn-primary:hover { background-color: var(--primary-hover); }
         .message { margin-top: 10px; font-weight: 500; font-size: 0.85rem; text-align: center; }
 
-        .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px; }
-        .table-responsive { overflow-x: auto; }
+        .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 14px; }
+        .table-responsive { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-        th { background-color: #f8fafc; color: #475569; font-weight: 600; }
-        tr:hover { background-color: #f8fafc; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid #f1f5f9; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        th { background-color: #fff7f7; color: #7f1d1d; font-weight: 600; }
+        tr:last-child td { border-bottom: 0; }
+        tr:hover td { background-color: #fffafa; }
+        .badge { padding: 4px 10px; border-radius: 99px; font-size: 0.74rem; font-weight: 600; }
         .badge-admin { background-color: #fee2e2; color: #991b1b; }
         .badge-manager { background-color: #fef3c7; color: #92400e; }
         .badge-customer { background-color: #e0f2fe; color: #0369a1; }
-        .loading { text-align: center; color: var(--text-muted); padding: 20px; }
+        .loading { text-align: center; color: var(--text-muted); padding: 24px; }
 
-        .knowledge-intro { color: var(--text-muted); font-size: .9rem; margin: -6px 0 20px; }
-        .knowledge-form-grid { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto; gap: 14px; align-items: end; }
-        @media (max-width: 800px) { .knowledge-form-grid { grid-template-columns: 1fr; } }
+        .knowledge-intro { color: var(--text-muted); font-size: .88rem; margin: -6px 0 18px; }
+        .knowledge-form-grid { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(240px, 1fr) auto; gap: 16px; align-items: end; }
         .knowledge-help { display: block; color: var(--text-muted); font-size: .78rem; margin-top: 5px; }
         .knowledge-status { min-height: 24px; margin-top: 12px; font-size: .88rem; }
         .knowledge-file-list { width: 100%; border-collapse: collapse; font-size: .85rem; }
-        .knowledge-file-list td, .knowledge-file-list th { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        .knowledge-file-list th { color: #475569; background: #f8fafc; }
-        .knowledge-badge { display: inline-block; background: #dcfce7; color: #166534; border-radius: 12px; padding: 3px 9px; font-size: .75rem; font-weight: 600; }
+        .knowledge-file-list td, .knowledge-file-list th { padding: 11px 14px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+        .knowledge-file-list th { color: #7f1d1d; background: #fff7f7; }
+        .knowledge-badge { display: inline-block; background: #dcfce7; color: #166534; border-radius: 99px; padding: 3px 10px; font-size: .75rem; font-weight: 600; }
 
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;
-        }
-    
-
-        /* ---------- VISUAL POLISH: admin dashboard ---------- */
-        body {
-            background:
-                radial-gradient(ellipse at 92% 0%, rgba(211,47,47,.08), transparent 28rem),
-                linear-gradient(180deg, #f7f8fb 0%, #f1f3f7 100%);
-            color: #182235;
-        }
-        .dashboard-container { max-width: 1440px; }
-        .admin-header {
-            position: relative; overflow: hidden; border: 1px solid rgba(226,232,240,.9);
-            border-radius: 18px; padding: 23px 28px;
-            background: linear-gradient(110deg, #fff 0%, #fff 68%, #fff6f6 100%);
-            box-shadow: 0 16px 38px -27px rgba(127,18,24,.25), 0 4px 12px rgba(24,34,53,.04);
-        }
-        .admin-header::after {
-            content: ""; position: absolute; width: 190px; height: 190px; right: -58px; top: -105px;
-            border: 1px solid rgba(211,47,47,.12); border-radius: 50%;
-            box-shadow: 0 0 0 22px rgba(211,47,47,.035), 0 0 0 48px rgba(211,47,47,.025);
-            pointer-events: none;
-        }
-        .admin-header > * { position: relative; z-index: 1; }
-        .admin-header h1 { letter-spacing: -.025em; }
-        .card {
-            border: 1px solid rgba(226,232,240,.9); border-radius: 16px;
-            box-shadow: 0 14px 34px -25px rgba(24,34,53,.24), 0 3px 10px rgba(24,34,53,.035);
-            padding: 26px;
-        }
-        .card h3 { color: #B91C1C; border-bottom-color: #F4E6E6; }
-        .btn-logout, .btn-primary, #addCollectionDocButton, #refreshKnowledgeButton {
-            transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease;
-        }
-        .btn-logout { border: 1px solid #e5eaf0; }
-        .btn-primary { border-radius: 10px; box-shadow: 0 6px 14px rgba(211,47,47,.13); }
-        .form-group input:focus, .form-group select:focus, #newDocJson:focus {
-            outline: none; border-color: #dc7777; box-shadow: 0 0 0 3px rgba(211,47,47,.1);
-        }
-        .table-responsive {
-            border: 1px solid #edf0f4; border-radius: 12px; background: #fff;
-        }
-        table { border-collapse: separate; border-spacing: 0; }
-        th { background: #fff7f7; color: #7f1d1d; }
-        th:first-child { border-top-left-radius: 10px; }
-        th:last-child { border-top-right-radius: 10px; }
-        td, th { border-bottom-color: #eef1f5; }
-        tr:last-child td { border-bottom: 0; }
         #knowledgePanel {
-            position: relative; overflow: hidden;
-            background: linear-gradient(120deg, #fff 0%, #fff 72%, #fffafa 100%);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(120deg, #fff 0%, #fff 76%, #fffafa 100%);
         }
         #knowledgePanel::before {
-            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, #8f1117, #d32f2f 48%, #f2aaaa);
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #8f1117, #c91f27 48%, #f2aaaa);
         }
         #knowledgePanel > * { position: relative; }
-        #knowledgePanel h3 i { color: #d32f2f; }
-        .knowledge-badge { box-shadow: inset 0 0 0 1px rgba(22,101,52,.06); }
-        @media (hover: hover) {
-            .btn-logout:hover, #refreshKnowledgeButton:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(24,34,53,.08); }
-            .btn-primary:hover, #addCollectionDocButton:hover { transform: translateY(-1px); box-shadow: 0 9px 18px rgba(211,47,47,.18); }
-            tr:hover td { background: #fffafa; }
-        }
-        @media (max-width: 640px) {
-            body { padding: 12px; }
-            .admin-header { padding: 18px; align-items: flex-start; gap: 14px; }
-            .admin-header h1 { font-size: 1.18rem; }
-            .card { padding: 18px; border-radius: 14px; }
-            .table-controls { align-items: flex-start; }
-        }
 
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            padding-left: var(--side-w);
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
     </style>
 </head>
 <body>
+    <!-- ADMIN UNIFIED DESKTOP SIDEBAR -->
+    <nav class="app-sidebar" aria-label="เมนูผู้ดูแลระบบ">
+        <a href="admin_dashboard.html" class="sidebar-brand">
+            <span class="logo-mark" aria-hidden="true"><img src="./assets/tatip-logo-source.png" alt=""></span>
+            <div class="sidebar-brand-text">
+                <div class="sidebar-brand-title">TATIP AI <span class="version-badge">ADMIN</span></div>
+                <span class="sidebar-brand-sub">Admin &amp; Operations Console</span>
+            </div>
+        </a>
+        <div class="sidebar-nav-scroll">
+            <div class="sidebar-section-label">ผู้ดูแลระบบ</div>
+            <a href="admin_dashboard.html" class="sidebar-link"><i class="fa-solid fa-chart-line"></i><span>Dashboard เคส</span></a>
+            <button type="button" class="sidebar-link active" id="sideLinkUsers" onclick="switchAdminSection('users')"><i class="fa-solid fa-users-gear"></i><span>บัญชีผู้ใช้ &amp; องค์กร</span></button>
+            <button type="button" class="sidebar-link" id="sideLinkKnowledge" onclick="switchAdminSection('knowledge')"><i class="fa-solid fa-book-open"></i><span>คลังความรู้ AI (RAG)</span></button>
+            <button type="button" class="sidebar-link" id="sideLinkDatabase" onclick="switchAdminSection('database')"><i class="fa-solid fa-database"></i><span>สำรวจฐานข้อมูล Firestore</span></button>
+            <div class="sidebar-section-label" style="margin-top:10px;">มุมมองลูกค้า</div>
+            <a href="index.html" class="sidebar-link"><i class="fa-solid fa-house"></i><span>หน้าหลักบริการลูกค้า</span></a>
+            <a href="chat.html" class="sidebar-link"><i class="fa-solid fa-comments"></i><span>ทดสอบแชท AI</span></a>
+        </div>
+        <div class="sidebar-footer">
+            <button type="button" onclick="logoutAdmin()" class="btn-sidebar-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+    </nav>
+
+    <header class="top-navbar">
+        <div class="nav-container">
+            <div class="header-context">
+                <div class="header-page-title"><i class="fa-solid fa-user-shield text-red"></i> Admin Master Console</div>
+                <span class="header-page-sub">จัดการองค์กร บัญชีผู้ใช้ เอกสาร RAG และฐานข้อมูล Firestore</span>
+            </div>
+            <div class="header-actions">
+                <div class="status-online-pill"><span class="dot"></span><span>RAG: <strong>Online</strong></span></div>
+                <a href="admin_dashboard.html" class="btn-saas btn-saas-primary"><i class="fa-solid fa-chart-line"></i> Dashboard เคส</a>
+            </div>
+        </div>
+    </header>
 
 <div class="dashboard-container">
-    <!-- Header -->
-    <div class="admin-header">
-        <div>
-            <h1><i class="fa-solid fa-user-shield"></i> TATIP AI - Admin Master Dashboard</h1>
-            <div style="font-size: 0.85rem; color: var(--text-muted);">ระบบจัดการองค์กร บัญชีผู้ใช้ และฐานข้อมูลโปรเจกต์แบบเรียลไทม์</div>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <a href="admin_dashboard.html" class="btn-logout" style="text-decoration:none;background:#d32f2f;color:#fff;"><i class="fa-solid fa-chart-line"></i> Dashboard เคส</a>
-        <button class="btn-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</button>
-        </div>
+    <!-- Desktop Section Tabs (ลดการ Scroll ยาวเกินจำเป็น) -->
+    <div class="admin-tabs-bar" role="tablist" aria-label="หมวดหมู่การจัดการระบบ">
+        <button type="button" class="admin-tab-btn active" data-tab-target="users" onclick="switchAdminSection('users')"><i class="fa-solid fa-users"></i> บัญชีผู้ใช้ &amp; องค์กร</button>
+        <button type="button" class="admin-tab-btn" id="knowledgeTabBtn" data-tab-target="knowledge" onclick="switchAdminSection('knowledge')"><i class="fa-solid fa-book-open"></i> เอกสารความรู้ AI (RAG)</button>
+        <button type="button" class="admin-tab-btn" data-tab-target="database" onclick="switchAdminSection('database')"><i class="fa-solid fa-database"></i> สำรวจฐานข้อมูล</button>
+        <button type="button" class="admin-tab-btn" data-tab-target="all" onclick="switchAdminSection('all')"><i class="fa-solid fa-table-cells-large"></i> แสดงทั้งหมด</button>
     </div>
 
     <!-- ส่วนที่ 1: ฟอร์มสร้าง User / Tenant และตารางผู้ใช้ -->
-    <div class="grid-section">
+    <div class="grid-section admin-tab-panel" data-section="users">
         <!-- ฟอร์มสร้างบัญชีผู้ใช้ใหม่ -->
         <div class="card" style="margin-bottom: 0;">
             <h3><i class="fa-solid fa-user-plus"></i> ลงทะเบียนบัญชีและองค์กรลูกค้า</h3>
@@ -249,7 +263,7 @@
     </div>
 
     <!-- ส่วนจัดการเอกสารความรู้สำหรับ Vertex AI RAG -->
-    <section id="knowledgePanel" class="card" aria-labelledby="knowledgeHeading">
+    <section id="knowledgePanel" class="card admin-tab-panel" data-section="knowledge" aria-labelledby="knowledgeHeading" hidden>
         <h3 id="knowledgeHeading"><i class="fa-solid fa-book-open"></i> จัดการเอกสารความรู้สำหรับ AI</h3>
         <p class="knowledge-intro">อัปโหลดคู่มือเพื่อเพิ่มเข้า RAG Corpus ที่ระบบแชทใช้ค้นหาคำตอบ ไฟล์จะเริ่มใช้ได้หลังประมวลผลสำเร็จ</p>
         <form id="knowledgeUploadForm">
@@ -275,24 +289,24 @@
         </div>
         <div class="table-responsive">
             <table class="knowledge-file-list">
-                <thead><tr><th>ชื่อเอกสาร</th><th>ไฟล์</th><th>สถานะ</th><th>เพิ่มเมื่อ</th></tr></thead>
+                <thead><tr><th>ชื่อเอกสาร</th><th>ไฟล์</th><th>สถานะ</th><th>เพิ่มเมื่อ</th><th>จัดการ</th></tr></thead>
                 <tbody id="knowledgeFileTableBody">
-                    <tr><td colspan="4" class="loading">กำลังโหลดรายการเอกสาร...</td></tr>
+                    <tr><td colspan="5" class="loading">กำลังโหลดรายการเอกสาร...</td></tr>
                 </tbody>
             </table>
         </div>
     </section>
 
     <!-- ส่วนที่ 2: สำรวจข้อมูลทุก Collection -->
-    <div class="card">
+    <div class="card admin-tab-panel" data-section="database" hidden>
         <div class="table-controls">
             <div>
-                <h3><i class="fa-solid fa-database"></i> สำรวจข้อมูลทุกตารางในฐานข้อมูล Firestore</h3>
+                <h3 style="margin-bottom:0;border:0;padding:0;"><i class="fa-solid fa-database"></i> สำรวจข้อมูลทุกตารางในฐานข้อมูล Firestore</h3>
             </div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div>
-                    <label style="display: inline-block; margin-right: 8px; font-weight: 600;">เลือกตาราง:</label>
-                    <select id="collectionSelect" onchange="fetchCollectionData()" style="width: 220px; display: inline-block;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="margin:0;white-space:nowrap;">เลือกตาราง:</label>
+                    <select id="collectionSelect" onchange="fetchCollectionData()" style="width: 240px;">
                         <option value="users" selected>users (ผู้ใช้งาน)</option>
                         <option value="tenants">tenants (ข้อมูลองค์กรลูกค้า)</option>
                         <option value="support_cases">support_cases (เคสแจ้งปัญหา/Ticket)</option>
@@ -302,7 +316,7 @@
                         <option value="troubleshooting_state">troubleshooting_state (สถานะการแก้ไข)</option>
                     </select>
                 </div>
-                <button id="addCollectionDocButton" type="button" onclick="openAddModal()" style="background-color: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">
+                <button id="addCollectionDocButton" type="button" onclick="openAddModal()" style="background-color: #16a34a; color: white; border: none; padding: 9px 16px; border-radius: 9px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">
                     <i class="fa-solid fa-plus"></i> เพิ่มข้อมูลในตารางนี้
                 </button>
             </div>
@@ -610,7 +624,7 @@
     async function loadKnowledgeFiles() {
         const tableBody = document.getElementById('knowledgeFileTableBody');
         if (!tableBody) return;
-        tableBody.innerHTML = '<tr><td colspan="4" class="loading">กำลังโหลดรายการเอกสาร...</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" class="loading">กำลังโหลดรายการเอกสาร...</td></tr>';
         try {
             const response = await fetch(API_URL + '/api/admin/knowledge/files', {
                 headers: getKnowledgeAuthHeaders()
@@ -619,19 +633,44 @@
             if (!response.ok) throw new Error(result.detail || 'โหลดรายการเอกสารไม่สำเร็จ');
             const files = result.data || [];
             if (!files.length) {
-                tableBody.innerHTML = '<tr><td colspan="4" class="loading">ยังไม่มีเอกสารความรู้ อัปโหลดคู่มือไฟล์แรกได้จากด้านบน</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="5" class="loading">ยังไม่มีเอกสารความรู้ อัปโหลดคู่มือไฟล์แรกได้จากด้านบน</td></tr>';
                 return;
             }
             tableBody.innerHTML = files.map(item => {
                 const createdAt = item.CREATE_DATE ? new Date(item.CREATE_DATE).toLocaleString('th-TH') : '-';
-                return '<tr><td>' + escapeKnowledgeHtml(item.TITLE || item.FILE_NAME || '-') +
+                const fileId = item.RAG_FILE_ID || item._document_id || '';
+                const docTitle = item.TITLE || item.FILE_NAME || '-';
+                const escapedTitle = escapeKnowledgeHtml(docTitle).replace(/'/g, "\\'");
+                const deleteAction = fileId
+                    ? '<button type="button" class="btn-logout" style="padding:4px 10px;font-size:0.8rem;color:#dc2626;border-color:#fca5a5;" onclick="deleteKnowledgeDoc(\'' + escapeKnowledgeHtml(fileId) + '\', \'' + escapedTitle + '\')"><i class="fa-solid fa-trash-can"></i> ลบ</button>'
+                    : '-';
+                return '<tr><td>' + escapeKnowledgeHtml(docTitle) +
                     '</td><td>' + escapeKnowledgeHtml(item.FILE_NAME || '-') +
                     '</td><td><span class="knowledge-badge">' + escapeKnowledgeHtml(item.STATUS || 'พร้อมใช้') +
-                    '</span></td><td>' + escapeKnowledgeHtml(createdAt) + '</td></tr>';
+                    '</span></td><td>' + escapeKnowledgeHtml(createdAt) +
+                    '</td><td>' + deleteAction + '</td></tr>';
             }).join('');
         } catch (error) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="loading" style="color:#dc2626;">' +
+            tableBody.innerHTML = '<tr><td colspan="5" class="loading" style="color:#dc2626;">' +
                 escapeKnowledgeHtml(error.message) + '</td></tr>';
+        }
+    }
+
+    async function deleteKnowledgeDoc(fileId, title) {
+        if (!fileId) return;
+        if (!confirm('คุณต้องการลบเอกสาร "' + title + '" ออกจาก AI และระบบ RAG ใช่หรือไม่?')) return;
+        try {
+            const response = await fetch(API_URL + '/api/admin/knowledge/' + encodeURIComponent(fileId), {
+                method: 'DELETE',
+                headers: getKnowledgeAuthHeaders()
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.detail || 'ลบเอกสารไม่สำเร็จ');
+            alert(result.message || 'ลบเอกสารเรียบร้อยแล้ว');
+            await loadKnowledgeFiles();
+            if (document.getElementById('collectionSelect').value === 'knowledge_articles') fetchCollectionData();
+        } catch (error) {
+            alert('เกิดข้อผิดพลาด: ' + (error.message || 'ไม่สามารถลบเอกสารได้'));
         }
     }
 
@@ -732,15 +771,57 @@
         }
     });
 
+    function switchAdminSection(section) {
+        const panels = document.querySelectorAll('.admin-tab-panel');
+        const tabButtons = document.querySelectorAll('.admin-tab-btn');
+        const currentAdmin = getCurrentAdmin();
+        const isBranchManager = currentAdmin.role === 'branch_manager';
+
+        if (isBranchManager && section === 'knowledge') section = 'users';
+
+        panels.forEach(panel => {
+            const sec = panel.getAttribute('data-section');
+            if (isBranchManager && sec === 'knowledge') {
+                panel.hidden = true;
+                return;
+            }
+            panel.hidden = (section !== 'all' && sec !== section);
+        });
+
+        tabButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-tab-target') === section);
+        });
+
+        ['sideLinkUsers', 'sideLinkKnowledge', 'sideLinkDatabase'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        });
+        if (section === 'users') document.getElementById('sideLinkUsers')?.classList.add('active');
+        if (section === 'knowledge') document.getElementById('sideLinkKnowledge')?.classList.add('active');
+        if (section === 'database') document.getElementById('sideLinkDatabase')?.classList.add('active');
+    }
+
     function logoutAdmin() {
         localStorage.removeItem('currentUser');
         window.location.href = 'login.html';
     }
 
     if (setupAdminPermissions()) {
+        const isBranchManager = getCurrentAdmin().role === 'branch_manager';
+        if (isBranchManager) {
+            const kbTab = document.getElementById('knowledgeTabBtn');
+            const kbSide = document.getElementById('sideLinkKnowledge');
+            if (kbTab) kbTab.hidden = true;
+            if (kbSide) kbSide.style.display = 'none';
+        }
         fetchUsers();
         fetchCollectionData();
         if (getCurrentAdmin().role === 'admin') loadKnowledgeFiles();
+        if (window.location.hash === '#knowledge' && !isBranchManager) {
+            switchAdminSection('knowledge');
+        } else {
+            switchAdminSection('users');
+        }
     } 
 </script>
 
