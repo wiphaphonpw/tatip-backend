@@ -375,6 +375,101 @@ class TestSupportCaseStatusDashboardApi(unittest.TestCase):
         self.assertEqual(mock_case_ref.update.call_args[0][0]["ISSUE_TYPE"], "เรื่องที่ไม่เกี่ยวข้อง")
 
 
+class TestChatHistoryPairing(unittest.TestCase):
+    """Offline unit tests ensuring chat history turns keep strict Q&A pairing."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.main = _load_main_offline()
+
+    def test_save_chat_history_writes_shared_turn_id_and_millisecond_offset(self):
+        """Verify save_chat_history shares a non-empty TURN_ID and offsets AI reply by 10ms."""
+        mock_db = MagicMock()
+        mock_batch = MagicMock()
+        mock_db.batch.return_value = mock_batch
+        mock_msg_col = MagicMock()
+        mock_conv_col = MagicMock()
+        mock_msg_col.document.side_effect = [MagicMock(id="msg-u"), MagicMock(id="msg-a")]
+
+        def _col_router(name):
+            return mock_msg_col if name == "messages" else mock_conv_col
+
+        mock_db.collection.side_effect = _col_router
+
+        req = self.main.SaveChatHistoryRequest(
+            USER_ID="Panna_01",
+            TENANT_ID="TENANT_01",
+            CONVERSATION_ID="conv_01",
+            MESSAGE="วิธีตั้งค่าพื้นที่ ROI",
+            REPLY="การตั้งค่าพื้นที่วิเคราะห์ หรือ ROI...",
+        )
+        current_user = {"USER_ID": "Panna_01", "TENANT_ID": "TENANT_01", "ROLE": "customer"}
+
+        with patch.object(self.main, "db", mock_db):
+            res = asyncio.run(self.main.save_chat_history(req, current_user))
+
+        self.assertEqual(res["status"], "success")
+        self.assertTrue(res.get("turn_id"))
+        self.assertEqual(mock_batch.set.call_count, 3)
+
+        user_doc = mock_batch.set.call_args_list[0][0][1]
+        ai_doc = mock_batch.set.call_args_list[1][0][1]
+        self.assertEqual(user_doc["SENDER"], "user")
+        self.assertEqual(ai_doc["SENDER"], "ai")
+        self.assertEqual(user_doc["TURN_ID"], res["turn_id"])
+        self.assertEqual(ai_doc["TURN_ID"], res["turn_id"])
+        delta_ms = (ai_doc["CREATE_DATE"] - user_doc["CREATE_DATE"]).total_seconds() * 1000
+        self.assertEqual(round(delta_ms), 10)
+
+    def test_get_chat_history_normalizes_timestamps_and_orders_user_before_ai(self):
+        """Verify get_chat_history normalizes naive/aware datetimes and puts user before ai on ties."""
+        from datetime import datetime, timezone
+
+        tie_dt = datetime(2026, 11, 11, 9, 12, 43, 801040, tzinfo=timezone.utc)
+        naive_earlier = datetime(2026, 11, 11, 7, 30, 0)
+
+        doc_ai_tie = MagicMock()
+        doc_ai_tie.id = "aaa_ai_first_docid"
+        doc_ai_tie.to_dict.return_value = {
+            "USER_ID": "Panna_01",
+            "SENDER": "ai",
+            "MESSAGE": "คำตอบ Session",
+            "CREATE_DATE": tie_dt,
+        }
+        doc_user_tie = MagicMock()
+        doc_user_tie.id = "zzz_user_last_docid"
+        doc_user_tie.to_dict.return_value = {
+            "USER_ID": "Panna_01",
+            "SENDER": "user",
+            "MESSAGE": "คำถาม Session",
+            "CREATE_DATE": tie_dt,
+        }
+        doc_early = MagicMock()
+        doc_early.id = "early_doc"
+        doc_early.to_dict.return_value = {
+            "USER_ID": "Panna_01",
+            "SENDER": "user",
+            "MESSAGE": "คำถามก่อนหน้า",
+            "CREATE_DATE": naive_earlier,
+        }
+
+        mock_db = MagicMock()
+        mock_query = MagicMock()
+        mock_query.stream.return_value = [doc_ai_tie, doc_user_tie, doc_early]
+        mock_db.collection.return_value.where.return_value = mock_query
+
+        current_user = {"USER_ID": "Panna_01", "TENANT_ID": "T1", "ROLE": "customer"}
+        with patch.object(self.main, "db", mock_db):
+            res = self.main.get_chat_history("Panna_01", None, current_user)
+
+        self.assertEqual(res["status"], "success")
+        senders = [item["SENDER"] for item in res["data"]]
+        messages = [item["MESSAGE"] for item in res["data"]]
+        self.assertEqual(senders, ["user", "user", "ai"])
+        self.assertEqual(messages, ["คำถามก่อนหน้า", "คำถาม Session", "คำตอบ Session"])
+        self.assertTrue(res["data"][0]["CREATE_DATE"].endswith("+00:00"))
+
+
 class TestRagLiveBenchmark:
     """Live Benchmark Evaluation against Cloud Run Production API."""
 

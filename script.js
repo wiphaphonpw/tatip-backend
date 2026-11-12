@@ -470,44 +470,133 @@ function normalizeHistoryForComparison(value) {
         .toLocaleLowerCase();
 }
 
-function buildHistoryTurns(messages) {
-    const ordered = [...messages].sort((left, right) =>
-        Date.parse(left.CREATE_DATE || 0) - Date.parse(right.CREATE_DATE || 0)
-    );
-    const waitingUsers = [];
-    const turns = [];
+function parseHistorySortParts(item) {
+    const raw = String(item?.CREATE_DATE || '').trim();
+    const epochMs = raw ? Date.parse(raw) : 0;
+    const ms = Number.isFinite(epochMs) ? epochMs : 0;
+    const fracMatch = raw.match(/\.(\d+)/);
+    const subNs = fracMatch ? Number(fracMatch[1].padEnd(9, '0').slice(0, 9)) : 0;
+    const sender = String(item?.SENDER || '').toLowerCase();
+    const senderRank = sender === 'user' ? 0 : sender === 'ai' ? 1 : 2;
+    const docId = String(item?._document_id || '');
+    return { ms, subNs, senderRank, docId };
+}
 
-    ordered.forEach(item => {
-        if (item.SENDER === 'user') {
-            waitingUsers.push(item);
-        } else if (item.SENDER === 'ai') {
-            const userMessage = waitingUsers.shift();
-            if (!userMessage) return;
-            const timestamp = item.CREATE_DATE || userMessage.CREATE_DATE;
-            const date = timestamp ? new Date(timestamp) : new Date();
-            turns.push({
-                id: item._document_id || userMessage._document_id || `history-${turns.length}`,
-                question: userMessage.MESSAGE || '',
-                answer: item.MESSAGE || '',
-                date: date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }),
-                time: date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                sortTime: date.getTime()
-            });
-        } else if (item.MESSAGE && item.REPLY) {
+function compareHistoryMessages(left, right) {
+    const a = parseHistorySortParts(left);
+    const b = parseHistorySortParts(right);
+    if (a.ms !== b.ms) return a.ms - b.ms;
+    if (a.subNs !== b.subNs) return a.subNs - b.subNs;
+    if (a.senderRank !== b.senderRank) return a.senderRank - b.senderRank;
+    return a.docId.localeCompare(b.docId);
+}
+
+function createHistoryTurnRecord(id, question, answer, timestamp, fallbackSubNs = 0) {
+    const date = timestamp ? new Date(timestamp) : new Date();
+    const ms = Number.isFinite(date.getTime()) ? date.getTime() : 0;
+    const validDate = ms > 0 ? date : new Date();
+    return {
+        id,
+        question: question || '',
+        answer: answer || '',
+        date: validDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }),
+        time: validDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        sortTime: ms,
+        sortSubNs: fallbackSubNs
+    };
+}
+
+function buildHistoryTurns(messages) {
+    if (!Array.isArray(messages) || messages.length === 0) return [];
+
+    const turns = [];
+    const turnGroups = new Map();
+    const legacyConversationGroups = new Map();
+
+    messages.forEach(item => {
+        if (!item || typeof item !== 'object') return;
+        const sender = String(item.SENDER || '').toLowerCase();
+        const turnId = String(item.TURN_ID || '').trim();
+
+        if (turnId && (sender === 'user' || sender === 'ai')) {
+            const convId = String(item.CONVERSATION_ID || '__default__').trim();
+            const key = `${convId}::${turnId}`;
+            const group = turnGroups.get(key) || { user: null, ai: null };
+            if (sender === 'user' && !group.user) {
+                group.user = item;
+            } else if (sender === 'ai' && !group.ai) {
+                group.ai = item;
+            }
+            turnGroups.set(key, group);
+            return;
+        }
+
+        if (item.MESSAGE && item.REPLY) {
             // Keep support for older records that stored a whole turn in one document.
-            const date = item.CREATE_DATE ? new Date(item.CREATE_DATE) : new Date();
-            turns.push({
-                id: item._document_id || `legacy-${turns.length}`,
-                question: item.MESSAGE,
-                answer: item.REPLY,
-                date: date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }),
-                time: date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                sortTime: date.getTime()
-            });
+            const sortParts = parseHistorySortParts(item);
+            turns.push(createHistoryTurnRecord(
+                item._document_id || `legacy-${turns.length}`,
+                item.MESSAGE,
+                item.REPLY,
+                item.CREATE_DATE,
+                sortParts.subNs
+            ));
+            return;
+        }
+
+        if (sender === 'user' || sender === 'ai') {
+            const convId = String(item.CONVERSATION_ID || '__default__').trim();
+            if (!legacyConversationGroups.has(convId)) {
+                legacyConversationGroups.set(convId, []);
+            }
+            legacyConversationGroups.get(convId).push(item);
         }
     });
 
-    return turns.sort((left, right) => right.sortTime - left.sortTime);
+    turnGroups.forEach((group, key) => {
+        if (!group.user || !group.ai) return;
+        const timestamp = group.ai.CREATE_DATE || group.user.CREATE_DATE;
+        const sortParts = parseHistorySortParts(group.ai.CREATE_DATE ? group.ai : group.user);
+        turns.push(createHistoryTurnRecord(
+            group.ai._document_id || group.user._document_id || `turn-${key}`,
+            group.user.MESSAGE || '',
+            group.ai.MESSAGE || '',
+            timestamp,
+            sortParts.subNs
+        ));
+    });
+
+    legacyConversationGroups.forEach(convMessages => {
+        const ordered = [...convMessages].sort(compareHistoryMessages);
+        // Pair each AI reply only with the immediately preceding unanswered user message
+        // in the same conversation so an orphaned user question never shifts later turns.
+        let pendingUser = null;
+
+        ordered.forEach(item => {
+            const sender = String(item.SENDER || '').toLowerCase();
+            if (sender === 'user') {
+                pendingUser = item;
+            } else if (sender === 'ai') {
+                if (!pendingUser) return;
+                const userMessage = pendingUser;
+                pendingUser = null;
+                const timestamp = item.CREATE_DATE || userMessage.CREATE_DATE;
+                const sortParts = parseHistorySortParts(item.CREATE_DATE ? item : userMessage);
+                turns.push(createHistoryTurnRecord(
+                    item._document_id || userMessage._document_id || `history-${turns.length}`,
+                    userMessage.MESSAGE || '',
+                    item.MESSAGE || '',
+                    timestamp,
+                    sortParts.subNs
+                ));
+            }
+        });
+    });
+
+    return turns.sort((left, right) => {
+        if (right.sortTime !== left.sortTime) return right.sortTime - left.sortTime;
+        return (right.sortSubNs || 0) - (left.sortSubNs || 0);
+    });
 }
 
 function escapeHistoryHtml(value) {

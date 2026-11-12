@@ -790,6 +790,27 @@ def create_customer_user(
         logging.exception("Failed to create user")
         raise HTTPException(status_code=500, detail="ไม่สามารถสร้างบัญชีผู้ใช้ได้") from e
 
+def _parse_history_datetime(raw_value: Any) -> datetime:
+    """Normalize Firestore, datetime, or ISO timestamp values into UTC datetime for sorting."""
+    min_utc = datetime.min.replace(tzinfo=timezone.utc)
+    if raw_value is None:
+        return min_utc
+    dt: datetime | None = None
+    if hasattr(raw_value, "to_datetime"):
+        dt = raw_value.to_datetime()
+    elif isinstance(raw_value, datetime):
+        dt = raw_value
+    elif isinstance(raw_value, str) and raw_value.strip():
+        try:
+            dt = datetime.fromisoformat(raw_value.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return min_utc
+    if dt is None:
+        return min_utc
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
 # API บันทึกข้อความผู้ใช้และ AI แยกเป็นคนละเอกสาร
 @app.post("/api/save-chat-history")
 async def save_chat_history(
@@ -806,7 +827,8 @@ async def save_chat_history(
             raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์บันทึกประวัติของบัญชีนี้")
 
         user_timestamp = datetime.now(timezone.utc)
-        ai_timestamp = user_timestamp + timedelta(microseconds=1)
+        ai_timestamp = user_timestamp + timedelta(milliseconds=10)
+        turn_id = secrets.token_hex(8)
         batch = db.batch()
         messages_ref = db.collection("messages")
         for sender, text, created_at in (
@@ -815,6 +837,7 @@ async def save_chat_history(
         ):
             batch.set(messages_ref.document(), {
                 "CONVERSATION_ID": conversation_id,
+                "TURN_ID": turn_id,
                 "USER_ID": user_id,
                 "TENANT_ID": tenant_id,
                 "SENDER": sender,
@@ -831,7 +854,12 @@ async def save_chat_history(
         }, merge=True)
         batch.commit()
 
-        return {"status": "success", "conversation_id": conversation_id, "message": "บันทึกประวัติแชทสำเร็จ"}
+        return {
+            "status": "success",
+            "conversation_id": conversation_id,
+            "turn_id": turn_id,
+            "message": "บันทึกประวัติแชทสำเร็จ",
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -851,15 +879,24 @@ def get_chat_history(
         if conversation_id:
             query = query.where("CONVERSATION_ID", "==", conversation_id)
 
-        history = []
+        sender_rank_map = {"user": 0, "ai": 1}
+        sortable_history = []
         for doc in query.stream():
             item = doc.to_dict()
             item["_document_id"] = doc.id
             created_at = item.get("CREATE_DATE")
-            if hasattr(created_at, "isoformat"):
-                item["CREATE_DATE"] = created_at.isoformat()
-            history.append(item)
-        history.sort(key=lambda item: item.get("CREATE_DATE") or "")
+            sort_dt = _parse_history_datetime(created_at)
+            if created_at is not None and (hasattr(created_at, "isoformat") or isinstance(created_at, datetime)):
+                item["CREATE_DATE"] = sort_dt.isoformat()
+            elif isinstance(created_at, str) and created_at.strip():
+                min_utc = datetime.min.replace(tzinfo=timezone.utc)
+                if sort_dt != min_utc:
+                    item["CREATE_DATE"] = sort_dt.isoformat()
+            sender_rank = sender_rank_map.get(str(item.get("SENDER") or "").lower(), 2)
+            sortable_history.append(((sort_dt, sender_rank, doc.id), item))
+
+        sortable_history.sort(key=lambda pair: pair[0])
+        history = [item for _, item in sortable_history]
         return {"status": "success", "data": history}
     except HTTPException:
         raise
@@ -2211,7 +2248,8 @@ async def line_webhook(request: Request):
             user_id = line_user_id
             conversation_id = f"line_{line_user_id}"
             timestamp = datetime.now(timezone.utc)
-            ai_timestamp = timestamp + timedelta(microseconds=1)
+            ai_timestamp = timestamp + timedelta(milliseconds=10)
+            turn_id = secrets.token_hex(8)
             batch = db.batch()
             messages_ref = db.collection("messages")
             for sender, text, created_at in (
@@ -2220,6 +2258,7 @@ async def line_webhook(request: Request):
             ):
                 batch.set(messages_ref.document(), {
                     "CONVERSATION_ID": conversation_id,
+                    "TURN_ID": turn_id,
                     "USER_ID": user_id,
                     "TENANT_ID": tenant_id,
                     "SENDER": sender,
