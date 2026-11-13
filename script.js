@@ -199,11 +199,12 @@ async function submitChatMessage() {
     if (!message) return;
 
     const timeNow = new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+    const safeUserMessage = escapeHistoryHtml(message);
     chatBox.innerHTML += `
         <div class="message-group user">
             <div class="message-avatar"><i class="fa-solid fa-user"></i></div>
             <div class="message-body">
-                <div class="message-bubble">${message}</div>
+                <div class="message-bubble">${safeUserMessage}</div>
                 <div class="message-time">${timeNow} น.</div>
             </div>
         </div>`;
@@ -344,6 +345,30 @@ async function submitChatMessage() {
             </div>`;
     }
     chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function initChatPageFromQuery() {
+    const inputField = document.getElementById('chatInput');
+    const chatBox = document.getElementById('chatMessages');
+    if (!inputField || !chatBox) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const initialQuestion = (params.get('q') || '').trim();
+    if (!initialQuestion) return;
+
+    // ล้างพารามิเตอร์ q ออกจาก URL เพื่อป้องกันการส่งซ้ำเมื่อรีเฟรชหน้า
+    params.delete('q');
+    const cleanQuery = params.toString();
+    const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ''}${window.location.hash || ''}`;
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    sendChatMessage(initialQuestion);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initChatPageFromQuery);
+} else {
+    initChatPageFromQuery();
 }
 
 // ==========================================
